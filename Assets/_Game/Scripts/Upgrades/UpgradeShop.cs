@@ -21,8 +21,8 @@ namespace SurfPool
     }
 
     /// <summary>
-    /// The computer on the ticket desk. Press E to open the upgrades menu, pick a tab, buy with the mouse,
-    /// Esc or E to close. Each upgrade's effect is applied in <see cref="Apply"/> by its id.
+    /// The computer on the ticket desk. Press E to open the upgrades menu (drawn by <see cref="UpgradeScreen"/>),
+    /// buy with the mouse, Esc or E to close. Each upgrade's effect is applied in <see cref="Apply"/> by its id.
     /// </summary>
     public class UpgradeShop : MonoBehaviour, IInteractable
     {
@@ -88,24 +88,27 @@ namespace SurfPool
 
         bool open;
         int openedFrame;
-        string message;
-        UpgradeCategory tab;
-        Vector2 scroll;
-        GUIStyle titleStyle, textStyle, boldStyle, buttonStyle, tabStyle;
 
         public string Prompt => "Use computer (upgrades)";
+        public bool IsOpen => open;
+        public IReadOnlyList<Upgrade> Upgrades => upgrades;
+        public int OwnedCount => upgrades.FindAll(u => u.owned).Count;
+
+        /// <summary>Feedback from the last purchase attempt, shown at the bottom of the screen.</summary>
+        public string Message { get; private set; }
 
         public void Interact()
         {
             open = true;
             openedFrame = Time.frameCount;
-            message = null;
+            Message = null;
             InputBlocker.Block();
             FirstPersonController.LockCursor(false);
         }
 
-        void Close()
+        public void Close()
         {
+            if (!open) return;
             open = false;
             InputBlocker.Release();
             FirstPersonController.LockCursor(true);
@@ -126,23 +129,24 @@ namespace SurfPool
             if (upgrade == null || upgrade.owned) return false;
             if (!RequirementMet(upgrade))
             {
-                message = $"Buy {TitleOf(upgrade.requires)} first.";
+                Message = $"Buy {TitleOf(upgrade.requires)} first.";
                 return false;
             }
             if (!Wallet.Instance.Spend(upgrade.cost, upgrade.title))
             {
-                message = $"Not enough money for {upgrade.title}.";
+                Message = $"Not enough money for {upgrade.title}.";
                 return false;
             }
             upgrade.owned = true;
             Apply(upgrade.id);
-            message = $"Bought {upgrade.title}!";
+            Message = $"Bought {upgrade.title}!";
+            Notifications.Post($"Bought {upgrade.title}!");
             return true;
         }
 
-        bool RequirementMet(Upgrade upgrade) => string.IsNullOrEmpty(upgrade.requires) || IsOwned(upgrade.requires);
+        public bool RequirementMet(Upgrade upgrade) => string.IsNullOrEmpty(upgrade.requires) || IsOwned(upgrade.requires);
 
-        string TitleOf(string id) => upgrades.Find(u => u.id == id)?.title ?? id;
+        public string TitleOf(string id) => upgrades.Find(u => u.id == id)?.title ?? id;
 
         void Apply(string id)
         {
@@ -204,60 +208,6 @@ namespace SurfPool
                     deskClerk.SetActive(true);
                     break;
             }
-        }
-
-        void OnGUI()
-        {
-            if (!open) return;
-            CreateStyles();
-
-            float w = Mathf.Min(680, Screen.width - 40), h = Mathf.Min(620, Screen.height - 40);
-            var area = new Rect((Screen.width - w) / 2, (Screen.height - h) / 2, w, h);
-            GUI.color = new Color(0.08f, 0.1f, 0.14f, 0.97f);
-            GUI.DrawTexture(area, Texture2D.whiteTexture);
-            GUI.color = Color.white;
-
-            GUILayout.BeginArea(new Rect(area.x + 20, area.y + 15, area.width - 40, area.height - 30));
-            GUILayout.Label("Wave Pool Upgrades", titleStyle);
-            GUILayout.Label($"Money: ${Wallet.Instance.Money}", textStyle);
-            GUILayout.Space(6);
-
-            var names = Enum.GetNames(typeof(UpgradeCategory));
-            tab = (UpgradeCategory)GUILayout.Toolbar((int)tab, names, tabStyle, GUILayout.Height(34));
-            GUILayout.Space(8);
-
-            scroll = GUILayout.BeginScrollView(scroll);
-            foreach (var upgrade in upgrades)
-            {
-                if (upgrade.category != tab) continue;
-                bool unlocked = RequirementMet(upgrade);
-                GUILayout.BeginHorizontal();
-                GUILayout.BeginVertical();
-                GUILayout.Label($"{upgrade.title}  —  ${upgrade.cost}", boldStyle);
-                GUILayout.Label(upgrade.description + (unlocked ? "" : $"  (needs {TitleOf(upgrade.requires)})"), textStyle);
-                GUILayout.EndVertical();
-                GUI.enabled = !upgrade.owned && unlocked && Wallet.Instance.Money >= upgrade.cost;
-                string label = upgrade.owned ? "Owned" : unlocked ? "Buy" : "Locked";
-                if (GUILayout.Button(label, buttonStyle, GUILayout.Width(100), GUILayout.Height(40))) Buy(upgrade.id);
-                GUI.enabled = true;
-                GUILayout.EndHorizontal();
-                GUILayout.Space(10);
-            }
-            GUILayout.EndScrollView();
-
-            if (!string.IsNullOrEmpty(message)) GUILayout.Label(message, textStyle);
-            if (GUILayout.Button("Close (Esc)", buttonStyle, GUILayout.Height(34))) Close();
-            GUILayout.EndArea();
-        }
-
-        void CreateStyles()
-        {
-            if (titleStyle != null) return;
-            titleStyle = new GUIStyle(GUI.skin.label) { fontSize = 26, fontStyle = FontStyle.Bold };
-            textStyle = new GUIStyle(GUI.skin.label) { fontSize = 16, wordWrap = true };
-            boldStyle = new GUIStyle(textStyle) { fontStyle = FontStyle.Bold };
-            buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = 16 };
-            tabStyle = new GUIStyle(GUI.skin.button) { fontSize = 17, fontStyle = FontStyle.Bold };
         }
     }
 }

@@ -1,0 +1,557 @@
+/* Surf Pool Sim UI. Palette: navy panels, teal accent, sand yellow, coral for bad news, green for money. */
+
+.hidden {
+    display: none;
+}
+
+.layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* ---------- HUD ---------- */
+
+.hud-root {
+    flex-grow: 1;
+}
+
+.card {
+    background-color: rgba(16, 33, 46, 0.86);
+    border-radius: 14px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.12);
+    padding: 12px 18px;
+}
+
+.top-left {
+    position: absolute;
+    left: 32px;
+    top: 28px;
+}
+
+.top-right {
+    position: absolute;
+    right: 32px;
+    top: 28px;
+    width: 360px;
+}
+
+.money-label {
+    font-size: 48px;
+    -unity-font-style: bold;
+    color: #06D6A0;
+}
+
+.money-label--negative {
+    color: #EF476F;
+}
+
+.rating-row {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.star-rating {
+    width: 150px;
+    height: 28px;
+}
+
+.rating-label {
+    font-size: 20px;
+    -unity-font-style: bold;
+    color: white;
+    margin-left: 10px;
+}
+
+.popup-stack {
+    height: 40px;
+    margin-top: 8px;
+}
+
+.popup {
+    position: absolute;
+    left: 6px;
+    top: 0;
+    font-size: 26px;
+    -unity-font-style: bold;
+    color: #06D6A0;
+    transition-duration: 1.3s;
+    transition-timing-function: ease-out;
+}
+
+.popup--negative {
+    color: #EF476F;
+}
+
+.popup--leaving {
+    opacity: 0;
+    translate: 0 -48px;
+}
+
+.section-title {
+    font-size: 15px;
+    -unity-font-style: bold;
+    color: #8FB8C9;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+}
+
+.wave-type {
+    font-size: 26px;
+    -unity-font-style: bold;
+    color: white;
+    padding: 4px 14px;
+    border-radius: 8px;
+    align-self: flex-start;
+}
+
+.wave-type--beginner {
+    background-color: #2A9FC4;
+}
+
+.wave-type--intermediate {
+    background-color: #4361EE;
+}
+
+.wave-type--pro {
+    background-color: #B5179E;
+}
+
+.bar {
+    height: 10px;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 5px;
+    margin-top: 10px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    background-color: #2EC4B6;
+}
+
+.bar-fill--charging {
+    background-color: #FFD166;
+}
+
+.small-text {
+    font-size: 16px;
+    color: #CFE3EA;
+    margin-top: 4px;
+}
+
+.divider {
+    height: 2px;
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: 12px 0;
+}
+
+.stat-row {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 4px;
+}
+
+.stat-name {
+    font-size: 18px;
+    color: #CFE3EA;
+}
+
+.stat-value {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: white;
+}
+
+.stat-value--bad {
+    color: #EF476F;
+}
+
+.crosshair {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    margin-left: -4px;
+    margin-top: -4px;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.9);
+    transition-duration: 0.12s;
+}
+
+.crosshair--active {
+    width: 18px;
+    height: 18px;
+    margin-left: -9px;
+    margin-top: -9px;
+    border-radius: 9px;
+    border-width: 3px;
+    border-color: #2EC4B6;
+    background-color: rgba(46, 196, 182, 0.3);
+}
+
+.prompt {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    margin-top: 34px;
+    flex-direction: row;
+    justify-content: center;
+}
+
+.prompt-box {
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(16, 33, 46, 0.86);
+    border-radius: 12px;
+    padding: 8px 18px 8px 8px;
+}
+
+.key-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    background-color: white;
+    color: #10212E;
+    font-size: 22px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    margin-right: 12px;
+}
+
+.prompt-label {
+    font-size: 24px;
+    -unity-font-style: bold;
+    color: white;
+}
+
+.click-to-play {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    margin-top: 34px;
+    font-size: 30px;
+    -unity-font-style: bold;
+    color: white;
+    -unity-text-align: middle-center;
+}
+
+.hint {
+    position: absolute;
+    left: 32px;
+    bottom: 24px;
+    font-size: 17px;
+    color: rgba(255, 255, 255, 0.8);
+    transition-duration: 1.5s;
+}
+
+.hint--hidden {
+    opacity: 0;
+}
+
+.toasts {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 28px;
+    align-items: center;
+}
+
+.toast {
+    background-color: rgba(16, 33, 46, 0.92);
+    border-radius: 10px;
+    border-left-width: 6px;
+    border-color: #2EC4B6;
+    padding: 8px 18px;
+    margin-bottom: 8px;
+    font-size: 20px;
+    color: white;
+    transition-duration: 0.5s;
+}
+
+.toast--bad {
+    border-color: #EF476F;
+}
+
+.toast--leaving {
+    opacity: 0;
+}
+
+/* ---------- Surfer speech bubbles ---------- */
+
+.bubble {
+    position: absolute;
+    align-items: center;
+    translate: -50% -100%;
+}
+
+.bubble-box {
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 14px;
+    padding: 4px 12px 4px 4px;
+}
+
+.bubble-tail {
+    width: 12px;
+    height: 12px;
+    background-color: rgba(255, 255, 255, 0.95);
+    rotate: 45deg;
+    margin-top: -7px;
+}
+
+.skill-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 14px;
+    color: white;
+    font-size: 15px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.skill-badge--beginner {
+    background-color: #2A9FC4;
+}
+
+.skill-badge--intermediate {
+    background-color: #4361EE;
+}
+
+.skill-badge--pro {
+    background-color: #B5179E;
+}
+
+.bubble-text {
+    font-size: 17px;
+    -unity-font-style: bold;
+    color: #10212E;
+    margin-left: 6px;
+}
+
+.patience {
+    width: 74px;
+    height: 8px;
+    background-color: rgba(0, 0, 0, 0.55);
+    border-radius: 4px;
+    margin-top: 5px;
+    overflow: hidden;
+}
+
+.patience-fill {
+    height: 100%;
+    background-color: #06D6A0;
+}
+
+.patience-fill--mid {
+    background-color: #FFD166;
+}
+
+.patience-fill--low {
+    background-color: #EF476F;
+}
+
+/* ---------- Upgrade computer (SurfOS) ---------- */
+
+.screen-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(5, 12, 18, 0.6);
+    align-items: center;
+    justify-content: center;
+}
+
+.screen-window {
+    width: 1100px;
+    height: 780px;
+    background-color: #10212E;
+    border-radius: 18px;
+    border-width: 3px;
+    border-color: #2EC4B6;
+    padding: 24px 28px;
+}
+
+.screen-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.screen-title {
+    font-size: 36px;
+    -unity-font-style: bold;
+    color: white;
+}
+
+.screen-subtitle {
+    font-size: 16px;
+    color: #8FB8C9;
+}
+
+.screen-money {
+    font-size: 36px;
+    -unity-font-style: bold;
+    color: #06D6A0;
+}
+
+.tabs {
+    flex-direction: row;
+    margin: 18px 0 14px 0;
+}
+
+.tab {
+    font-size: 20px;
+    -unity-font-style: bold;
+    color: #CFE3EA;
+    background-color: rgba(255, 255, 255, 0.07);
+    border-width: 0;
+    border-radius: 10px;
+    padding: 10px 24px;
+    margin: 0 10px 0 0;
+    transition-duration: 0.12s;
+}
+
+.tab:hover {
+    background-color: rgba(255, 255, 255, 0.16);
+}
+
+.tab--active {
+    background-color: #2EC4B6;
+    color: #10212E;
+}
+
+.cards {
+    flex-grow: 1;
+}
+
+.card-row {
+    flex-direction: row;
+}
+
+.upgrade-card {
+    width: 490px;
+    margin: 0 12px 12px 0;
+    background-color: #17303F;
+    border-radius: 14px;
+    border-left-width: 6px;
+    border-color: #2EC4B6;
+    padding: 14px 16px;
+}
+
+.upgrade-card--waves {
+    border-color: #4361EE;
+}
+
+.upgrade-card--park {
+    border-color: #FFD166;
+}
+
+.upgrade-card--rentals {
+    border-color: #F78C6B;
+}
+
+.upgrade-card--staff {
+    border-color: #06D6A0;
+}
+
+.card-top {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-title {
+    font-size: 22px;
+    -unity-font-style: bold;
+    color: white;
+    flex-shrink: 1;
+}
+
+.cost-chip {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: #10212E;
+    background-color: #FFD166;
+    border-radius: 8px;
+    padding: 3px 10px;
+}
+
+.card-desc {
+    font-size: 16px;
+    color: #CFE3EA;
+    white-space: normal;
+    margin-top: 6px;
+    flex-grow: 1;
+}
+
+.card-requires {
+    font-size: 15px;
+    color: #F78C6B;
+    margin-top: 4px;
+}
+
+.buy-button {
+    margin: 10px 0 0 0;
+    height: 42px;
+    font-size: 18px;
+    -unity-font-style: bold;
+    border-width: 0;
+    border-radius: 10px;
+    background-color: #2EC4B6;
+    color: #10212E;
+    transition-duration: 0.12s;
+}
+
+.buy-button:hover {
+    background-color: #5FE0D4;
+}
+
+.buy-button--owned,
+.buy-button--owned:hover {
+    background-color: rgba(6, 214, 160, 0.18);
+    color: #06D6A0;
+}
+
+.buy-button--blocked,
+.buy-button--blocked:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.screen-footer {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+}
+
+.screen-message {
+    font-size: 18px;
+    color: #FFD166;
+}
+
+.close-button {
+    width: 180px;
+    height: 44px;
+    font-size: 18px;
+    -unity-font-style: bold;
+    border-width: 0;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.12);
+    color: white;
+}
+
+.close-button:hover {
+    background-color: rgba(255, 255, 255, 0.22);
+}

@@ -29,7 +29,9 @@ namespace SurfPool
             nextPay = Time.time + payInterval;
             float minutes = payInterval / 60f;
             int wages = Mathf.RoundToInt(WagesPerMinute * minutes);
-            if (wages > 0) Wallet.Instance.Charge(wages, "staff wages");
+            if (wages <= 0) return;
+            Wallet.Instance.Charge(wages, "staff wages");
+            Notifications.Post($"Payday: paid ${wages} in staff wages", Wallet.Instance.Money < 0);
         }
     }
 }

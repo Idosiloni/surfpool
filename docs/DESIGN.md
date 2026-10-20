@@ -23,7 +23,7 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
   - [x] Board rentals (rental stand upgrade, rack → renter, return bin → rack restock chore)
   - [x] **More waves:** wave menu (Beginner / Intermediate / Pro), surfer skill levels, wipeouts, wave upgrades
   - [x] **More upgrades:** upgrade tree with tabs, staff that automate chores (with wages), park rating, more capacity
-  - [ ] **Better UI:** real HUD, upgrade computer screen with tabs/icons, wave control panel (UI Toolkit)
+  - [x] **Better UI:** real HUD, upgrade computer screen with tabs/icons, wave control panel (UI Toolkit)
   - [ ] **Better world:** low-poly models (Blender + CC0 packs), stylized water with foam, lighting, sky
   - [ ] **Player surfing:** grab a board, paddle out and ride waves yourself in first person (after Better world)
   - [ ] Later: snack bar, surf shop, lessons, cleaning, day/night, bigger pool

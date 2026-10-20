@@ -1,0 +1,20 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="Game.uss" />
+    <ui:VisualElement name="screenRoot" class="screen-overlay hidden">
+        <ui:VisualElement class="screen-window">
+            <ui:VisualElement class="screen-header">
+                <ui:VisualElement>
+                    <ui:Label text="SurfOS  ·  Park Upgrades" class="screen-title" />
+                    <ui:Label text="Pick a tab, buy with the mouse. Esc or E to close." class="screen-subtitle" />
+                </ui:VisualElement>
+                <ui:Label name="screenMoney" text="$ 0" class="screen-money" />
+            </ui:VisualElement>
+            <ui:VisualElement name="tabs" class="tabs" />
+            <ui:ScrollView name="cards" class="cards" />
+            <ui:VisualElement class="screen-footer">
+                <ui:Label name="screenMessage" class="screen-message" />
+                <ui:Button name="closeButton" text="Close (Esc)" class="close-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

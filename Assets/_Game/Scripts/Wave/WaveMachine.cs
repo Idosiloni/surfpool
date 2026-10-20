@@ -24,11 +24,15 @@ namespace SurfPool
         readonly HashSet<WaveLevel> unlocked = new() { WaveLevel.Beginner, WaveLevel.Intermediate };
         readonly List<(float time, WaveLevel level)> pending = new();
         float readyAt;
+        float chargeDuration;
         float nextAutoWave;
 
         public WaveLevel Selected { get; private set; } = WaveLevel.Intermediate;
         public bool Ready => Time.time >= readyAt;
         public float SecondsUntilReady => Mathf.Max(0f, readyAt - Time.time);
+
+        /// <summary>0 right after sending, 1 when ready again.</summary>
+        public float ReadyProgress => chargeDuration <= 0f ? 1f : 1f - Mathf.Clamp01(SecondsUntilReady / chargeDuration);
 
         public float Cooldown
         {
@@ -85,7 +89,8 @@ namespace SurfPool
             if (!Ready || !IsUnlocked(level)) return false;
             for (int i = 0; i < wavesPerSet; i++)
                 pending.Add((Time.time + i * setSpacing, level));
-            readyAt = Time.time + cooldown + (wavesPerSet - 1) * setSpacing;
+            chargeDuration = cooldown + (wavesPerSet - 1) * setSpacing;
+            readyAt = Time.time + chargeDuration;
             return true;
         }
 

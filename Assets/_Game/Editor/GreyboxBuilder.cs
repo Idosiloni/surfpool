@@ -135,9 +135,6 @@ namespace SurfPool.EditorTools
             Set(fps, "cameraPivot", camGo.transform);
             var interactor = player.AddComponent<PlayerInteractor>();
             Set(interactor, "playerCamera", cam);
-            var hud = player.AddComponent<SimpleHUD>();
-            Set(hud, "interactor", interactor);
-            Set(hud, "player", fps);
 
             // The board the player carries, held low on the right side of the view.
             var held = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -333,12 +330,31 @@ namespace SurfPool.EditorTools
             Set(shop, "boardRunner", runner);
             Set(shop, "rentalClerk", rentalClerk);
             Set(shop, "deskClerk", deskClerk);
-            Set(hud, "payroll", payroll);
             foreach (var hidden in new[] { deskClerk, rentalClerk, runner, tower.gameObject }) hidden.SetActive(false);
 
+            // UI Toolkit: HUD and the upgrade computer screen, plus an EventSystem so the mouse can click buttons.
+            var panelSettings = PanelSettingsAsset();
+            var hudGo = new GameObject("HUD");
+            var hudDoc = hudGo.AddComponent<UnityEngine.UIElements.UIDocument>();
+            hudDoc.panelSettings = panelSettings;
+            hudDoc.visualTreeAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.VisualTreeAsset>("Assets/_Game/UI/Hud.uxml");
+            var hud = hudGo.AddComponent<GameHud>();
+            Set(hud, "interactor", interactor);
+            Set(hud, "player", fps);
             Set(hud, "pricing", pricing);
             Set(hud, "spawner", spawner);
             Set(hud, "machine", machine);
+            Set(hud, "payroll", payroll);
+
+            var screenGo = new GameObject("Upgrade Screen");
+            var screenDoc = screenGo.AddComponent<UnityEngine.UIElements.UIDocument>();
+            screenDoc.panelSettings = panelSettings;
+            screenDoc.visualTreeAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.VisualTreeAsset>("Assets/_Game/UI/UpgradeScreen.uxml");
+            screenDoc.sortingOrder = 10;
+            Set(screenGo.AddComponent<UpgradeScreen>(), "shop", shop);
+
+            var eventSystem = new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem));
+            eventSystem.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
@@ -416,6 +432,26 @@ namespace SurfPool.EditorTools
             for (int i = 0; i < values.Length; i++)
                 prop.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>Shared UI Toolkit panel settings: scales with screen size from a 1920x1080 layout.</summary>
+        static UnityEngine.UIElements.PanelSettings PanelSettingsAsset()
+        {
+            const string path = "Assets/_Game/UI/GamePanelSettings.asset";
+            var settings = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.PanelSettings>(path);
+            if (settings == null)
+            {
+                settings = ScriptableObject.CreateInstance<UnityEngine.UIElements.PanelSettings>();
+                AssetDatabase.CreateAsset(settings, path);
+            }
+            settings.themeStyleSheet = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.ThemeStyleSheet>("Assets/_Game/UI/GameTheme.tss");
+            settings.scaleMode = UnityEngine.UIElements.PanelScaleMode.ScaleWithScreenSize;
+            settings.referenceResolution = new Vector2Int(1920, 1080);
+            settings.screenMatchMode = UnityEngine.UIElements.PanelScreenMatchMode.MatchWidthOrHeight;
+            settings.match = 0.5f;
+            EditorUtility.SetDirty(settings);
+            AssetDatabase.SaveAssets();
+            return settings;
         }
 
         /// <summary>Placeholder staff character: capsule body in a shirt color and a sphere head, no colliders.</summary>

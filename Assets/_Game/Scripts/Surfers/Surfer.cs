@@ -476,6 +476,7 @@ namespace SurfPool
             Shout(message, 5f);
             spawner.LeaveLines(this);
             spawner.ReportLost();
+            Notifications.Post($"A surfer left angry: \"{message}\"", true);
             if (state == State.InRentalLine)
                 Walk(State.WalkingOut, new[] { spawner.Entrance }, State.WalkingOut);
             else if (state is State.WalkingIn or State.InDeskLine)
