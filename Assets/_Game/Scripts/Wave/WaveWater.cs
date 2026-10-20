@@ -60,6 +60,8 @@ namespace SurfPool
         [SerializeField] ParticleSystem spray;
         [Tooltip("Foam blobs per second at each break point.")]
         [SerializeField] float sprayRate = 45f;
+        [Tooltip("Mist puffs per second blown out of a barrel's mouth (spit).")]
+        [SerializeField] float spitRate = 14f;
 
         struct ActiveWave
         {
@@ -425,28 +427,43 @@ namespace SurfPool
             lip.RecalculateBounds();
         }
 
+        /// <summary>
+        /// One side of a barreling wave's lip, swept along the crest from the break point toward the part that is
+        /// still about to break. Each cross-section is a curve walked out from the crest top: it bends down more
+        /// toward its tip (a "curvature profile"), and how long and how hooked it is follows the section's age:
+        /// barely pitching far ahead of the break, thrown out and hooked over (the tube) near it, landing at it.
+        /// </summary>
         void AddLipStrip(in WaveState state, int direction, float t)
         {
-            const int along = 18, across = 10;
+            const int along = 20, across = 10;
             float bp = BreakPoint(state, direction);
             if (Mathf.Abs(bp) > HalfWidth - 0.5f) return;
             float limit = HalfWidth - 0.3f;
             int first = lipVertices.Count;
+            float grown = Mathf.Clamp01(state.breakDistance / 1.5f); // the first lip grows in as the wave starts to break
 
             for (int i = 0; i <= along; i++)
             {
                 float s = i / (float)along;
                 float z = Mathf.Clamp(bp + direction * s * lipLength, -limit, limit);
-                float curl = Mathf.Pow(1f - s, 0.6f) * Mathf.Clamp01(state.breakDistance / 1.5f);
+                // Section age: 0.8 = landing at the break point, 0 = just starting to pitch at the far end.
+                float tau = 0.8f * (1f - s) * grown;
+                LipShape(tau, out float lengthA, out float hookDeg);
+                float reach = lengthA * state.amplitude;
                 float top = LocalHeight(state.center, z, t);
-                float radius = state.amplitude * 0.42f;
-                float maxAngle = Mathf.Deg2Rad * 145f * curl;
+                var p = new Vector3(state.center - 0.3f, top, z);
                 for (int k = 0; k <= across; k++)
                 {
-                    float a = maxAngle * k / across;
-                    var p = new Vector3(state.center - 0.25f + radius * Mathf.Sin(a), top - radius * (1f - Mathf.Cos(a)), z);
+                    float u = k / (float)across;
+                    if (k > 0)
+                    {
+                        // Bends down more toward the tip (power > 1: straight throw, then it hooks).
+                        float theta = Mathf.Deg2Rad * hookDeg * Mathf.Pow(u, 1.4f);
+                        p += new Vector3(Mathf.Cos(theta), -Mathf.Sin(theta), 0f) * (reach / across);
+                    }
                     lipVertices.Add(p);
-                    lipColors.Add(new Color(k == across ? 0.9f : 0.1f * curl, 0.35f, 0f, 1f));
+                    // Foam at the thrown tip, a little along the lip as it curls.
+                    lipColors.Add(new Color(k == across ? 0.9f : 0.12f * tau, 0.35f + 0.25f * u, 0f, 1f));
                 }
             }
 
@@ -458,6 +475,15 @@ namespace SurfPool
                 lipTriangles.Add(a); lipTriangles.Add(a + row); lipTriangles.Add(a + 1);
                 lipTriangles.Add(a + 1); lipTriangles.Add(a + row); lipTriangles.Add(a + row + 1);
             }
+        }
+
+        /// <summary>Lip length (in wave heights) and how far its tip hooks over (degrees) at section age tau (0..0.8).</summary>
+        static void LipShape(float tau, out float length, out float hookDegrees)
+        {
+            // Keyframes: tau 0 -> (0.05, 10), 0.2 -> (0.35, 40), 0.5 -> (0.8, 90), 0.8 -> (1.1, 125).
+            if (tau < 0.2f) { float k = tau / 0.2f; length = Mathf.Lerp(0.05f, 0.35f, k); hookDegrees = Mathf.Lerp(10f, 40f, k); }
+            else if (tau < 0.5f) { float k = (tau - 0.2f) / 0.3f; length = Mathf.Lerp(0.35f, 0.8f, k); hookDegrees = Mathf.Lerp(40f, 90f, k); }
+            else { float k = Mathf.Clamp01((tau - 0.5f) / 0.3f); length = Mathf.Lerp(0.8f, 1.1f, k); hookDegrees = Mathf.Lerp(90f, 125f, k); }
         }
 
         /// <summary>Foam blobs thrown up where the wave is breaking.</summary>
@@ -488,6 +514,26 @@ namespace SurfPool
             if (Mathf.Abs(bp) > HalfWidth - 0.5f) return;
             int count = RandomCount(sprayRate * strength);
             for (int i = 0; i < count; i++) EmitBlob(state, bp - direction * Random.Range(0f, 2.5f), direction, strength);
+
+            // Spit: air squeezed out of the barrel blows mist puffs out of the tube mouth, ahead of the break.
+            if (state.type.barrel && state.breakDistance > 1.5f)
+            {
+                int puffs = RandomCount(spitRate * strength);
+                for (int i = 0; i < puffs; i++)
+                {
+                    float z = bp + direction * Random.Range(0.3f, 1.4f);
+                    float x = state.center + state.amplitude * 0.35f;
+                    var local = new Vector3(x, LocalHeight(x, z, Time.time) + state.amplitude * 0.45f, z);
+                    var velocity = new Vector3(Random.Range(0.5f, 2f), Random.Range(0.3f, 1.2f), direction * Random.Range(4f, 7f));
+                    spray.Emit(new ParticleSystem.EmitParams
+                    {
+                        position = transform.TransformPoint(local),
+                        velocity = transform.TransformDirection(velocity),
+                        startSize = Random.Range(0.35f, 0.7f),
+                        startLifetime = Random.Range(0.5f, 0.9f),
+                    }, 1);
+                }
+            }
         }
 
         void EmitBlob(in WaveState state, float z, int direction, float strength)
