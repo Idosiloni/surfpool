@@ -32,7 +32,7 @@ namespace SurfPool
 
         VisualElement root, bubbleLayer, popupStack, toasts, crosshair, prompt, waveBarFill, rentalRow, wagesRow;
         Label money, ratingLabel, waveType, waveStatus, waveAuto, ticketValue, rentalValue, servedValue, lostValue,
-            wagesValue, promptLabel, clickToPlay, hint;
+            wagesValue, promptLabel, clickToPlay, hint, dayLabel;
         StarRating stars;
         VisualElement missionCard, missionObjectives, missionMarker;
         Label missionChapter, missionTitle, missionStory, missionHint, markerDistance, missionBanner;
@@ -67,6 +67,7 @@ namespace SurfPool
             promptLabel = root.Q<Label>("promptLabel");
             clickToPlay = root.Q<Label>("clickToPlay");
             hint = root.Q<Label>("hint");
+            dayLabel = root.Q<Label>("dayLabel");
 
             missionCard = root.Q("missionCard");
             missionObjectives = root.Q("missionObjectives");
@@ -128,6 +129,7 @@ namespace SurfPool
                 SetText(money, "$ " + wallet.Money);
                 money.EnableInClassList("money-label--negative", wallet.Money < 0);
             }
+            if (DayCycle.Instance != null) SetText(dayLabel, $"Day {DayCycle.Instance.Day}  ·  {DayCycle.Instance.Clock}");
             if (ParkReputation.Instance != null)
             {
                 stars.Stars = ParkReputation.Instance.Stars;

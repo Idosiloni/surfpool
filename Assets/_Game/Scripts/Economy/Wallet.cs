@@ -45,6 +45,8 @@ namespace SurfPool
             return true;
         }
 
+        public void Restore(int money) => Money = money;
+
         /// <summary>Takes money even if it goes below zero (bills like staff wages).</summary>
         public void Charge(int amount, string reason = null)
         {

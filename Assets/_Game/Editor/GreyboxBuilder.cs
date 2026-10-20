@@ -20,6 +20,13 @@ namespace SurfPool.EditorTools
         const float PoolLength = 60f, PoolWidth = 24f, PoolDepth = 5f, WaterLevel = -3f;
         const float DeckThickness = PoolDepth + 1f;
 
+        [MenuItem("Surf Pool/Delete Save Game")]
+        public static void DeleteSave()
+        {
+            SaveSystem.DeleteSave();
+            Debug.Log("[GreyboxBuilder] Save deleted: the next Play starts a new game.");
+        }
+
         [MenuItem("Surf Pool/Build Greybox Scene")]
         public static void Build()
         {
@@ -333,6 +340,22 @@ namespace SurfPool.EditorTools
             storyDoc.visualTreeAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.VisualTreeAsset>("Assets/_Game/UI/Story.uxml");
             storyDoc.sortingOrder = 20;
             storyGo.AddComponent<StoryScreen>();
+
+            // Day cycle, end-of-day report and saving.
+            var dayCycle = game.AddComponent<DayCycle>();
+            Set(dayCycle, "sun", GameObject.Find("Directional Light").GetComponent<Light>());
+            Set(dayCycle, "spawner", spawner);
+            var saveSystem = game.AddComponent<SaveSystem>();
+            Set(saveSystem, "shop", shop);
+            Set(saveSystem, "pricing", pricing);
+            Set(saveSystem, "spawner", spawner);
+
+            var reportGo = new GameObject("Day Report Screen");
+            var reportDoc = reportGo.AddComponent<UnityEngine.UIElements.UIDocument>();
+            reportDoc.panelSettings = panelSettings;
+            reportDoc.visualTreeAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.VisualTreeAsset>("Assets/_Game/UI/DayReport.uxml");
+            reportDoc.sortingOrder = 15;
+            Set(reportGo.AddComponent<DayReportScreen>(), "saveSystem", saveSystem);
 
             var eventSystem = new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem));
             eventSystem.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();

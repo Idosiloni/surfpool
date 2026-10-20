@@ -10,6 +10,7 @@
                     <ui:VisualElement name="ratingStarsSlot" picking-mode="Ignore" />
                     <ui:Label name="ratingLabel" text="3.5" class="rating-label" picking-mode="Ignore" />
                 </ui:VisualElement>
+                <ui:Label name="dayLabel" text="Day 1 · 8:00 AM" class="day-label" picking-mode="Ignore" />
             </ui:VisualElement>
             <ui:VisualElement name="popupStack" class="popup-stack" picking-mode="Ignore" />
         </ui:VisualElement>

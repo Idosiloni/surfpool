@@ -27,6 +27,8 @@ namespace SurfPool
             Score = startingScore;
         }
 
+        public void Restore(float score) => Score = Mathf.Clamp01(score);
+
         public void Record(float happiness)
         {
             Score = Mathf.Clamp01(Mathf.Lerp(Score, Mathf.Clamp01(happiness), weight));

@@ -58,6 +58,7 @@ namespace SurfPool
         public int Index => current;
         public int MissionCount => missions.Count;
         public bool AllDone => current >= missions.Count;
+        public bool Started => started;
 
         /// <summary>Fires when a mission is completed (for the HUD celebration).</summary>
         public event Action<Mission> Completed;

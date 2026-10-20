@@ -35,7 +35,7 @@ namespace SurfPool
 
         void Start()
         {
-            bool alreadyStarted = MissionManager.Instance != null && MissionManager.Instance.Current != null;
+            bool alreadyStarted = MissionManager.Instance != null && MissionManager.Instance.Started;
             if (alreadyStarted)
             {
                 root.AddToClassList("hidden");

@@ -131,6 +131,20 @@ namespace SurfPool
 
         public bool IsOwned(string id) => upgrades.Exists(u => u.id == id && u.owned);
 
+        public List<string> OwnedIds() => upgrades.FindAll(u => u.owned).ConvertAll(u => u.id);
+
+        /// <summary>Re-applies saved upgrades (in list order, so requirements come first) without charging.</summary>
+        public void RestoreOwned(List<string> ids)
+        {
+            if (ids == null) return;
+            foreach (var upgrade in upgrades)
+            {
+                if (upgrade.owned || !ids.Contains(upgrade.id)) continue;
+                upgrade.owned = true;
+                Apply(upgrade.id);
+            }
+        }
+
         public bool Buy(string id)
         {
             var upgrade = upgrades.Find(u => u.id == id);

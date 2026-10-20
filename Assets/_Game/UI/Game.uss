@@ -833,3 +833,58 @@
     margin: 22px 0 0 0;
     flex-grow: 0;
 }
+
+/* ---------- Day clock and end-of-day report ---------- */
+
+.day-label {
+    font-size: 16px;
+    color: #5B6B73;
+    margin-top: 4px;
+}
+
+.report-window {
+    width: 880px;
+    height: auto;
+}
+
+.report-columns {
+    flex-direction: row;
+}
+
+.report-column {
+    flex-grow: 1;
+    flex-basis: 0;
+    background-color: white;
+    border-radius: 16px;
+    border-width: 2px;
+    border-color: #EBD9BF;
+    padding: 14px 18px;
+    margin-right: 14px;
+}
+
+.report-column--last {
+    margin-right: 0;
+}
+
+.report-name {
+    font-size: 18px;
+    color: #5B6B73;
+}
+
+.report-value {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: #0B2E3A;
+}
+
+.report-empty {
+    font-size: 16px;
+    color: #8FA3AB;
+}
+
+.report-totals {
+    font-size: 22px;
+    -unity-font-style: bold;
+    color: #0E9F7E;
+    margin-top: 18px;
+}

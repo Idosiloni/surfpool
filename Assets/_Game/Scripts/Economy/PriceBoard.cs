@@ -31,6 +31,13 @@ namespace SurfPool
             set => fairPrice = Mathf.Max(1, value);
         }
 
+        public void Restore(int ticket, int rental, int fair)
+        {
+            if (ticket > 0) price = ticket;
+            if (rental > 0) rentalPrice = rental;
+            if (fair > 0) fairPrice = fair;
+        }
+
         public void Change(int direction)
         {
             price = Mathf.Clamp(price + step * direction, minPrice, maxPrice);

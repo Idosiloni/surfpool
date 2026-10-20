@@ -1,0 +1,21 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="Game.uss" />
+    <ui:VisualElement name="reportRoot" class="screen-overlay hidden">
+        <ui:VisualElement class="screen-window report-window">
+            <ui:Label name="reportTitle" text="Day 1 is over!" class="screen-title" />
+            <ui:Label name="reportSummary" class="screen-subtitle" />
+            <ui:VisualElement class="report-columns section-gap">
+                <ui:VisualElement class="report-column">
+                    <ui:Label text="INCOME" class="section-title" />
+                    <ui:VisualElement name="incomeRows" />
+                </ui:VisualElement>
+                <ui:VisualElement class="report-column report-column--last">
+                    <ui:Label text="EXPENSES" class="section-title" />
+                    <ui:VisualElement name="expenseRows" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:Label name="reportTotals" class="report-totals" />
+            <ui:Button name="reportNext" text="Save &amp; start the next day" class="send-button story-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
