@@ -12,6 +12,7 @@ Shader "SurfPool/StylizedWater"
         _ShallowColor ("Shallow water", Color) = (0.38, 0.86, 0.84, 1)
         _GlowColor ("Sunlit face glow", Color) = (0.45, 1.0, 0.82, 1)
         _GlowStrength ("Sunlit face glow strength", Range(0, 2)) = 0.9
+        _TubeColor ("Inside of the tube (lip underside)", Color) = (0.03, 0.42, 0.52, 1)
         _FoamColor ("Foam", Color) = (1, 1, 1, 1)
         _FoamNoiseScale ("Foam noise scale", Float) = 1.7
         _FoamThreshold ("Foam threshold", Range(0, 1)) = 0.3
@@ -45,6 +46,7 @@ Shader "SurfPool/StylizedWater"
                 half4 _ShallowColor;
                 half4 _GlowColor;
                 half _GlowStrength;
+                half4 _TubeColor;
                 half4 _FoamColor;
                 float _FoamNoiseScale;
                 half _FoamThreshold;
@@ -101,6 +103,7 @@ Shader "SurfPool/StylizedWater"
             half4 Frag(Varyings input, FRONT_FACE_TYPE face : FRONT_FACE_SEMANTIC) : SV_Target
             {
                 float3 normal = normalize(input.normalWS);
+                half inside = IS_FRONT_VFACE(face, 0.0, 1.0); // the underside: inside of a barrel's lip
                 normal = IS_FRONT_VFACE(face, normal, -normal);
                 float3 viewDir = GetWorldSpaceNormalizeViewDir(input.positionWS);
 
@@ -108,6 +111,7 @@ Shader "SurfPool/StylizedWater"
                 half steep = saturate((1.0 - normal.y) * 2.2 + input.color.g);
                 half3 deep = lerp(_DeepColor.rgb, _ShallowColor.rgb, input.color.b);
                 half3 water = lerp(deep, _FaceColor.rgb, steep);
+                water = lerp(water, _TubeColor.rgb, inside * 0.7);
 
                 // Foam from the vertex color, broken into cartoon blobs by two layers of moving noise. Old foam
                 // (low freshness) needs more to show and gets holes punched in it, so trails turn into lace.

@@ -103,7 +103,9 @@ namespace SurfPool
         float nextTrickAt;
         float airStart = -10f;
         bool airSpin, wasAirborne;
-        float landSquash;
+        float landSquash, kickOutStart = -10f;
+
+        const float KickOutTime = 0.7f;
         Move move;
         float moveStart, moveLength, moveDirection;
         int tricksLanded;
@@ -271,6 +273,7 @@ namespace SurfPool
                     break;
                 case State.Paddling:
                 case State.PaddlingBack:
+                    if (KickOut()) break;
                     SetPose(Pose.Paddle);
                     rig.Sprint = state == State.PaddlingBack;
                     PaddleTo(lineupTarget, state == State.Paddling ? paddleSpeed : paddleBackSpeed, State.WaitingForWave);
@@ -293,6 +296,7 @@ namespace SurfPool
                     Tumble();
                     break;
                 case State.SwimmingToBeach:
+                    if (KickOut()) break;
                     SetPose(Pose.Paddle);
                     rig.Sprint = false;
                     var beach = pool.BeachLanding.position;
@@ -347,6 +351,31 @@ namespace SurfPool
         }
 
         /// <summary>A gentle push away from surfers that are too close (horizontal only).</summary>
+        /// <summary>
+        /// Kick-out at the end of a ride: still standing, turn up and over the back of the wave with a little hop,
+        /// then drop onto the board (the rig blends into paddling). Returns true while it's happening.
+        /// </summary>
+        bool KickOut()
+        {
+            float t = (Time.time - kickOutStart) / KickOutTime;
+            if (t < 0f || t >= 1f) return false;
+            SetPose(Pose.Ride);
+            float hop = Mathf.Sin(t * Mathf.PI);
+            Vector3 p = transform.position + Vector3.left * (2.5f * Time.deltaTime);
+            p.y = water.SurfaceHeightAt(p) + hop * 0.5f;
+            transform.position = p;
+            Face(Vector3.left);
+            rig.Air = hop * 0.6f;
+            rig.Crouch = 0.2f;
+            rig.Twist = 0f;
+            rig.ArmsUp = hop * 0.5f;
+            var tilt = Quaternion.Euler(-20f * hop, 0f, 0f);
+            rig.BoardTilt = tilt;
+            board.localPosition = CharacterRig.BoardPivot;
+            board.localRotation = tilt;
+            return true;
+        }
+
         /// <summary>Is a wave this surfer hasn't passed on rolling up behind (turn and paddle hard to catch it)?</summary>
         bool WaveComing()
         {
@@ -849,6 +878,7 @@ namespace SurfPool
 
         void FinishRide(bool wipedOut)
         {
+            if (!wipedOut) kickOutStart = Time.time; // ride out over the back of the wave before lying down
             ridesDone++;
             if (ridesDone < wavesPerSession)
             {
