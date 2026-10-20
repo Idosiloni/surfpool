@@ -40,7 +40,11 @@
     position: absolute;
     left: 32px;
     top: 28px;
+}
+
+.top-left-row {
     flex-direction: row;
+    align-items: flex-start;
 }
 
 .top-right {
@@ -715,10 +719,8 @@
 /* ---------- Missions ---------- */
 
 .mission-card {
-    position: absolute;
-    left: 32px;
-    top: 300px;
     width: 380px;
+    margin-top: 12px;
 }
 
 .mission-title {
@@ -1070,4 +1072,15 @@
     font-size: 16px;
     color: #C9824F;
     margin-top: 6px;
+}
+
+.event-label {
+    font-size: 15px;
+    -unity-font-style: bold;
+    color: white;
+    background-color: #FF8A5B;
+    border-radius: 8px;
+    padding: 2px 10px;
+    margin-top: 6px;
+    align-self: flex-start;
 }

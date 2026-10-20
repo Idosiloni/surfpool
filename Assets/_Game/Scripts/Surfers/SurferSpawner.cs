@@ -85,7 +85,7 @@ namespace SurfPool
             get
             {
                 float rating = ParkReputation.Instance != null ? ParkReputation.Instance.Score : 0.6f;
-                return spawnDelay * Mathf.Lerp(1.8f, 0.6f, rating) * SpawnDelayMultiplier;
+                return spawnDelay * Mathf.Lerp(1.8f, 0.6f, rating) * SpawnDelayMultiplier / DailyEvents.ArrivalMultiplier;
             }
         }
 
@@ -114,6 +114,7 @@ namespace SurfPool
             {
                 WaveLevel.Beginner => WaveLevel.Beginner,
                 WaveLevel.Intermediate => roll < 0.5f ? WaveLevel.Beginner : WaveLevel.Intermediate,
+                _ when DailyEvents.ContestDay => roll < 0.15f ? WaveLevel.Beginner : roll < 0.5f ? WaveLevel.Intermediate : WaveLevel.Pro,
                 _ => roll < 0.35f ? WaveLevel.Beginner : roll < 0.75f ? WaveLevel.Intermediate : WaveLevel.Pro,
             };
         }

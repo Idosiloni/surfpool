@@ -32,7 +32,7 @@ namespace SurfPool
         string PoolName => machine.Pool != null ? machine.Pool.DisplayName : "the";
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() => WearMultiplier = 1f;
+        public static void ResetStatics() => WearMultiplier = 1f;
 
         void Awake()
         {

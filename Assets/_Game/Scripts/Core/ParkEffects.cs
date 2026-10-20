@@ -29,6 +29,9 @@ namespace SurfPool
         /// <summary>Multiplies the daily water bill. Water Recycling lowers it.</summary>
         public static float WaterCostMultiplier = 1f;
 
+        /// <summary>Multiplies how often surfers drop litter. Trash Cans lower it.</summary>
+        public static float LitterMultiplier = 1f;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void ResetStatics()
         {
@@ -40,6 +43,7 @@ namespace SurfPool
             PassiveIncomePerMinute = 0;
             ElectricityCostMultiplier = 1f;
             WaterCostMultiplier = 1f;
+            LitterMultiplier = 1f;
         }
     }
 }

@@ -4,6 +4,7 @@
         <ui:VisualElement name="bubbleLayer" class="layer" picking-mode="Ignore" />
 
         <ui:VisualElement class="top-left" picking-mode="Ignore">
+            <ui:VisualElement class="top-left-row" picking-mode="Ignore">
             <ui:VisualElement class="card" picking-mode="Ignore">
                 <ui:Label name="moneyLabel" text="$ 0" class="money-label" picking-mode="Ignore" />
                 <ui:VisualElement class="level-row" picking-mode="Ignore">
@@ -21,8 +22,17 @@
                 </ui:VisualElement>
                 <ui:Label name="incomeRate" text="+$0 / min" class="income-rate" picking-mode="Ignore" />
                 <ui:Label name="dayLabel" text="Day 1 · 8:00 AM" class="day-label" picking-mode="Ignore" />
+                <ui:Label name="eventLabel" text="Today: Heat Wave" class="event-label hidden" picking-mode="Ignore" />
             </ui:VisualElement>
             <ui:VisualElement name="popupStack" class="popup-stack" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement name="missionCard" class="card mission-card hidden" picking-mode="Ignore">
+                <ui:Label name="missionChapter" class="section-title" picking-mode="Ignore" />
+                <ui:Label name="missionTitle" class="mission-title" picking-mode="Ignore" />
+                <ui:Label name="missionStory" class="mission-story" picking-mode="Ignore" />
+                <ui:VisualElement name="missionObjectives" class="mission-objectives" picking-mode="Ignore" />
+                <ui:Label name="missionHint" class="mission-hint" picking-mode="Ignore" />
+            </ui:VisualElement>
         </ui:VisualElement>
 
         <ui:VisualElement class="top-right card" picking-mode="Ignore">
@@ -51,6 +61,10 @@
                 <ui:Label text="Lost customers" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="lostValue" text="0" class="stat-value" picking-mode="Ignore" />
             </ui:VisualElement>
+            <ui:VisualElement name="trashRow" class="stat-row hidden" picking-mode="Ignore">
+                <ui:Label text="Trash on the ground" class="stat-name" picking-mode="Ignore" />
+                <ui:Label name="trashValue" text="0" class="stat-value" picking-mode="Ignore" />
+            </ui:VisualElement>
             <ui:VisualElement name="billsRow" class="stat-row" picking-mode="Ignore">
                 <ui:Label text="Today's bills" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="billsValue" text="$0" class="stat-value stat-value--bill" picking-mode="Ignore" />
@@ -61,13 +75,7 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <ui:VisualElement name="missionCard" class="card mission-card hidden" picking-mode="Ignore">
-            <ui:Label name="missionChapter" class="section-title" picking-mode="Ignore" />
-            <ui:Label name="missionTitle" class="mission-title" picking-mode="Ignore" />
-            <ui:Label name="missionStory" class="mission-story" picking-mode="Ignore" />
-            <ui:VisualElement name="missionObjectives" class="mission-objectives" picking-mode="Ignore" />
-            <ui:Label name="missionHint" class="mission-hint" picking-mode="Ignore" />
-        </ui:VisualElement>
+
 
         <ui:VisualElement name="missionMarker" class="mission-marker hidden" picking-mode="Ignore">
             <ui:VisualElement class="marker-diamond" picking-mode="Ignore" />

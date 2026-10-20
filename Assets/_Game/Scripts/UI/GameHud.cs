@@ -44,7 +44,8 @@ namespace SurfPool
         Wallet wallet;
         UpgradeShop shop;
         VisualElement goalStrip, goalFill, xpFill;
-        Label incomeRate, goalName, goalAmount, levelLabel, xpLabel;
+        Label incomeRate, goalName, goalAmount, levelLabel, xpLabel, eventLabel, trashValue;
+        VisualElement trashRow;
         ParkLevel subscribedLevel;
         float shownMoney;
         readonly Queue<(float time, int amount)> recentIncome = new();
@@ -83,6 +84,9 @@ namespace SurfPool
             goalName = root.Q<Label>("goalName");
             goalAmount = root.Q<Label>("goalAmount");
             levelLabel = root.Q<Label>("levelLabel");
+            eventLabel = root.Q<Label>("eventLabel");
+            trashValue = root.Q<Label>("trashValue");
+            trashRow = root.Q("trashRow");
             xpLabel = root.Q<Label>("xpLabel");
             xpFill = root.Q("xpFill");
 
@@ -214,6 +218,9 @@ namespace SurfPool
                 SetText(incomeRate, (incomeLastMinute >= 0 ? "+" : "") + MoneyText.Format(incomeLastMinute) + " / min");
             }
             if (DayCycle.Instance != null) SetText(dayLabel, $"Day {DayCycle.Instance.Day}  ·  {DayCycle.Instance.Clock}");
+            var dayEvent = DailyEvents.Instance != null ? DailyEvents.Instance.Today : DayEvent.None;
+            eventLabel.EnableInClassList("hidden", dayEvent == DayEvent.None);
+            SetText(eventLabel, "Today: " + DailyEvents.Title(dayEvent));
             if (ParkReputation.Instance != null)
             {
                 stars.Stars = ParkReputation.Instance.Stars;
@@ -290,6 +297,10 @@ namespace SurfPool
                 wagesRow.EnableInClassList("hidden", wages <= 0);
                 SetText(wagesValue, MoneyText.Format(wages) + "/min");
             }
+            int trash = Trash.All.Count;
+            trashRow.EnableInClassList("hidden", trash == 0);
+            SetText(trashValue, trash.ToString());
+            trashValue.EnableInClassList("stat-value--bad", trash > 5);
             var costs = OperatingCosts.Instance;
             if (costs != null && DayCycle.Instance != null)
                 SetText(billsValue, MoneyText.Format(costs.EstimateToday(DayCycle.Instance.IncomeToday)));

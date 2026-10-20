@@ -42,6 +42,24 @@ but you only earn it if you raise your base price. The price buttons now say wha
 - **Business tax:** 6% of the day's income.
 - The HUD's "Today's bills" grows during the day. Together with wages, costs aim at 15–25% of income (what other sims do, see docs/research/sim-games-2.md).
 
+## Park level (XP)
+- XP: happy surfer 10 / 20 / 35 (Beginner / Intermediate / Pro), mission 50, upgrade bought 10, your own ride 15.
+- Level L needs 60 x (L-1)^1.8 XP in total (L2 60, L3 209, L5 727, L10 3,175, L15 7,148, L20 13,000).
+- Each upgrade has a level gate set about one level below where the money model reaches it, so levels unlock
+  things without making you wait (checked in the model: no purchase is ever blocked by its level).
+
+## Breakdowns, staff stars, trash, daily events (first guesses, tune after playing)
+- Machine wear per wave: 0.4% / 0.6% / 0.9% (B / I / P). Warning at 70%, then a growing chance to break per wave.
+  Roughly one service every 1-3 days per busy pool. Repair is free (hold E 3 s). Mechanic $1,800 + $10/min,
+  Heavy-Duty Pumps $3,500 halve wear.
+- Staff stars at 15 / 50 / 120 / 250 jobs: each star 10% faster, wage +15%.
+- Litter: a walking surfer drops something about every 2 minutes on deck (Trash Cans: 60% less, Heat Wave: 80% more).
+  Each piece lowers surfer happiness; 20+ pieces = -0.3. Janitor $900 + $5/min.
+- Daily events (from day 2, 65% of days): Heat Wave (+40% arrivals), Rainy Day (-40% arrivals, half water),
+  Surf Contest (skilled sessions +50%, more pros), Influencer (rating x2 speed, XP +50%), Power Price Spike
+  (power x2), Health Inspector at 3 PM (<= 3 trash: bonus 10% of the day's income, min $100; otherwise a fine of
+  $50 + $15 per piece, never more than a fifth of your money).
+
 ## Rules of thumb used
 - Early buys take 1–3 minutes of income, mid-game buys a few days, and each new pool about 4–5 days.
 - Each wave tier needs the bigger pool first (Expansion I → Intermediate, Expansion II → Pro). That's the "bigger waves need a bigger pool" step.

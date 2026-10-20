@@ -119,6 +119,8 @@ namespace SurfPool
             SaveSystem.DeleteSave();
             GameStats.Reset();
             ParkEffects.ResetStatics();
+            DailyEvents.ResetStatics();
+            MachineService.ResetStatics();
             saveSystem.enabled = false; // don't save the old park on the way out
             Time.timeScale = 1f;
             InputBlocker.Release();

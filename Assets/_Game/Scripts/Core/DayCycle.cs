@@ -84,6 +84,7 @@ namespace SurfPool
 
             time += Time.deltaTime;
             UpdateSun();
+            if (DailyEvents.Instance != null) DailyEvents.Instance.Tick(Progress);
             if (time >= dayLength) EndDay();
         }
 
@@ -94,7 +95,7 @@ namespace SurfPool
             float elevation = Mathf.Lerp(12f, 168f, p);
             sun.transform.rotation = Quaternion.Euler(elevation, -35f, 0f);
             sun.color = p < 0.5f ? Color.Lerp(morningLight, noonLight, p * 2f) : Color.Lerp(noonLight, eveningLight, (p - 0.5f) * 2f);
-            sun.intensity = Mathf.Lerp(0.9f, 1.4f, Mathf.Sin(p * Mathf.PI));
+            sun.intensity = Mathf.Lerp(0.9f, 1.4f, Mathf.Sin(p * Mathf.PI)) * DailyEvents.SunMultiplier;
         }
 
         void BeginDay()
@@ -130,6 +131,7 @@ namespace SurfPool
         {
             Day++;
             BeginDay();
+            if (DailyEvents.Instance != null) DailyEvents.Instance.StartDay(Day);
         }
 
         /// <summary>Restores the day number from a save.</summary>

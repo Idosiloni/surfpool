@@ -73,6 +73,8 @@ namespace SurfPool
                 description = "Surfers arrive 40% more often." },
             new Upgrade { id = "tiki_garden", category = UpgradeCategory.Park, title = "Tiki Garden", cost = 2000, level = 8,
                 description = "Palms, tiki torches and flower beds all around the pools. A prettier park: surfers will pay $10 more." },
+            new Upgrade { id = "trash_cans", category = UpgradeCategory.Park, title = "Trash Cans", cost = 300, level = 3,
+                description = "Bins all around the decks. Surfers drop 60% less litter (trash on the ground makes them less happy)." },
             new Upgrade { id = "solar_panels", category = UpgradeCategory.Park, title = "Solar Panels", cost = 1500, level = 4,
                 description = "Solar panels on every wave machine roof. Waves use half the electricity." },
             new Upgrade { id = "water_recycling", category = UpgradeCategory.Park, title = "Water Recycling", cost = 5000, level = 12, requires = "solar_panels",
@@ -103,6 +105,8 @@ namespace SurfPool
                 description = "Wage $6/min. Carries returned boards from the bin back to the rack for you." },
             new Upgrade { id = "rental_clerk", category = UpgradeCategory.Staff, title = "Hire Rental Clerk", cost = 700, level = 5, requires = "rental_stand",
                 description = "Wage $8/min. Hands rental boards to renters for you." },
+            new Upgrade { id = "janitor", category = UpgradeCategory.Staff, title = "Hire Janitor", cost = 900, level = 5,
+                description = "Wage $5/min. Walks the decks picking up every piece of trash, so the park stays spotless (and the inspector stays happy)." },
             new Upgrade { id = "mechanic", category = UpgradeCategory.Staff, title = "Hire Mechanic", cost = 1800, level = 6,
                 description = "Wage $10/min. Services worn wave machines and fixes broken ones in every pool, so you don't have to." },
             new Upgrade { id = "surf_coach", category = UpgradeCategory.Staff, title = "Hire Surf Coach", cost = 2500, level = 9,
@@ -127,6 +131,8 @@ namespace SurfPool
         [SerializeField] GameObject waveOperator;
         [SerializeField] GameObject surfShop;
         [SerializeField] GameObject mechanic;
+        [SerializeField] GameObject janitor;
+        [SerializeField] GameObject trashCans;
 
         [Header("Park decoration (hidden until bought)")]
         [Tooltip("Garden pieces: one on the main deck, one on each extra pool's deck (shown once that pool is built).")]
@@ -228,6 +234,7 @@ namespace SurfPool
                 "surf_coach" => surfCoach,
                 "wave_operator" => waveOperator,
                 "mechanic" => mechanic,
+                "janitor" => janitor,
                 _ => null,
             };
             return worker != null ? worker.GetComponent<StaffMember>() : null;
@@ -269,6 +276,13 @@ namespace SurfPool
                 case "pool_expand_2":
                     spawner.MainPool.SetStage(2);
                     spawner.MaxSurfers += 2;
+                    break;
+                case "janitor":
+                    if (janitor != null) janitor.SetActive(true);
+                    break;
+                case "trash_cans":
+                    if (trashCans != null) trashCans.SetActive(true);
+                    ParkEffects.LitterMultiplier = 0.4f;
                     break;
                 case "mechanic":
                     if (mechanic != null) mechanic.SetActive(true);

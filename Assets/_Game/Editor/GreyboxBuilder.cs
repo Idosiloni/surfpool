@@ -315,6 +315,43 @@ namespace SurfPool.EditorTools
             mechanic.AddComponent<Mechanic>();
             Staff(mechanic, "Mechanic", 10);
             Set(shop, "mechanic", mechanic);
+
+            // Janitor's broom closet by the desk, hidden until hired.
+            var janitorMat = Mat("JanitorShirt", new Color(0.55f, 0.35f, 0.75f), 0.3f);
+            var janitor = Person("Janitor", new Vector3(14f, 0, -26f), 0f, janitorMat, skinMat);
+            janitor.AddComponent<Janitor>();
+            Staff(janitor, "Janitor", 5);
+            Set(shop, "janitor", janitor);
+            janitor.SetActive(false);
+
+            // Trash cans around the decks, hidden until bought.
+            var bins = new GameObject("Trash Cans");
+            var binMat = Mat("TrashCan", new Color(0.12f, 0.6f, 0.55f), 0.4f);
+            var lidMat = Mat("TrashLid", new Color(0.93f, 0.93f, 0.9f), 0.4f);
+            Vector3[] binSpots =
+            {
+                new(12, 0, -16), new(28, 0, -16), new(44, 0, -16), new(26, 0, -29), new(38, 0, -31),
+                new(8, 0, 15), new(30, 0, 15), new(52, 0, 15), new(64, 0, 4), new(64, 0, -10),
+                new(10, 0, 79), new(40, 0, 79), new(10, 0, 131), new(40, 0, 131),
+            };
+            foreach (var spot in binSpots)
+            {
+                var can = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                can.name = "Trash Can";
+                can.transform.SetParent(bins.transform, false);
+                can.transform.position = spot + new Vector3(0, 0.5f, 0);
+                can.transform.localScale = new Vector3(0.6f, 0.5f, 0.6f);
+                can.GetComponent<MeshRenderer>().sharedMaterial = binMat;
+                var lid = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                lid.name = "Lid";
+                lid.transform.SetParent(bins.transform, false);
+                lid.transform.position = spot + new Vector3(0, 1.03f, 0);
+                lid.transform.localScale = new Vector3(0.66f, 0.04f, 0.66f);
+                lid.GetComponent<MeshRenderer>().sharedMaterial = lidMat;
+                Object.DestroyImmediate(lid.GetComponent<Collider>());
+            }
+            bins.SetActive(false);
+            Set(shop, "trashCans", bins);
             mechanic.SetActive(false);
 
             // Surf shop kiosk near the entrance, hidden until bought.
@@ -350,6 +387,11 @@ namespace SurfPool.EditorTools
             game.AddComponent<PassiveIncome>();
             game.AddComponent<OperatingCosts>();
             game.AddComponent<ParkLevel>();
+            var events = game.AddComponent<DailyEvents>();
+            var rain = BuildRain();
+            rain.transform.SetParent(player.transform, false);
+            rain.transform.localPosition = new Vector3(0, 14f, 0);
+            Set(events, "rain", rain);
 
             Set(shop, "lifeguard", tower.gameObject);
             Set(shop, "boardRunner", runner);
@@ -967,6 +1009,52 @@ namespace SurfPool.EditorTools
         }
 
         /// <summary>Particle system for foam blobs. WaveWater emits the particles itself.</summary>
+        /// <summary>Rain streaks falling around the player on rainy days (played by DailyEvents).</summary>
+        static ParticleSystem BuildRain()
+        {
+            var go = new GameObject("Rain");
+            var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.playOnAwake = false;
+            main.loop = true;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.startLifetime = 1.2f;
+            main.startSpeed = 16f;
+            main.startSize = 0.03f;
+            main.startColor = new Color(0.8f, 0.88f, 1f, 0.55f);
+            main.maxParticles = 4000;
+            var emission = ps.emission;
+            emission.rateOverTime = 2200f;
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(44f, 44f, 0.5f); // flat box after the rotation below
+            shape.rotation = new Vector3(90f, 0f, 0f);
+            var renderer = go.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Stretch;
+            renderer.velocityScale = 0.06f;
+            renderer.lengthScale = 1f;
+            const string path = "Assets/_Game/Materials/Rain.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            mat.SetColor("_BaseColor", new Color(0.85f, 0.9f, 1f, 0.5f));
+            mat.SetFloat("_Surface", 1f); // transparent
+            mat.SetOverrideTag("RenderType", "Transparent");
+            mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            mat.SetInt("_ZWrite", 0);
+            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            EditorUtility.SetDirty(mat);
+            renderer.sharedMaterial = mat;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return ps;
+        }
+
         /// <summary>Puffs of dark smoke rising from a broken wave machine (played by MachineService).</summary>
         static ParticleSystem BuildSmoke()
         {

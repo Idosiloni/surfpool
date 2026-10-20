@@ -47,7 +47,8 @@ namespace SurfPool
             InputBlocker.Block();
             FirstPersonController.LockCursor(false);
 
-            title.text = $"Day {report.day} is over!";
+            var dayEvent = DailyEvents.Instance != null ? DailyEvents.Instance.Today : DayEvent.None;
+            title.text = $"Day {report.day} is over!" + (dayEvent != DayEvent.None ? $"  ({DailyEvents.Title(dayEvent)})" : "");
             summary.text = $"{report.served} happy surfers  ·  {report.lost} lost  ·  rating {report.ratingStart:0.0} → {report.ratingEnd:0.0} stars";
             Fill(incomeRows, report.income, "+");
             Fill(expenseRows, report.expenses, "-");

@@ -51,7 +51,7 @@ namespace SurfPool
         public void AddXp(int amount)
         {
             if (amount <= 0) return;
-            Xp += amount;
+            Xp += Mathf.RoundToInt(amount * DailyEvents.XpMultiplier);
             while (Xp >= XpForLevel(Level + 1))
             {
                 Level++;

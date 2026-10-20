@@ -234,6 +234,7 @@ namespace SurfPool
                 case State.WalkingOut:
                     SetPose(Pose.Walk);
                     FollowPath();
+                    if (this != null) Trash.MaybeDrop(transform.position, Time.deltaTime);
                     break;
                 case State.InDeskLine:
                 case State.InRentalLine:
@@ -586,7 +587,7 @@ namespace SurfPool
                 return;
             }
 
-            float happiness = moodSamples == 0 ? 1f : moodTotal / moodSamples;
+            float happiness = (moodSamples == 0 ? 1f : moodTotal / moodSamples) - Trash.MoodPenalty;
             int tip = happiness > 0.5f ? Mathf.RoundToInt(paidPrice * maxTipShare * happiness) + tricksLanded * tipPerTrick : 0;
             if (tip > 0) Wallet.Instance.Add(tip, "tip");
             if (Skill == WaveLevel.Beginner && ParkEffects.LessonFee > 0) Wallet.Instance.Add(SurfCoach.TeachLesson(), "surf lessons");

@@ -31,7 +31,7 @@ namespace SurfPool
 
         public void Record(float happiness)
         {
-            Score = Mathf.Clamp01(Mathf.Lerp(Score, Mathf.Clamp01(happiness), weight));
+            Score = Mathf.Clamp01(Mathf.Lerp(Score, Mathf.Clamp01(happiness), Mathf.Clamp01(weight * DailyEvents.RatingSpeedMultiplier)));
         }
     }
 }

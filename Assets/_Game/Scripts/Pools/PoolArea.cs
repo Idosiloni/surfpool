@@ -132,6 +132,20 @@ namespace SurfPool
             }
         }
 
+        /// <summary>The pool's water on the ground (x, z), grown by a margin. Walkers and litter stay out of it.</summary>
+        public Rect Footprint(float margin)
+        {
+            float length = water.Length, width = water.Width, zc = water.transform.position.z;
+            return Rect.MinMaxRect(-margin, zc - width / 2f - margin, length + margin, zc + width / 2f + margin);
+        }
+
+        /// <summary>The wave machine house next to the pool (x, z), grown by a margin.</summary>
+        public Rect MachineHouseFootprint(float margin)
+        {
+            float zc = southEdge + (StageCount > 0 ? stages[StageCount - 1].width : water.Width) / 2f;
+            return Rect.MinMaxRect(-14f - margin, zc - 11f - margin, -4f + margin, zc + 11f + margin);
+        }
+
         /// <summary>Surfers waiting in this pool's water right now.</summary>
         public int WaitingSurfers
         {
