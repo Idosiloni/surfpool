@@ -132,6 +132,7 @@ namespace SurfPool
             Day++;
             BeginDay();
             if (DailyEvents.Instance != null) DailyEvents.Instance.StartDay(Day);
+            if (DailyChallenges.Instance != null) DailyChallenges.Instance.NewDay();
         }
 
         /// <summary>Restores the day number from a save.</summary>

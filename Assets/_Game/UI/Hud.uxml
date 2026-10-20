@@ -26,6 +26,13 @@
             </ui:VisualElement>
             <ui:VisualElement name="popupStack" class="popup-stack" picking-mode="Ignore" />
             </ui:VisualElement>
+            <ui:VisualElement name="challengeCard" class="card mission-card challenge-card hidden" picking-mode="Ignore">
+                <ui:VisualElement class="challenge-header" picking-mode="Ignore">
+                    <ui:Label text="TODAY'S CHALLENGES" class="section-title challenge-title" picking-mode="Ignore" />
+                    <ui:Label name="challengeReward" class="challenge-reward" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement name="challengeList" picking-mode="Ignore" />
+            </ui:VisualElement>
             <ui:VisualElement name="missionCard" class="card mission-card hidden" picking-mode="Ignore">
                 <ui:Label name="missionChapter" class="section-title" picking-mode="Ignore" />
                 <ui:Label name="missionTitle" class="mission-title" picking-mode="Ignore" />

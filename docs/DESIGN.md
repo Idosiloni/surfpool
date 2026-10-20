@@ -50,7 +50,8 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
   - [x] Park level + XP, mess & janitor, staff stars, random daily events, machine breakdowns
   - [x] Snack bar (line, grill, Snack Cook, Smoothie Bar)
   - [x] Build mode (place decorations, park beauty), beach guests (Beach Passes), 12 hidden treasures
-  - [ ] Lessons area
+  - [x] Fishing pier minigame, parking lot + bridge with cars, daily challenges
+  - [ ] Lessons area, celebrity surfer visits, surf contests
   - [x] Famous wave presets (Waikiki, Malibu, Snapper Rocks, Pipeline, Teahupo'o in the Lagoon)
   - [ ] Characters: real rigs/animations (Quaternius / Mixamo, needs download OK)
   - [x] Main menu, settings (mouse sensitivity, volume, quality, fullscreen)

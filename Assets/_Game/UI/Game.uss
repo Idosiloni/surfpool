@@ -1369,3 +1369,25 @@
     white-space: normal;
     margin-top: 4px;
 }
+
+/* ---------- Daily challenges ---------- */
+
+.challenge-card {
+    padding: 10px 18px 10px 18px;
+}
+
+.challenge-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.challenge-title {
+    margin-bottom: 2px;
+}
+
+.challenge-reward {
+    font-size: 14px;
+    -unity-font-style: bold;
+    color: #0E9F7E;
+}

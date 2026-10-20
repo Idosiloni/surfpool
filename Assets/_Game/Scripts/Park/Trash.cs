@@ -26,6 +26,7 @@ namespace SurfPool
 
         public void PickUp()
         {
+            GameStats.TrashCollected++;
             Sfx.Play(Sound.Click);
             Destroy(gameObject);
         }

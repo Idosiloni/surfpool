@@ -425,6 +425,7 @@ namespace SurfPool.EditorTools
             var beachGuests = game.AddComponent<BeachGuests>();
             Set(beachGuests, "guestPrefab", BuildGuestPrefab());
             Set(beachGuests, "spawner", spawner);
+            Set(game.AddComponent<DailyChallenges>(), "shop", shop);
             var events = game.AddComponent<DailyEvents>();
             var rain = BuildRain();
             rain.transform.SetParent(player.transform, false);

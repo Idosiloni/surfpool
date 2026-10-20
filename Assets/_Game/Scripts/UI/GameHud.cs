@@ -45,7 +45,9 @@ namespace SurfPool
         UpgradeShop shop;
         VisualElement goalStrip, goalFill, xpFill;
         Label incomeRate, goalName, goalAmount, levelLabel, xpLabel, eventLabel, trashValue;
-        VisualElement trashRow;
+        VisualElement trashRow, challengeCard, challengeList;
+        Label challengeReward;
+        float nextChallengeRefresh;
         ParkLevel subscribedLevel;
         float shownMoney;
         readonly Queue<(float time, int amount)> recentIncome = new();
@@ -87,6 +89,9 @@ namespace SurfPool
             eventLabel = root.Q<Label>("eventLabel");
             trashValue = root.Q<Label>("trashValue");
             trashRow = root.Q("trashRow");
+            challengeCard = root.Q("challengeCard");
+            challengeList = root.Q("challengeList");
+            challengeReward = root.Q<Label>("challengeReward");
             xpLabel = root.Q<Label>("xpLabel");
             xpFill = root.Q("xpFill");
 
@@ -131,6 +136,7 @@ namespace SurfPool
             UpdateMoneyAndRating();
             UpdateLevel();
             UpdateGoal();
+            UpdateChallenges();
             UpdateWavePanel();
             UpdateStats();
             UpdatePrompt();
@@ -146,6 +152,30 @@ namespace SurfPool
             {
                 SetText(hint, "WASD move   ·   Shift sprint   ·   Space jump   ·   E use   ·   B build   ·   Tab menu   ·   Esc free mouse");
                 hint.EnableInClassList("hint--hidden", Time.timeSinceLevelLoad > hintSeconds);
+            }
+        }
+
+        void UpdateChallenges()
+        {
+            var challenges = DailyChallenges.Instance;
+            challengeCard.EnableInClassList("hidden", challenges == null || challenges.Today.Count == 0);
+            if (challenges == null || Time.unscaledTime < nextChallengeRefresh) return;
+            nextChallengeRefresh = Time.unscaledTime + 0.5f;
+            SetText(challengeReward, $"{MoneyText.Format(challenges.Reward)} each");
+            challengeList.Clear();
+            foreach (var challenge in challenges.Today)
+            {
+                var row = new VisualElement();
+                row.AddToClassList("objective-row");
+                var box = new VisualElement();
+                box.AddToClassList("objective-check");
+                box.EnableInClassList("objective-check--done", challenge.done);
+                var label = new Label(challenge.text + (challenge.target > 1 && !challenge.done ? $" ({challenge.Progress}/{challenge.target})" : ""));
+                label.AddToClassList("objective-text");
+                label.EnableInClassList("objective-text--done", challenge.done);
+                row.Add(box);
+                row.Add(label);
+                challengeList.Add(row);
             }
         }
 
@@ -414,7 +444,7 @@ namespace SurfPool
             SetText(missionChapter, mission.chapter.ToUpperInvariant());
             SetText(missionTitle, mission.title);
             SetText(missionStory, mission.story);
-            SetText(missionHint, "Tip: " + mission.hint + (mission.reward > 0 ? $"   Reward: ${mission.reward}" : ""));
+            SetText(missionHint, "Tip: " + mission.hint + (mission.reward > 0 ? "   Reward: " + MoneyText.Format(mission.reward) : ""));
             missionObjectives.Clear();
             foreach (var objective in mission.objectives)
             {
