@@ -13,11 +13,13 @@ namespace SurfPool
         public static int TricksLanded;
         public static int Wipeouts;
         public static int PlayerRides;
+        public static int SnacksSold;
         public static long TotalEarned;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void Reset()
         {
+            SnacksSold = 0;
             TicketsSold = 0;
             WavesSent = 0;
             SurfersServed = 0;

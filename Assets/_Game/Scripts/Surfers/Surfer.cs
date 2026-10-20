@@ -16,7 +16,7 @@ namespace SurfPool
         enum State
         {
             WalkingIn, InDeskLine, WalkingToRental, InRentalLine, WalkingToPool, Paddling, WaitingForWave,
-            Riding, Wipeout, PaddlingBack, SwimmingToBeach, WalkingOut,
+            Riding, Wipeout, PaddlingBack, SwimmingToBeach, WalkingOut, WalkingToSnack, InSnackLine,
         }
 
         enum Pose { Walk, Paddle, Ride }
@@ -73,6 +73,7 @@ namespace SurfPool
         readonly Queue<Vector3> path = new();
         State stateAfterPath;
         Vector3 lineupTarget;
+        bool wantsSnack, ateSnack;
         float lane;            // sideways offset from the path (m), so surfers don't walk in single file on top of each other
         Vector3 segmentStart;  // where the current path segment began (lane direction)
 
@@ -109,6 +110,7 @@ namespace SurfPool
         public bool WaitingToPay => state == State.InDeskLine && atFront;
         public bool WaitingForBoard => state == State.InRentalLine && atFront;
         public bool WaitingForWave => state == State.WaitingForWave;
+        public bool WaitingForSnack => state == State.InSnackLine && atFront;
 
         /// <summary>The pool this surfer was sent to.</summary>
         public PoolArea Pool => pool;
@@ -146,7 +148,11 @@ namespace SurfPool
         }
 
         void OnEnable() => All.Add(this);
-        void OnDisable() => All.Remove(this);
+        void OnDisable()
+        {
+            All.Remove(this);
+            if (SnackBar.Instance != null) SnackBar.Instance.Leave(this);
+        }
 
         /// <summary>Shown when the player looks at a surfer waiting for a rental board.</summary>
         public string Prompt
@@ -232,14 +238,20 @@ namespace SurfPool
                 case State.WalkingToRental:
                 case State.WalkingToPool:
                 case State.WalkingOut:
+                case State.WalkingToSnack:
                     SetPose(Pose.Walk);
                     FollowPath();
-                    if (this != null) Trash.MaybeDrop(transform.position, Time.deltaTime);
+                    // People who just ate leave wrappers and cups behind more often.
+                    if (this != null) Trash.MaybeDrop(transform.position, Time.deltaTime * (ateSnack ? 3f : 1f));
                     break;
                 case State.InDeskLine:
                 case State.InRentalLine:
                     SetPose(Pose.Walk);
                     StandInLine();
+                    break;
+                case State.InSnackLine:
+                    SetPose(Pose.Walk);
+                    StandInSnackLine();
                     break;
                 case State.Paddling:
                 case State.PaddlingBack:
@@ -341,6 +353,16 @@ namespace SurfPool
                     atFront = false;
                     spawner.JoinLine(this, state == State.InRentalLine);
                 }
+                else if (state == State.InSnackLine)
+                {
+                    if (SnackBar.Instance == null) ExitPark();
+                    else
+                    {
+                        atFront = false;
+                        patience = 1f;
+                        SnackBar.Instance.Join(this);
+                    }
+                }
                 return;
             }
             Vector3 target = path.Peek();
@@ -352,6 +374,50 @@ namespace SurfPool
             path.Dequeue();
             segmentStart = target;
             if (hasRentalBoard && (target - spawner.ReturnBinSpot).sqrMagnitude < 0.01f) ReturnBoard();
+        }
+
+        /// <summary>Waits for food. Gives up (no harm done, just no sale) if the line takes too long.</summary>
+        void StandInSnackLine()
+        {
+            var bar = SnackBar.Instance;
+            if (bar == null)
+            {
+                ExitPark();
+                return;
+            }
+            if (DrainPatience(deskPatience))
+            {
+                bar.Leave(this);
+                Shout("Too slow, I'll eat at home.", 3f);
+                ExitPark();
+                return;
+            }
+            var (slot, front, facing) = bar.LineSlot(this);
+            if ((slot - transform.position).sqrMagnitude > 0.0004f)
+            {
+                StepTowards(slot);
+                atFront = false;
+                return;
+            }
+            Face(facing);
+            atFront = front;
+        }
+
+        /// <summary>Called by the snack bar when this surfer is served.</summary>
+        public void ReceiveSnack()
+        {
+            ateSnack = true;
+            Shout(Random.value < 0.5f ? "Yum, tacos!" : "Smoothie time!", 2.5f);
+            ExitPark();
+        }
+
+        /// <summary>From the snack bar to the park exit.</summary>
+        void ExitPark()
+        {
+            var route = new List<Vector3>(SnackBar.Instance != null ? SnackBar.Instance.ExitPath : new Vector3[0]);
+            var outPath = pool.PathOut;
+            if (outPath.Length > 0) route.Add(outPath[outPath.Length - 1].position);
+            Walk(State.WalkingOut, route.ToArray(), State.WalkingOut);
         }
 
         void StandInLine()
@@ -395,6 +461,14 @@ namespace SurfPool
                 var landing = pool.BeachLanding.position;
                 landing.z = transform.position.z;
                 var route = new List<Vector3> { landing };
+                if (wantsSnack && SnackBar.Instance != null)
+                {
+                    // Past the beach end, then over to the snack bar.
+                    if (pool.PathOut.Length > 0) route.Add(pool.PathOut[0].position);
+                    route.AddRange(SnackBar.Instance.ApproachPath);
+                    Walk(State.WalkingToSnack, route.ToArray(), State.InSnackLine);
+                    return;
+                }
                 route.AddRange(System.Array.ConvertAll(hasRentalBoard ? pool.ReturnPathOut : pool.PathOut, t => t.position));
                 Walk(State.WalkingOut, route.ToArray(), State.WalkingOut);
                 return;
@@ -594,6 +668,8 @@ namespace SurfPool
             if (happiness > 0.5f && ParkEffects.MerchPerHappySurfer > 0) Wallet.Instance.Add(ParkEffects.MerchPerHappySurfer, "surf shop");
             spawner.ReportServed(happiness);
             if (happiness > 0.5f) ParkLevel.Add(ParkLevel.XpForSurfer(Skill));
+            // Main-pool surfers walking out (not carrying a rental board back) may stop at the snack bar.
+            wantsSnack = !hasRentalBoard && pool == spawner.MainPool && SnackBar.Instance != null && SnackBar.Instance.WantsSnack(happiness);
             GameStats.SurfersServed++;
             string line = happiness > 0.75f ? HappyShouts[Random.Range(0, HappyShouts.Length)]
                 : happiness > 0.5f ? "Pretty fun!"

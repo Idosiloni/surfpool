@@ -48,10 +48,12 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
   - [x] Real models for the register, computer, wave console, price stand; foam / fun / short boards by skill
   - [x] HUD: money counts up, +$/min, next-goal bar
   - [x] Park level + XP, mess & janitor, staff stars, random daily events, machine breakdowns
-  - [ ] Snack bar, lessons area, more decoration you can place
+  - [x] Snack bar (line, grill, Snack Cook, Smoothie Bar)
+  - [ ] Lessons area, more decoration you can place
   - [ ] Wave presets inspired by famous waves; pool-specific wave menus
   - [ ] Characters: real rigs/animations (Quaternius / Mixamo, needs download OK)
-  - [ ] Main menu, settings (mouse sensitivity, volume), Steam build
+  - [x] Main menu, settings (mouse sensitivity, volume, quality, fullscreen)
+  - [ ] Steam build
 
 ## Ideas parking lot
 - Surfer wipeouts (funny ragdolls)

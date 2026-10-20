@@ -79,6 +79,10 @@ namespace SurfPool
                 description = "Solar panels on every wave machine roof. Waves use half the electricity." },
             new Upgrade { id = "water_recycling", category = UpgradeCategory.Park, title = "Water Recycling", cost = 5000, level = 12, requires = "solar_panels",
                 description = "Filter tanks next to every wave machine clean and reuse the pool water. The daily water bill is halved." },
+            new Upgrade { id = "snack_bar", category = UpgradeCategory.Park, title = "Snack Bar", cost = 1200, level = 5,
+                description = "A taco and smoothie kiosk by the exit. Happy surfers from the main pool stop for food ($10). Serve them at the grill (E)... and watch out for the wrappers." },
+            new Upgrade { id = "smoothie_bar", category = UpgradeCategory.Park, title = "Smoothie Bar", cost = 2500, level = 8, requires = "snack_bar",
+                description = "Fresh fruit smoothies and acai bowls on the menu. Every snack sells for $8 more." },
             new Upgrade { id = "surf_shop", category = UpgradeCategory.Park, title = "Surf Shop", cost = 3500, level = 10,
                 description = "A merch kiosk by the entrance. Every happy surfer buys $15 of wax, stickers and tees on the way out." },
             new Upgrade { id = "vip_sessions", category = UpgradeCategory.Park, title = "VIP Sessions", cost = 8000, level = 14, requires = "intermediate_waves",
@@ -105,6 +109,8 @@ namespace SurfPool
                 description = "Wage $6/min. Carries returned boards from the bin back to the rack for you." },
             new Upgrade { id = "rental_clerk", category = UpgradeCategory.Staff, title = "Hire Rental Clerk", cost = 700, level = 5, requires = "rental_stand",
                 description = "Wage $8/min. Hands rental boards to renters for you." },
+            new Upgrade { id = "snack_cook", category = UpgradeCategory.Staff, title = "Hire Snack Cook", cost = 1500, level = 6, requires = "snack_bar",
+                description = "Wage $6/min. Cooks and serves every snack order at the snack bar for you." },
             new Upgrade { id = "janitor", category = UpgradeCategory.Staff, title = "Hire Janitor", cost = 900, level = 5,
                 description = "Wage $5/min. Walks the decks picking up every piece of trash, so the park stays spotless (and the inspector stays happy)." },
             new Upgrade { id = "mechanic", category = UpgradeCategory.Staff, title = "Hire Mechanic", cost = 1800, level = 6,
@@ -132,6 +138,8 @@ namespace SurfPool
         [SerializeField] GameObject surfShop;
         [SerializeField] GameObject mechanic;
         [SerializeField] GameObject janitor;
+        [SerializeField] GameObject snackBar;
+        [SerializeField] GameObject snackCook;
         [SerializeField] GameObject trashCans;
 
         [Header("Park decoration (hidden until bought)")]
@@ -235,6 +243,7 @@ namespace SurfPool
                 "wave_operator" => waveOperator,
                 "mechanic" => mechanic,
                 "janitor" => janitor,
+                "snack_cook" => snackCook,
                 _ => null,
             };
             return worker != null ? worker.GetComponent<StaffMember>() : null;
@@ -276,6 +285,15 @@ namespace SurfPool
                 case "pool_expand_2":
                     spawner.MainPool.SetStage(2);
                     spawner.MaxSurfers += 2;
+                    break;
+                case "snack_bar":
+                    if (snackBar != null) snackBar.SetActive(true);
+                    break;
+                case "smoothie_bar":
+                    ParkEffects.SnackPriceBonus += 8;
+                    break;
+                case "snack_cook":
+                    if (snackCook != null) snackCook.SetActive(true);
                     break;
                 case "janitor":
                     if (janitor != null) janitor.SetActive(true);

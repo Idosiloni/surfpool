@@ -29,6 +29,9 @@ namespace SurfPool
         /// <summary>Multiplies the daily water bill. Water Recycling lowers it.</summary>
         public static float WaterCostMultiplier = 1f;
 
+        /// <summary>Added to the snack price (Smoothie Bar).</summary>
+        public static int SnackPriceBonus;
+
         /// <summary>Multiplies how often surfers drop litter. Trash Cans lower it.</summary>
         public static float LitterMultiplier = 1f;
 
@@ -44,6 +47,7 @@ namespace SurfPool
             ElectricityCostMultiplier = 1f;
             WaterCostMultiplier = 1f;
             LitterMultiplier = 1f;
+            SnackPriceBonus = 0;
         }
     }
 }

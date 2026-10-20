@@ -316,6 +316,41 @@ namespace SurfPool.EditorTools
             Staff(mechanic, "Mechanic", 10);
             Set(shop, "mechanic", mechanic);
 
+            // Snack bar by the main pool's exit, hidden until bought. Customers line up on its west side.
+            var snack = new GameObject("Snack Bar").transform;
+            snack.position = new Vector3(57.5f, 0, -24f);
+            WorldArt.Model("KioskCoral", snack, snack.position, -90f);
+            var snackRoute = new GameObject("Snack Route").transform;
+            snackRoute.SetParent(snack, false);
+            Box("Snack Counter", snack, snack.position + new Vector3(-0.9f, 0.55f, 0), new Vector3(0.9f, 1.1f, 3f), deskMat);
+            var grill = Box("Grill", snack, snack.position + new Vector3(-0.8f, 1.16f, 0.7f), new Vector3(0.6f, 0.12f, 0.9f), consoleMat);
+            Box("Grill Top", snack, grill.transform.position + new Vector3(0, 0.07f, 0), new Vector3(0.55f, 0.02f, 0.85f), Mat("GrillHot", new Color(0.25f, 0.2f, 0.18f), 0.6f, new Color(0.6f, 0.15f, 0.05f)));
+            var cupMat = Mat("SmoothieCup", new Color(1f, 0.55f, 0.65f), 0.4f);
+            for (int i = 0; i < 4; i++)
+            {
+                var cup = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                cup.name = "Smoothie";
+                Object.DestroyImmediate(cup.GetComponent<Collider>());
+                cup.transform.SetParent(snack, false);
+                cup.transform.position = snack.position + new Vector3(-1.1f, 1.22f, -0.9f + i * 0.22f);
+                cup.transform.localScale = new Vector3(0.11f, 0.12f, 0.11f);
+                cup.GetComponent<MeshRenderer>().sharedMaterial = i % 2 == 0 ? cupMat : mats.sign;
+            }
+            Box("Menu Board", snack, snack.position + new Vector3(0.2f, 2.3f, 0), new Vector3(0.08f, 0.8f, 2.4f), Mat("MenuBoard", new Color(0.12f, 0.16f, 0.2f), 0.3f));
+            var snackBar = snack.gameObject.AddComponent<SnackBar>();
+            Set(snackBar, "lineSpot", Point("Snack Line Front", snackRoute, new Vector3(56.0f, 0, -24f)));
+            Set(snackBar, "approach", Point("Snack Approach", snackRoute, new Vector3(56.0f, 0, -17.5f)));
+            SetArray(snackBar, "exitPath", Point("Snack Exit", snackRoute, new Vector3(54f, 0, -29f)));
+            var cookMat = Mat("CookShirt", new Color(1f, 1f, 1f), 0.3f);
+            var cook = Person("Snack Cook", snack.position + new Vector3(0.1f, 0, -0.4f), -90f, cookMat, skinMat);
+            cook.transform.SetParent(snack, true);
+            Set(cook.AddComponent<SnackCook>(), "snackBar", snackBar);
+            Staff(cook, "Snack Cook", 6);
+            Set(shop, "snackBar", snack.gameObject);
+            Set(shop, "snackCook", cook);
+            cook.SetActive(false);
+            snack.gameObject.SetActive(false);
+
             // Janitor's broom closet by the desk, hidden until hired.
             var janitorMat = Mat("JanitorShirt", new Color(0.55f, 0.35f, 0.75f), 0.3f);
             var janitor = Person("Janitor", new Vector3(14f, 0, -26f), 0f, janitorMat, skinMat);
