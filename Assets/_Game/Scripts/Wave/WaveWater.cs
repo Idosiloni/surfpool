@@ -480,6 +480,27 @@ namespace SurfPool
             }, 1);
         }
 
+        /// <summary>Throws spray blobs from a world point (surfboard rails on carves, landings), at about perSecond.</summary>
+        public void EmitRiderSpray(Vector3 position, Vector3 velocity, float perSecond, float size = 0.25f)
+        {
+            if (spray == null) return;
+            int count = RandomCount(perSecond);
+            for (int i = 0; i < count; i++) SprayBurst(position, velocity, size);
+        }
+
+        /// <summary>A single blob of spray (for one-off bursts like a landing splash).</summary>
+        public void SprayBurst(Vector3 position, Vector3 velocity, float size = 0.25f)
+        {
+            if (spray == null) return;
+            spray.Emit(new ParticleSystem.EmitParams
+            {
+                position = position + Random.insideUnitSphere * 0.15f,
+                velocity = velocity + Random.insideUnitSphere * (velocity.magnitude * 0.3f + 0.3f),
+                startSize = size * Random.Range(0.6f, 1.3f),
+                startLifetime = Random.Range(0.4f, 0.8f),
+            }, 1);
+        }
+
         static int RandomCount(float perSecond)
         {
             float expected = perSecond * Time.deltaTime;

@@ -19,7 +19,10 @@ namespace SurfPool
             Riding, Wipeout, PaddlingBack, SwimmingToBeach, WalkingOut, WalkingToSnack, InSnackLine,
         }
 
-        enum Pose { Walk, Paddle, Ride }
+        enum Pose { Walk, Paddle, Ride, Wipeout }
+
+        /// <summary>A maneuver the body and board act out over a moment of the ride.</summary>
+        enum Move { None, Snap, Cutback, Floater, BottomTurn }
 
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         static readonly string[] RideShouts = { "Woohoo!", "Shredding!", "Radical!", "Let's gooo!" };
@@ -56,8 +59,8 @@ namespace SurfPool
         [SerializeField] float beginnerRideOffset = 2.2f;
         [SerializeField] float intermediateRideOffset = 1.2f;
         [SerializeField] float proRideOffset = 0.6f;
-        [Tooltip("Seconds between tricks when the wave matches the surfer's skill.")]
-        [SerializeField] Vector2 trickInterval = new(1.2f, 2.2f);
+        [Tooltip("Seconds between a pro's moves when the wave matches their skill (real pros: one every 3-4 s). Intermediates wait 1.6x as long, beginners 2.2x.")]
+        [SerializeField] Vector2 trickInterval = new(3f, 4f);
         [Tooltip("Extra tip per trick landed in the session ($).")]
         [SerializeField] int tipPerTrick = 1;
         [Tooltip("How far the surfer carves left and right while riding (meters).")]
@@ -65,6 +68,8 @@ namespace SurfPool
         [SerializeField] float carveSpeed = 0.9f;
         [Tooltip("How far down the pool (0 to 1) the ride ends.")]
         [Range(0f, 1f)] [SerializeField] float rideEndProgress = 0.88f;
+        [Tooltip("Board tilt on the wave face, lean into turns and rail spray.")]
+        [SerializeField] RideFeel feel = new();
 
         SurferSpawner spawner;
         PoolArea pool;
@@ -82,6 +87,8 @@ namespace SurfPool
 
         const float WalkSpace = 0.8f;   // personal space on foot (m)
         const float WaterSpace = 1.8f;  // personal space on a board (boards are 2 m long)
+        const float RideSpace = 2.5f;   // closest two riders come along a wave (m)
+        const float DropInSpace = 3f;   // won't take off this close to someone already riding the wave (m)
         float rideWave;
         float rideStartTime;
         float rideLaneZ;
@@ -95,6 +102,10 @@ namespace SurfPool
         bool rideMatched;
         float nextTrickAt;
         float airStart = -10f;
+        bool airSpin, wasAirborne;
+        float landSquash;
+        Move move;
+        float moveStart, moveLength, moveDirection;
         int tricksLanded;
         int ridesDone;
         int paidPrice;
@@ -201,6 +212,8 @@ namespace SurfPool
             PreferredDirection = Random.value < 0.6f ? WaveDirection.Right : WaveDirection.Left;
             MaxPrice = owner.Pricing.FairFor(Skill, pool) * Random.Range(0.8f, 1.5f);
             UseBoardFor(Skill);
+            rig.Goofy = Random.value < 0.35f;
+            rig.Style = Skill switch { WaveLevel.Beginner => 0f, WaveLevel.Intermediate => 0.55f, _ => 1f };
             var skin = Color.Lerp(new Color(0.42f, 0.27f, 0.17f), new Color(1f, 0.84f, 0.7f), Random.value);
             var hair = Random.value < 0.25f ? new Color(0.95f, 0.82f, 0.45f) : Color.Lerp(new Color(0.08f, 0.06f, 0.05f), new Color(0.45f, 0.28f, 0.15f), Random.value);
             rig.Paint(skin, Random.ColorHSV(0f, 1f, 0.5f, 0.9f, 0.6f, 1f), Random.ColorHSV(0f, 1f, 0.4f, 0.8f, 0.3f, 0.8f), hair, Random.Range(0, 2));
@@ -259,10 +272,12 @@ namespace SurfPool
                 case State.Paddling:
                 case State.PaddlingBack:
                     SetPose(Pose.Paddle);
+                    rig.Sprint = state == State.PaddlingBack;
                     PaddleTo(lineupTarget, state == State.Paddling ? paddleSpeed : paddleBackSpeed, State.WaitingForWave);
                     break;
                 case State.WaitingForWave:
                     SetPose(Pose.Paddle);
+                    rig.Sprint = WaveComing();
                     Float(transform.position + Separation(WaterSpace) * Time.deltaTime, Vector3.right);
                     if (DrainPatience(wavePatience * ParkEffects.WavePatienceMultiplier)) LeaveAngry("Where are the waves?!");
                     else TryCatchWave();
@@ -272,10 +287,12 @@ namespace SurfPool
                     Ride();
                     break;
                 case State.Wipeout:
+                    SetPose(Pose.Wipeout);
                     Tumble();
                     break;
                 case State.SwimmingToBeach:
                     SetPose(Pose.Paddle);
+                    rig.Sprint = false;
                     var beach = pool.BeachLanding.position;
                     PaddleTo(new Vector3(beach.x - 4f, 0f, transform.position.z), paddleSpeed * 1.5f, State.WalkingOut);
                     break;
@@ -328,6 +345,49 @@ namespace SurfPool
         }
 
         /// <summary>A gentle push away from surfers that are too close (horizontal only).</summary>
+        /// <summary>Is a wave rolling up behind (paddle hard to catch it)?</summary>
+        bool WaveComing()
+        {
+            float x = water.transform.InverseTransformPoint(transform.position).x;
+            for (int i = 0; i < water.ActiveWaves; i++)
+            {
+                float crest = water.CurrentWaveCenter(water.GetWave(i).id);
+                if (crest > x - 9f && crest < x) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Is someone else already riding this wave within space meters (along the wave) of z?</summary>
+        bool RiderNear(float wave, float z, float space)
+        {
+            foreach (var other in All)
+                if (other != this && other.water == water && other.state == State.Riding && other.rideWave == wave
+                    && Mathf.Abs(other.rideZ - z) < space)
+                    return true;
+            return false;
+        }
+
+        /// <summary>
+        /// Sideways nudge (m, along the wave) that keeps riders who share the water from riding on top of each
+        /// other: anyone riding closer than RideSpace pushes this rider's target away.
+        /// </summary>
+        float RiderSpacing(float x)
+        {
+            float push = 0f;
+            foreach (var other in All)
+            {
+                if (other == this || other.water != water || other.state != State.Riding) continue;
+                Vector3 local = water.transform.InverseTransformPoint(other.transform.position);
+                if (Mathf.Abs(local.x - x) > RideSpace) continue; // well ahead or behind on the face
+                float dz = rideZ - other.rideZ;
+                if (Mathf.Abs(dz) >= RideSpace) continue;
+                // Exactly side by side: split by lane so the two go opposite ways.
+                float away = Mathf.Abs(dz) > 0.05f ? Mathf.Sign(dz) : (lane >= other.lane ? 1f : -1f);
+                push += away * (RideSpace - Mathf.Abs(dz)) * 2f;
+            }
+            return push;
+        }
+
         Vector3 Separation(float space)
         {
             Vector3 push = Vector3.zero;
@@ -514,6 +574,14 @@ namespace SurfPool
                 // Beginners on the inside happily ride the whitewater of any bigger wave once it has broken.
                 bool whitewash = Skill == WaveLevel.Beginner && diff > 0;
                 if (whitewash && !water.IsBroken(wave)) continue; // not whitewater yet: wait for it
+                // Etiquette: no dropping in on someone already riding this green wave right beside you.
+                // (Whitewater is shared; riders there just keep their distance.)
+                if (!whitewash && RiderNear(wave, water.transform.InverseTransformPoint(transform.position).z, DropInSpace))
+                {
+                    skippedWave = wave;
+                    if (Random.value < 0.5f) Shout("Your wave, go go!", 2f);
+                    continue;
+                }
                 // Better surfers let waves that are too small roll past and keep waiting.
                 if (diff < 0)
                 {
@@ -550,7 +618,7 @@ namespace SurfPool
                     rideQuality = Mathf.Min(1f, rideQuality + 0.15f);
                     Shout($"I'm surfing {famous}!!", 2.5f);
                 }
-                nextTrickAt = Time.time + Random.Range(trickInterval.x, trickInterval.y);
+                nextTrickAt = Time.time + TrickDelay();
 
                 // Too-big waves often end in a wipeout; everyone wipes out sometimes.
                 float wipeoutChance = whitewash ? (diff == 1 ? 0.22f : 0.35f) : diff > 0 ? 0.6f : Skill switch { WaveLevel.Beginner => 0.2f, WaveLevel.Intermediate => 0.1f, _ => 0.05f };
@@ -558,6 +626,10 @@ namespace SurfPool
                 wipeoutAt = Random.value < wipeoutChance ? Time.time + Random.Range(0.8f, 2.5f) : -1f;
 
                 state = State.Riding;
+                move = Move.None;
+                feel.Begin(transform.position, transform.rotation);
+                landSquash = 0f;
+                wasAirborne = false;
                 Shout(whitewash ? "Riding the whitewater!" : diff < 0 ? "Kinda small..." : diff > 0 ? "Whoa, big one!"
                     : backside ? "Going backside!" : RideShouts[Random.Range(0, RideShouts.Length)], 2f);
                 return;
@@ -605,6 +677,10 @@ namespace SurfPool
                 }
                 float ahead = Skill switch { WaveLevel.Pro => 0.7f, WaveLevel.Intermediate => 2f, _ => 3f };
                 targetZ = pocketZ + side * ahead + (breaking ? carve * 0.8f : 0f);
+                // Cutback: swing back toward the breaking part, then return to the pocket. Floater: up on the lip.
+                float m = MoveProgress();
+                if (move == Move.Cutback) targetZ -= side * 3f * Mathf.Sin(m * Mathf.PI);
+                if (move == Move.Floater) offset -= 0.4f * Mathf.Sin(m * Mathf.PI);
                 inBarrel = barrel && breaking && Skill == WaveLevel.Pro;
                 if (inBarrel) offset = 0.9f;
             }
@@ -612,6 +688,7 @@ namespace SurfPool
             {
                 targetZ = rideLaneZ + carve * carveWidth * 0.4f;
             }
+            targetZ += RiderSpacing(crest + offset);
             rideZ = Mathf.Clamp(Mathf.MoveTowards(rideZ, targetZ, 7f * Time.deltaTime), -limit, limit);
 
             Vector3 target = water.transform.TransformPoint(new Vector3(crest + offset, 0f, rideZ));
@@ -621,6 +698,85 @@ namespace SurfPool
             Vector3 delta = target - transform.position;
             transform.position = target;
             Face(delta);
+            UpdateRideFeel(air);
+        }
+
+        /// <summary>
+        /// Body and board while riding: the board lies on the wave face and leans into turns, the rider crouches
+        /// into carves and the barrel, tucks and grabs in airs (pros may spin), squashes on landing, and the rail
+        /// throws spray. Beginners wobble.
+        /// </summary>
+        void UpdateRideFeel(float air)
+        {
+            var heading = transform.rotation;
+            // Maneuvers: how far the board lays over, the head/shoulder twist, arms, crouch, spray and nose lift.
+            float m = MoveProgress(), k = m < 0f ? 0f : Mathf.Sin(m * Mathf.PI);
+            float roll = 0f, twist = 0f, armsUp = 0f, crouch = 0f, spray = 0f, noseUp = 0f;
+            switch (move)
+            {
+                case Move.Snap: // short and hard at the top of the wave, a fan of spray
+                    roll = moveDirection * 28f * k; twist = 50f * k; crouch = 0.2f * k; spray = k;
+                    break;
+                case Move.Cutback: // head leads ~140 degrees back toward the foam, the lean flips halfway
+                    roll = moveDirection * 26f * Mathf.Sin(m * Mathf.PI * 2f); twist = 140f * k; crouch = 0.15f * k; spray = 0.8f * k;
+                    break;
+                case Move.Floater: // arms up, weight back, nose lifted over the foam
+                    armsUp = k; noseUp = 12f * k;
+                    break;
+                case Move.BottomTurn: // compress, lean hard on the rail, extend out of it
+                    roll = moveDirection * 24f * k; crouch = 0.35f * Mathf.Cos(m * Mathf.PI); spray = 0.5f * k;
+                    break;
+            }
+            feel.ExtraRoll = roll
+                + (Skill == WaveLevel.Beginner ? Mathf.Sin(Time.time * 4.1f) * 5f + Mathf.Sin(Time.time * 6.7f) * 3f : 0f);
+            feel.Step(water, transform.position, heading, Time.deltaTime);
+
+            bool airborne = air < 1f;
+            float lift = airborne ? Mathf.Sin(air * Mathf.PI) : 0f;
+            float spin = airborne && airSpin ? Mathf.SmoothStep(0f, 360f, air) : 0f;
+            var tilt = Quaternion.AngleAxis(spin, Vector3.up) * feel.Tilt * Quaternion.Euler(-15f * lift - noseUp, 0f, 0f);
+            rig.BoardTilt = tilt;
+            board.localPosition = CharacterRig.BoardPivot;
+            board.localRotation = tilt;
+
+            if (wasAirborne && !airborne)
+            {
+                landSquash = 0.45f;
+                RideFeel.Splash(water, transform.position, 16, 2.6f);
+                Sfx.Play(Sound.Splash, transform.position, 0.5f);
+            }
+            wasAirborne = airborne;
+            landSquash = Mathf.MoveTowards(landSquash, 0f, Time.deltaTime * 2f);
+
+            rig.Air = lift;
+            rig.Lean = feel.Turn * (rig.Goofy ? -1f : 1f);
+            rig.Twist = twist;
+            rig.ArmsUp = armsUp;
+            rig.Crouch = Mathf.Abs(feel.Turn) * 0.3f + (inBarrel ? 0.4f : 0f) + landSquash + crouch;
+            if (!airborne) feel.Spray(water, transform.position, heading, spray);
+        }
+
+        /// <summary>Seconds to the next move: pros every 3-4 s, intermediates and beginners (who mostly trim) less often.</summary>
+        float TrickDelay() => Random.Range(trickInterval.x, trickInterval.y)
+            * Skill switch { WaveLevel.Pro => 1f, WaveLevel.Intermediate => 1.6f, _ => 2.2f };
+
+        /// <summary>0..1 through the current maneuver, or -1 when there is none.</summary>
+        float MoveProgress()
+        {
+            if (move == Move.None) return -1f;
+            float t = (Time.time - moveStart) / moveLength;
+            if (t < 1f) return t;
+            move = Move.None;
+            return -1f;
+        }
+
+        void StartMove(Move kind, float seconds)
+        {
+            move = kind;
+            moveStart = Time.time;
+            moveLength = seconds;
+            // Lean further into the turn you're in (negative roll = lean right).
+            moveDirection = feel.Turn >= 0f ? -1f : 1f;
         }
 
         void DoTrick()
@@ -639,10 +795,18 @@ namespace SurfPool
             }
             GameStats.TricksLanded++;
             if (inBarrel || Skill == WaveLevel.Pro || Random.value < 0.3f) Sfx.Play(Sound.Cheer, transform.position, inBarrel ? 1f : 0.7f);
-            if (trick == "AIR!") airStart = Time.time;
+            if (trick == "AIR!")
+            {
+                airStart = Time.time;
+                airSpin = Random.value < 0.5f;
+            }
+            else if (trick is "Snap!" or "Re-entry!") StartMove(Move.Snap, 0.5f);
+            else if (trick == "Cutback!") StartMove(Move.Cutback, 1.8f);
+            else if (trick == "Floater!") StartMove(Move.Floater, 0.8f);
+            else if (trick == "Bottom turn!") StartMove(Move.BottomTurn, 1f);
             tricksLanded++;
             Shout(trick, 1.3f);
-            nextTrickAt = Time.time + Random.Range(trickInterval.x, trickInterval.y);
+            nextTrickAt = Time.time + TrickDelay();
         }
 
         void StartWipeout()
@@ -653,6 +817,7 @@ namespace SurfPool
             RecordMood(ParkEffects.WipeoutMood);
             GameStats.Wipeouts++;
             Sfx.Play(Sound.Splash, transform.position);
+            RideFeel.Splash(water, transform.position, 24, 3f);
             Lifeguard.Whistle();
             Shout("WIPEOUT!", 2.5f);
         }
@@ -770,6 +935,10 @@ namespace SurfPool
                     rig.CurrentMode = CharacterRig.Mode.Ride;
                     rig.CarryingBoard = false;
                     Place(board, new Vector3(0f, 0.05f, 0f), Vector3.zero);
+                    break;
+                case Pose.Wipeout: // tumbling, arms and legs everywhere (the board spins on its own)
+                    rig.CurrentMode = CharacterRig.Mode.Flail;
+                    rig.CarryingBoard = false;
                     break;
             }
         }
