@@ -17,7 +17,7 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
 ## Roadmap (each step ends playable)
 - [x] **Step 1 — Wave:** walk around a pool in first person, press a button on the wave machine, a wave rolls.
 - [x] **Step 2 — First surfer:** one NPC walks in, pays at the desk, rides the wave, leaves.
-- [ ] **Step 3 — Money loop:** ticket prices, cash register, money HUD, buy an upgrade.
+- [x] **Step 3 — Money loop:** ticket prices, cash register, money HUD, buy an upgrade.
 - [ ] **Step 4+ — Grow:** surf shop, board rentals, snack bar, cleaning, lifeguards, wave settings
       (beginner/pro), bigger pools, unlocks, day/night, reputation.
 

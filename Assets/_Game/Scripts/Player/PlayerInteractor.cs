@@ -14,6 +14,7 @@ namespace SurfPool
         void Update()
         {
             Target = null;
+            if (InputBlocker.Blocked) return;
             var ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
             if (Physics.Raycast(ray, out var hit, reach, ~0, QueryTriggerInteraction.Ignore))
                 Target = hit.collider.GetComponentInParent<IInteractable>();

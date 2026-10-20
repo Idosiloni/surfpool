@@ -34,7 +34,7 @@ namespace SurfPool
         {
             var keyboard = Keyboard.current;
             var mouse = Mouse.current;
-            if (keyboard == null || mouse == null) return;
+            if (keyboard == null || mouse == null || InputBlocker.Blocked) return;
 
             if (keyboard.escapeKey.wasPressedThisFrame) LockCursor(false);
             else if (!CursorLocked && mouse.leftButton.wasPressedThisFrame) LockCursor(true);
@@ -74,7 +74,7 @@ namespace SurfPool
             controller.Move(move * Time.deltaTime);
         }
 
-        static void LockCursor(bool locked)
+        public static void LockCursor(bool locked)
         {
             Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
             Cursor.visible = !locked;

@@ -2,22 +2,27 @@ using UnityEngine;
 
 namespace SurfPool
 {
-    /// <summary>The cash register on the ticket desk. Press E to sell the waiting surfer a session.</summary>
+    /// <summary>The cash register on the ticket desk. Press E to sell the surfer at the front of the line a session.</summary>
     public class TicketRegister : MonoBehaviour, IInteractable
     {
         [SerializeField] SurferSpawner spawner;
-        [SerializeField] int sessionPrice = 20;
+        [SerializeField] PriceBoard pricing;
 
         public string Prompt => spawner.NextCustomer != null
-            ? $"Sell surf session (${sessionPrice})"
+            ? $"Sell surf session (${pricing.Price})"
             : "Register (no customer waiting)";
 
         public void Interact()
         {
             var customer = spawner.NextCustomer;
             if (customer == null) return;
-            Wallet.Instance.Add(sessionPrice);
-            customer.Pay();
+            if (pricing.Price > customer.MaxPrice)
+            {
+                customer.RefusePrice();
+                return;
+            }
+            Wallet.Instance.Add(pricing.Price, "ticket");
+            customer.Pay(pricing.Price);
         }
     }
 }

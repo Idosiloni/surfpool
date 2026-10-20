@@ -44,6 +44,12 @@ namespace SurfPool
 
         public int ActiveWaves => waveStartTimes.Count;
         public float Length => length;
+
+        public float WaveHeight
+        {
+            get => waveHeight;
+            set => waveHeight = Mathf.Max(0f, value);
+        }
         public float Width => width;
 
         /// <summary>Waves currently in the pool, identified by the time they were sent.</summary>

@@ -52,7 +52,12 @@ MonoBehaviour:
   board: {fileID: 315421571732319845}
   walkSpeed: 1.6
   paddleSpeed: 1.3
+  paddleBackSpeed: 3
   turnSpeed: 360
+  deskPatience: 45
+  wavePatience: 30
+  wavesPerSession: 3
+  maxTipShare: 0.3
   rideOffset: 1
   carveWidth: 5
   carveSpeed: 0.9

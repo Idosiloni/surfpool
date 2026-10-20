@@ -35,6 +35,10 @@ namespace SurfPool.EditorTools
             var buttonMat = Mat("Button", Color.white, 0.6f);
             var deskMat = Mat("Desk", new Color(0.6f, 0.45f, 0.3f));
             var surferMat = Mat("Surfer", Color.white, 0.3f);
+            var greenMat = Mat("ButtonGreen", new Color(0.2f, 0.85f, 0.3f), 0.6f);
+            var redMat = Mat("ButtonRed", new Color(0.9f, 0.2f, 0.15f), 0.6f);
+            var screenMat = Mat("Screen", new Color(0.05f, 0.1f, 0.15f), 0.9f, new Color(0.2f, 0.5f, 0.9f));
+            var beaconMat = Mat("Beacon", new Color(1f, 0.85f, 0.1f), 0.5f, new Color(2f, 1.6f, 0.2f));
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
             Object.DestroyImmediate(GameObject.Find("Main Camera"));
@@ -124,13 +128,40 @@ namespace SurfPool.EditorTools
             // Money.
             var game = new GameObject("Game");
             game.AddComponent<Wallet>();
+            var pricing = game.AddComponent<PriceBoard>();
 
             // Ticket desk on the south deck. The player stands on the pool side, customers on the far side.
             var desk = new GameObject("Ticket Desk").transform;
             desk.position = new Vector3(20, 0, -22.5f);
             Box("Counter", desk, desk.position + new Vector3(0, 0.55f, 0), new Vector3(3, 1.1f, 1), deskMat);
-            Box("Register", desk, desk.position + new Vector3(0.6f, 1.25f, 0), new Vector3(0.5f, 0.3f, 0.4f), consoleMat);
-            var register = desk.gameObject.AddComponent<TicketRegister>();
+            var registerGo = Box("Register", desk, desk.position + new Vector3(0.6f, 1.25f, 0), new Vector3(0.5f, 0.3f, 0.4f), consoleMat);
+            var register = registerGo.AddComponent<TicketRegister>();
+            Set(register, "pricing", pricing);
+
+            // Upgrade computer on the other end of the counter.
+            var computer = new GameObject("Upgrade Computer").transform;
+            computer.SetParent(desk, false);
+            computer.position = desk.position + new Vector3(-0.8f, 1.1f, -0.2f);
+            Box("Monitor Stand", computer, computer.position + new Vector3(0, 0.12f, 0), new Vector3(0.12f, 0.24f, 0.12f), consoleMat);
+            Box("Monitor", computer, computer.position + new Vector3(0, 0.45f, 0), new Vector3(0.7f, 0.45f, 0.06f), screenMat);
+            var shop = computer.gameObject.AddComponent<UpgradeShop>();
+
+            // Price panel next to the desk: − on the left and + on the right, as seen from behind the desk.
+            var pricePanel = new GameObject("Price Panel").transform;
+            pricePanel.position = new Vector3(17.6f, 0, -22.3f);
+            Box("Pedestal", pricePanel, pricePanel.position + new Vector3(0, 0.5f, 0), new Vector3(0.7f, 1f, 0.5f), consoleMat);
+            var priceUp = Box("Price Up (+)", pricePanel, pricePanel.position + new Vector3(-0.17f, 1.04f, 0), new Vector3(0.22f, 0.08f, 0.22f), greenMat);
+            Set(priceUp.AddComponent<PriceButton>(), "pricing", pricing);
+            var priceDown = Box("Price Down (-)", pricePanel, pricePanel.position + new Vector3(0.17f, 1.04f, 0), new Vector3(0.22f, 0.08f, 0.22f), redMat);
+            var downButton = priceDown.AddComponent<PriceButton>();
+            Set(downButton, "pricing", pricing);
+            SetInt(downButton, "direction", -1);
+
+            // Upgrade visuals, hidden until bought.
+            var autoLight = Box("Auto Wave Light", null, new Vector3(-6, 5.25f, -9), new Vector3(0.6f, 0.5f, 0.6f), beaconMat);
+            autoLight.SetActive(false);
+            var bench = Box("Surfer Bench", env, new Vector3(30, 0.25f, -15), new Vector3(3, 0.5f, 0.8f), deskMat);
+            bench.SetActive(false);
 
             // The route surfers walk. Move these points in the scene to change where they go.
             var route = new GameObject("Surfer Route").transform;
@@ -151,12 +182,24 @@ namespace SurfPool.EditorTools
             var spawner = spawnerGo.AddComponent<SurferSpawner>();
             Set(spawner, "surferPrefab", BuildSurferPrefab(surferMat));
             Set(spawner, "water", water);
-            SetArray(spawner, "pathToDesk", entrance, deskApproach, deskSpot);
+            Set(spawner, "pricing", pricing);
+            SetArray(spawner, "pathIn", entrance, deskApproach);
+            Set(spawner, "deskSpot", deskSpot);
             SetArray(spawner, "pathToPool", deskExit, poolSide, poolEntry);
             Set(spawner, "lineup", lineup);
             Set(spawner, "beachLanding", landing);
             SetArray(spawner, "pathOut", beachExit, exitCorner, exit);
             Set(register, "spawner", spawner);
+
+            Set(shop, "machine", machine);
+            Set(shop, "water", water);
+            Set(shop, "spawner", spawner);
+            Set(shop, "pricing", pricing);
+            Set(shop, "autoWaveLight", autoLight);
+            Set(shop, "extraBench", bench);
+
+            Set(hud, "pricing", pricing);
+            Set(hud, "spawner", spawner);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
@@ -182,7 +225,7 @@ namespace SurfPool.EditorTools
             go.GetComponent<BoxCollider>().size = size;
         }
 
-        static Material Mat(string name, Color color, float smoothness = 0.2f)
+        static Material Mat(string name, Color color, float smoothness = 0.2f, Color? emission = null)
         {
             string path = $"{MaterialFolder}/{name}.mat";
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -193,6 +236,12 @@ namespace SurfPool.EditorTools
             }
             mat.SetColor("_BaseColor", color);
             mat.SetFloat("_Smoothness", smoothness);
+            if (emission.HasValue)
+            {
+                mat.EnableKeyword("_EMISSION");
+                mat.SetColor("_EmissionColor", emission.Value);
+                mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            }
             EditorUtility.SetDirty(mat);
             return mat;
         }
@@ -201,6 +250,13 @@ namespace SurfPool.EditorTools
         {
             var so = new SerializedObject(target);
             so.FindProperty(field).objectReferenceValue = value;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        static void SetInt(Object target, string field, int value)
+        {
+            var so = new SerializedObject(target);
+            so.FindProperty(field).intValue = value;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
