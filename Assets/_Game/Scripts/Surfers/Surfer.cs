@@ -19,7 +19,7 @@ namespace SurfPool
             Riding, Wipeout, PaddlingBack, SwimmingToBeach, WalkingOut, WalkingToSnack, InSnackLine,
         }
 
-        enum Pose { Walk, Paddle, Ride, Wipeout }
+        enum Pose { Walk, Paddle, Ride, Wipeout, Straddle }
 
         /// <summary>A maneuver the body and board act out over a moment of the ride.</summary>
         enum Move { None, Snap, Cutback, Floater, BottomTurn }
@@ -59,8 +59,8 @@ namespace SurfPool
         [SerializeField] float beginnerRideOffset = 2.2f;
         [SerializeField] float intermediateRideOffset = 1.2f;
         [SerializeField] float proRideOffset = 0.6f;
-        [Tooltip("Seconds between a pro's moves when the wave matches their skill (real pros: one every 3-4 s). Intermediates wait 1.6x as long, beginners 2.2x.")]
-        [SerializeField] Vector2 trickInterval = new(3f, 4f);
+        [Tooltip("Seconds between a pro's moves when the wave matches their skill. Real pros do one every 3-4 s, but our rides last 3-5 s instead of 10-18, so time is squeezed. Intermediates wait 1.3x as long, beginners 1.8x; the first move comes at half the gap (a bottom turn right after takeoff).")]
+        [SerializeField] Vector2 trickInterval = new(1.3f, 2f);
         [Tooltip("Extra tip per trick landed in the session ($).")]
         [SerializeField] int tipPerTrick = 1;
         [Tooltip("How far the surfer carves left and right while riding (meters).")]
@@ -276,9 +276,11 @@ namespace SurfPool
                     PaddleTo(lineupTarget, state == State.Paddling ? paddleSpeed : paddleBackSpeed, State.WaitingForWave);
                     break;
                 case State.WaitingForWave:
-                    SetPose(Pose.Paddle);
-                    rig.Sprint = WaveComing();
-                    Float(transform.position + Separation(WaterSpace) * Time.deltaTime, Vector3.right);
+                    // Sit up facing the incoming waves; when one comes, turn for the beach, lie down and sprint.
+                    bool waveComing = WaveComing();
+                    SetPose(waveComing ? Pose.Paddle : Pose.Straddle);
+                    rig.Sprint = waveComing;
+                    Float(transform.position + Separation(WaterSpace) * Time.deltaTime, waveComing ? Vector3.right : Vector3.left);
                     if (DrainPatience(wavePatience * ParkEffects.WavePatienceMultiplier)) LeaveAngry("Where are the waves?!");
                     else TryCatchWave();
                     break;
@@ -345,14 +347,16 @@ namespace SurfPool
         }
 
         /// <summary>A gentle push away from surfers that are too close (horizontal only).</summary>
-        /// <summary>Is a wave rolling up behind (paddle hard to catch it)?</summary>
+        /// <summary>Is a wave this surfer hasn't passed on rolling up behind (turn and paddle hard to catch it)?</summary>
         bool WaveComing()
         {
             float x = water.transform.InverseTransformPoint(transform.position).x;
             for (int i = 0; i < water.ActiveWaves; i++)
             {
-                float crest = water.CurrentWaveCenter(water.GetWave(i).id);
-                if (crest > x - 9f && crest < x) return true;
+                var (id, _) = water.GetWave(i);
+                if (id == skippedWave) continue;
+                float crest = water.CurrentWaveCenter(id);
+                if (crest > x - 12f && crest < x + 0.5f) return true;
             }
             return false;
         }
@@ -618,7 +622,7 @@ namespace SurfPool
                     rideQuality = Mathf.Min(1f, rideQuality + 0.15f);
                     Shout($"I'm surfing {famous}!!", 2.5f);
                 }
-                nextTrickAt = Time.time + TrickDelay();
+                nextTrickAt = Time.time + TrickDelay() * 0.5f; // first move soon after takeoff
 
                 // Too-big waves often end in a wipeout; everyone wipes out sometimes.
                 float wipeoutChance = whitewash ? (diff == 1 ? 0.22f : 0.35f) : diff > 0 ? 0.6f : Skill switch { WaveLevel.Beginner => 0.2f, WaveLevel.Intermediate => 0.1f, _ => 0.05f };
@@ -756,9 +760,9 @@ namespace SurfPool
             if (!airborne) feel.Spray(water, transform.position, heading, spray);
         }
 
-        /// <summary>Seconds to the next move: pros every 3-4 s, intermediates and beginners (who mostly trim) less often.</summary>
+        /// <summary>Seconds to the next move: pros most often, intermediates and beginners (who mostly trim) less.</summary>
         float TrickDelay() => Random.Range(trickInterval.x, trickInterval.y)
-            * Skill switch { WaveLevel.Pro => 1f, WaveLevel.Intermediate => 1.6f, _ => 2.2f };
+            * Skill switch { WaveLevel.Pro => 1f, WaveLevel.Intermediate => 1.3f, _ => 1.8f };
 
         /// <summary>0..1 through the current maneuver, or -1 when there is none.</summary>
         float MoveProgress()
@@ -801,7 +805,7 @@ namespace SurfPool
                 airSpin = Random.value < 0.5f;
             }
             else if (trick is "Snap!" or "Re-entry!") StartMove(Move.Snap, 0.5f);
-            else if (trick == "Cutback!") StartMove(Move.Cutback, 1.8f);
+            else if (trick == "Cutback!") StartMove(Move.Cutback, 1.4f);
             else if (trick == "Floater!") StartMove(Move.Floater, 0.8f);
             else if (trick == "Bottom turn!") StartMove(Move.BottomTurn, 1f);
             tricksLanded++;
@@ -933,6 +937,11 @@ namespace SurfPool
                     break;
                 case Pose.Ride: // standing sideways on the board, knees bent
                     rig.CurrentMode = CharacterRig.Mode.Ride;
+                    rig.CarryingBoard = false;
+                    Place(board, new Vector3(0f, 0.05f, 0f), Vector3.zero);
+                    break;
+                case Pose.Straddle: // sitting up on the board in the lineup
+                    rig.CurrentMode = CharacterRig.Mode.Straddle;
                     rig.CarryingBoard = false;
                     Place(board, new Vector3(0f, 0.05f, 0f), Vector3.zero);
                     break;

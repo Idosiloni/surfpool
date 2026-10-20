@@ -55,7 +55,7 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
   - [x] Famous wave presets (Waikiki, Malibu, Snapper Rocks, Pipeline, Teahupo'o in the Lagoon)
   - [ ] Characters: real rigs/animations (Quaternius / Mixamo, needs download OK)
   - [x] Main menu, settings (mouse sensitivity, volume, quality, fullscreen)
-  - [x] Riding feel: smooth pose blending, real pop-up timing, board lies on the wave face and leans into turns, rail spray, distinct snaps/cutbacks/floaters/airs, head-covering wipeouts; first-person camera lean/FOV/pop-up rise; no dropping in or overlapping riders (see `docs/research/surfing-motion.md`)
+  - [x] Riding feel: smooth pose blending, real pop-up timing, board lies on the wave face and leans into turns, rail spray, distinct snaps/cutbacks/floaters/airs, head-covering wipeouts, forward crawl paddling, sitting up on boards in the lineup; first-person camera lean/FOV/pop-up rise; no dropping in or overlapping riders (see `docs/research/surfing-motion.md`)
   - [ ] Ambience + growth: park glow-up by level, more life, level-up celebrations, sound that grows with the park
   - [ ] UI restyle with a strong beach-surf art direction (see `docs/research/ui-powerwash.md`)
   - [ ] Steam build

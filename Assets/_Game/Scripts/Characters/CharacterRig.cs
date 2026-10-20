@@ -13,7 +13,7 @@ namespace SurfPool
     /// </summary>
     public class CharacterRig : MonoBehaviour
     {
-        public enum Mode { Locomotion, Paddle, Ride, Sit, Lie, Flail }
+        public enum Mode { Locomotion, Paddle, Ride, Sit, Lie, Flail, Straddle }
 
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
@@ -171,6 +171,7 @@ namespace SurfPool
                 Mode.Sit => Sit(),
                 Mode.Lie => Lie(),
                 Mode.Flail => Flail(),
+                Mode.Straddle => Straddle(),
                 _ => Locomotion(speed, dt),
             };
 
@@ -258,13 +259,15 @@ namespace SurfPool
             sprint = Mathf.MoveTowards(sprint, Sprint ? 1f : 0f, dt * 2f);
             phase += dt * Mathf.Lerp(2.5f, 5.7f, sprint);
             // Lying face down on the board, chest arched up, head up. Sprinting: glance back over the shoulder.
-            // Alternating crawl strokes: each arm reaches forward, pulls back beside the board, then swings over.
+            // Alternating crawl strokes: each arm reaches forward past the head, pulls back through the water
+            // beside the board to the hip, then swings forward through the air. (Lying down, the arm's positive x
+            // rotation goes hip -> up in the air -> past the head -> down in the water -> hip.)
             float stroke = phase * Mathf.Rad2Deg;
             float lookBack = sprint * Mathf.Clamp01(Mathf.Sin(Time.time * 2.4f) * 3f - 2f) * 70f;
             return Pose(new Vector3(0, 0.22f, -0.35f), new Vector3(90f, 0, 0), hipsHeight, new Vector3(-10f, 0, Mathf.Sin(phase) * 3f),
                 new Vector3(-35f + lookBack * 0.2f, lookBack, 0),
-                new Vector3(-stroke % 360f, 0, -PaddleArmOut),
-                new Vector3(-(stroke + 180f) % 360f, 0, PaddleArmOut),
+                new Vector3(stroke % 360f, 0, -PaddleArmOut),
+                new Vector3((stroke + 180f) % 360f, 0, PaddleArmOut),
                 new Vector3(Mathf.Sin(phase * 2f) * 8f, 0, -4f),
                 new Vector3(-Mathf.Sin(phase * 2f) * 8f, 0, 4f));
         }
@@ -377,6 +380,20 @@ namespace SurfPool
                 new Vector3(-20f, 0, -10f), new Vector3(-20f, 0, 10f));
             float covered = Mathf.Clamp01((Time.time - modeStart - 0.45f) / 0.25f);
             return PoseData.Lerp(flail, cover, covered);
+        }
+
+        /// <summary>
+        /// Waiting in the lineup: sitting up on the board, legs dangling in the water either side, hands resting
+        /// on the thighs, looking around at the horizon for the next wave.
+        /// </summary>
+        PoseData Straddle()
+        {
+            float t = Time.time;
+            float kick = Mathf.Sin(t * 1.3f) * 8f;
+            return Pose(new Vector3(0f, 0.12f - hipsHeight, 0f), Vector3.zero, hipsHeight, new Vector3(-4f, 0, 0),
+                new Vector3(Mathf.Sin(t * 0.5f) * 6f - 4f, Mathf.Sin(t * 0.35f) * 35f, 0),
+                new Vector3(-35f, 0, -12f), new Vector3(-35f, 0, 12f),
+                new Vector3(-35f + kick, 0, -32f), new Vector3(-35f - kick, 0, 32f));
         }
 
         PoseData Sit()
