@@ -43,13 +43,13 @@ namespace SurfPool.EditorTools
         {
             var root = new GameObject("World").transform;
 
-            // Sand all around the park (pools and their lots cover x -20..80, z -40..144), leaving the pool holes open.
+            // Sand all around the park (pools and their decks cover x -20..95, z -40..180), leaving the pool holes open.
             var sand = new GameObject("Sand Island").transform;
             sand.SetParent(root, false);
-            SandSlab(sand, "North", new Vector3(30, -0.6f, 174), new Vector3(220, 1, 60), sandMat);
-            SandSlab(sand, "South", new Vector3(30, -0.6f, -70), new Vector3(220, 1, 60), sandMat);
-            SandSlab(sand, "West", new Vector3(-50, -0.6f, 52), new Vector3(60, 1, 184), sandMat);
-            SandSlab(sand, "East", new Vector3(110, -0.6f, 52), new Vector3(60, 1, 184), sandMat);
+            SandSlab(sand, "North", new Vector3(30, -0.6f, 210), new Vector3(260, 1, 60), sandMat);
+            SandSlab(sand, "South", new Vector3(30, -0.6f, -70), new Vector3(240, 1, 60), sandMat);
+            SandSlab(sand, "West", new Vector3(-50, -0.6f, 72), new Vector3(60, 1, 224), sandMat);
+            SandSlab(sand, "East", new Vector3(120, -0.6f, 72), new Vector3(80, 1, 224), sandMat);
 
             var ocean = new GameObject("Ocean", typeof(MeshFilter), typeof(MeshRenderer));
             ocean.transform.SetParent(root, false);
@@ -100,8 +100,8 @@ namespace SurfPool.EditorTools
                 float angle = Range(0, Mathf.PI * 2);
                 float radius = Range(100, 120);
                 var spot = new Vector3(30 + Mathf.Cos(angle) * radius, -0.3f, 52 + Mathf.Sin(angle) * radius * 1.3f);
-                bool inPark = spot.x > -25 && spot.x < 85 && spot.z > -45 && spot.z < 150;
-                if (inPark || spot.z < -95 || spot.z > 200) continue;
+                bool inPark = spot.x > -25 && spot.x < 100 && spot.z > -45 && spot.z < 186;
+                if (inPark || spot.z < -95 || spot.z > 238) continue;
                 Model("Rock", rocks, spot, Range(0, 360), Range(0.8f, 2.4f));
             }
         }

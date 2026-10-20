@@ -20,7 +20,8 @@ namespace SurfPool.EditorTools
 
         static Transform root;
 
-        public static void Build(UpgradeShop shop, Transform reefBuilt, Transform lagoonBuilt, Material deck, Material coping, Material tile)
+        public static void Build(UpgradeShop shop, Transform reefBuilt, Transform lagoonBuilt, Material deck, Material coping, Material tile,
+            float reefZ, float lagoonZ)
         {
             root = new GameObject("Park Glow-Up").transform;
 
@@ -36,8 +37,8 @@ namespace SurfPool.EditorTools
 
             RunDown();
             Festivities();
-            PoolDressing(reefBuilt, 64f);
-            PoolDressing(lagoonBuilt, 116f);
+            PoolDressing(reefBuilt, reefZ, 18f, 75f);
+            PoolDressing(lagoonBuilt, lagoonZ, 24f, 75f);
             GateSigns();
             Crowd();
             Birds();
@@ -138,20 +139,22 @@ namespace SurfPool.EditorTools
         }
 
         /// <summary>The other pools get flags and string lights along their north decks once they're built.</summary>
-        static void PoolDressing(Transform built, float zc)
+        static void PoolDressing(Transform built, float zc, float halfWidth, float length)
         {
             if (built == null) return;
             var party = Group("Pool Festivities", built);
             string[] flags = { "FlagTeal", "FlagCoral", "FlagYellow" };
-            float north = zc + 13.6f;
-            for (int i = 0; i < 4; i++) FlagPole(party, new Vector3(4 + i * 17f, 0, north + 2.5f), flags[i % 3], Clean);
-            for (int i = 0; i < 7; i++)
+            float north = zc + halfWidth + 1.6f;
+            int flagCount = Mathf.Max(2, Mathf.RoundToInt(length / 17f));
+            for (int i = 0; i < flagCount; i++) FlagPole(party, new Vector3(4 + i * 17f, 0, north + 2.5f), flags[i % 3], Clean);
+            int poles = Mathf.Max(2, Mathf.RoundToInt((length - 4f) / 8f));
+            for (int i = 0; i < poles; i++)
             {
                 float x = 4 + i * 8f;
                 var pole = WorldArt.Model("LightPole", party, new Vector3(x, 0, north + 1f));
                 Collider(pole, new Vector3(0, 2.1f, 0), new Vector3(0.2f, 4.2f, 0.2f));
                 Item(pole, Festive);
-                if (i == 6) continue;
+                if (i == poles - 1) continue;
                 Item(Hang("Bunting", party, new Vector3(x + 4f, 3.7f, north + 1f)), Festive);
                 Item(Lights(party, new Vector3(x + 4f, 4.1f, north + 1f)), Lit);
             }

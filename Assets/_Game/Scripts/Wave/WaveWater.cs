@@ -34,6 +34,8 @@ namespace SurfPool
         [SerializeField] float sizeMultiplier = 1f;
         [Tooltip("Scales how fast waves peel. Below 1 = longer rides.")]
         [SerializeField] float peelSpeedMultiplier = 1f;
+        [Tooltip("How fast waves travel down the pool (x the wave type's speed). Slower = longer rides in long pools.")]
+        [SerializeField] float travelSpeedMultiplier = 1f;
         [Tooltip("Where a peeling wave starts breaking, measured from the middle of the pool (m).")]
         [SerializeField] float peakOffset = 4f;
         [Tooltip("How much smaller the wave is at the pool walls than in the middle (0 to 1).")]
@@ -124,7 +126,7 @@ namespace SurfPool
         {
             level = type.level,
             height = type.height * sizeMultiplier,
-            speed = type.speed,
+            speed = type.speed * travelSpeedMultiplier,
             frontWidth = type.frontWidth,
             backWidth = type.backWidth,
             breakAt = type.breakAt,
