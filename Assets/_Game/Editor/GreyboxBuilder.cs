@@ -102,6 +102,15 @@ namespace SurfPool.EditorTools
             var carry = player.AddComponent<PlayerCarry>();
             Set(carry, "heldBoard", held);
 
+            // Your own surfboard under your feet while surfing.
+            var myBoard = Board("Surf Board", player.transform, player.transform.position, player.transform.rotation, 1.05f, mats.sign);
+            myBoard.SetActive(false);
+            var surfing = player.AddComponent<PlayerSurfing>();
+            Set(surfing, "walker", fps);
+            Set(surfing, "body", cc);
+            Set(surfing, "cameraPivot", camGo.transform);
+            Set(surfing, "surfBoard", myBoard);
+
             // Money.
             var game = new GameObject("Game");
             game.AddComponent<Wallet>();
@@ -313,6 +322,7 @@ namespace SurfPool.EditorTools
             Set(missions, "upgradeComputer", computer);
             Set(missions, "pool", water.transform);
             Set(missions, "rentalRack", rackRoot);
+            Set(missions, "surfPeg", main.peg);
             Set(missions, "shop", shop);
             Set(missions, "spawner", spawner);
             Set(missions, "player", interactor);
@@ -354,6 +364,7 @@ namespace SurfPool.EditorTools
             public WaveWater water;
             public WaveMachine machine;
             public WaveControlPanel panel;
+            public Transform peg;
         }
 
         static PoolMaterials mats;
@@ -442,6 +453,17 @@ namespace SurfPool.EditorTools
             var panel = screen.AddComponent<WaveControlPanel>();
             Set(panel, "machine", machine);
 
+            // Your own board on a peg next to the console: E to go surfing in this pool.
+            var peg = new GameObject("Surf Peg").transform;
+            peg.SetParent(built, false);
+            peg.position = new Vector3(8, 0, zc - halfW - 1.6f);
+            Box("Peg Post", peg, peg.position + new Vector3(0, 0.9f, 0.25f), new Vector3(0.14f, 1.8f, 0.14f), mats.coping);
+            Board("My Board", peg, peg.position + new Vector3(0, 1.0f, 0.1f), Quaternion.Euler(-80, 0, 0), 1f, mats.sign);
+            var pegCollider = peg.gameObject.AddComponent<BoxCollider>();
+            pegCollider.center = new Vector3(0, 1f, 0.15f);
+            pegCollider.size = new Vector3(0.7f, 2f, 0.4f);
+            var surfPeg = peg.gameObject.AddComponent<SurfPeg>();
+
             // Construction lot: sand, a fence of posts and a big coral sign, shown until the pool is built.
             GameObject lot = null;
             if (!spec.open)
@@ -485,9 +507,10 @@ namespace SurfPool.EditorTools
             Set(area, "buildVisuals", built.gameObject);
             if (lot != null) Set(area, "lotVisuals", lot);
             Set(area, "autoWaveLight", autoLight);
+            Set(surfPeg, "pool", area);
             if (!spec.open) built.gameObject.SetActive(false);
 
-            return new PoolBuild { area = area, water = water, machine = machine, panel = panel };
+            return new PoolBuild { area = area, water = water, machine = machine, panel = panel, peg = peg };
         }
 
         static void SetFloat(Object target, string field, float value)

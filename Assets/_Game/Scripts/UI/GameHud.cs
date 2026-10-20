@@ -108,7 +108,17 @@ namespace SurfPool
             UpdatePrompt();
             UpdateBubbles();
             UpdateMission();
-            hint.EnableInClassList("hint--hidden", Time.timeSinceLevelLoad > hintSeconds);
+            var surfing = PlayerSurfing.Instance;
+            if (surfing != null && surfing.IsSurfing)
+            {
+                SetText(hint, surfing.Hint);
+                hint.RemoveFromClassList("hint--hidden");
+            }
+            else
+            {
+                SetText(hint, "WASD move   ·   Shift sprint   ·   Space jump   ·   E use   ·   Esc free mouse");
+                hint.EnableInClassList("hint--hidden", Time.timeSinceLevelLoad > hintSeconds);
+            }
         }
 
         void UpdateMoneyAndRating()

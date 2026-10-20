@@ -43,6 +43,7 @@ namespace SurfPool
         [SerializeField] Transform upgradeComputer;
         [SerializeField] Transform pool;
         [SerializeField] Transform rentalRack;
+        [SerializeField] Transform surfPeg;
 
         [Header("Systems missions read")]
         [SerializeField] UpgradeShop shop;
@@ -149,6 +150,14 @@ namespace SurfPool
                 objectives = { Flag("Buy your first upgrade", () => shop.OwnedCount > 0) },
             });
 
+            missions.Add(new Mission
+            {
+                chapter = ch2, title = "Owner's privilege", reward = 50,
+                story = "You can't run a surf park without surfing it! Grab your board from the peg by the wave console.",
+                hint = "E on your board by the console. W paddle, Space to stand up when a wave reaches you, F sends a wave.",
+                marker = () => surfPeg,
+                objectives = { Count("Ride a wave yourself", () => GameStats.PlayerRides, 1) },
+            });
             missions.Add(new Mission
             {
                 chapter = ch2, title = "Bigger waves", reward = 100,

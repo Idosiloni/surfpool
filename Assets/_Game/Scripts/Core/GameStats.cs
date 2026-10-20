@@ -12,6 +12,7 @@ namespace SurfPool
         public static int TubeRides;
         public static int TricksLanded;
         public static int Wipeouts;
+        public static int PlayerRides;
         public static long TotalEarned;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -24,6 +25,7 @@ namespace SurfPool
             TubeRides = 0;
             TricksLanded = 0;
             Wipeouts = 0;
+            PlayerRides = 0;
             TotalEarned = 0;
         }
     }
