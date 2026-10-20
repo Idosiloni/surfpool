@@ -589,7 +589,7 @@ namespace SurfPool
             float happiness = moodSamples == 0 ? 1f : moodTotal / moodSamples;
             int tip = happiness > 0.5f ? Mathf.RoundToInt(paidPrice * maxTipShare * happiness) + tricksLanded * tipPerTrick : 0;
             if (tip > 0) Wallet.Instance.Add(tip, "tip");
-            if (Skill == WaveLevel.Beginner && ParkEffects.LessonFee > 0) Wallet.Instance.Add(ParkEffects.LessonFee, "surf lessons");
+            if (Skill == WaveLevel.Beginner && ParkEffects.LessonFee > 0) Wallet.Instance.Add(SurfCoach.TeachLesson(), "surf lessons");
             if (happiness > 0.5f && ParkEffects.MerchPerHappySurfer > 0) Wallet.Instance.Add(ParkEffects.MerchPerHappySurfer, "surf shop");
             spawner.ReportServed(happiness);
             if (happiness > 0.5f) ParkLevel.Add(ParkLevel.XpForSurfer(Skill));

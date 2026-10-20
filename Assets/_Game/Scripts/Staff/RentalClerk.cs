@@ -19,10 +19,14 @@ namespace SurfPool
             if (renter != serving)
             {
                 serving = renter;
-                serveDoneAt = Time.time + serveTime;
+                serveDoneAt = Time.time + serveTime * StaffMember.TimeFactor(gameObject);
             }
             if (serving == null || Time.time < serveDoneAt || rack.Count == 0) return;
-            if (rack.TryTakeBoard()) serving.GiveBoard();
+            if (rack.TryTakeBoard())
+            {
+                serving.GiveBoard();
+                StaffMember.RecordWork(gameObject);
+            }
             serving = null;
         }
     }

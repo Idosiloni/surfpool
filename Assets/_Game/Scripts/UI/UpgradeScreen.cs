@@ -125,9 +125,17 @@ namespace SurfPool
                 string id = upgrade.id;
                 var buy = new Button(() => shop.Buy(id));
                 buy.AddToClassList("buy-button");
+                var worker = upgrade.owned ? shop.StaffFor(upgrade.id) : null;
+                if (worker != null)
+                {
+                    var stars = new Label($"{StaffMember.StarText(worker.Stars)}   {MoneyText.Format(worker.WagePerMinute)}/min" +
+                        (worker.Stars < StaffMember.MaxStars ? $"   ·   {worker.JobsToNextStar} jobs to next star" : "   ·   top rated!"));
+                    stars.AddToClassList("card-stars");
+                    card.Add(stars);
+                }
                 if (upgrade.owned)
                 {
-                    buy.text = "Owned";
+                    buy.text = worker != null ? "Hired" : "Owned";
                     buy.AddToClassList("buy-button--owned");
                     buy.SetEnabled(false);
                 }

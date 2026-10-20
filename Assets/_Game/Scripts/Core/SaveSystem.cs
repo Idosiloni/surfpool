@@ -28,6 +28,23 @@ namespace SurfPool
             public int ticketsSold, wavesSent, surfersServed, boardsRented, tubeRides, tricksLanded, wipeouts, playerRides;
             public long totalEarned;
             public int parkXp;
+            public List<NamedValue> staffExperience = new();
+            public List<MachineState> machines = new();
+        }
+
+        [Serializable]
+        class NamedValue
+        {
+            public string id;
+            public int value;
+        }
+
+        [Serializable]
+        class MachineState
+        {
+            public string pool;
+            public float wear;
+            public bool broken;
         }
 
         [SerializeField] UpgradeShop shop;
@@ -71,6 +88,14 @@ namespace SurfPool
                 totalEarned = GameStats.TotalEarned,
                 parkXp = ParkLevel.Instance != null ? ParkLevel.Instance.Xp : 0,
             };
+            foreach (var id in data.upgrades)
+            {
+                var worker = shop.StaffFor(id);
+                if (worker != null) data.staffExperience.Add(new NamedValue { id = id, value = worker.Experience });
+            }
+            foreach (var pool in PoolRegistry.All)
+                if (pool.Machine != null && pool.Machine.Service != null)
+                    data.machines.Add(new MachineState { pool = pool.DisplayName, wear = pool.Machine.Service.Wear, broken = pool.Machine.Service.Broken });
             File.WriteAllText(SavePath, JsonUtility.ToJson(data, true));
         }
 
@@ -98,6 +123,17 @@ namespace SurfPool
             if (DayCycle.Instance != null) DayCycle.Instance.Restore(data.day);
             if (MissionManager.Instance != null) MissionManager.Instance.Restore(data.missionIndex, data.missionStarted);
             spawner.RestoreCounts(data.served, data.lost);
+            if (data.staffExperience != null)
+                foreach (var entry in data.staffExperience)
+                {
+                    var worker = shop.StaffFor(entry.id);
+                    if (worker != null) worker.RestoreExperience(entry.value);
+                }
+            if (data.machines != null)
+                foreach (var state in data.machines)
+                    foreach (var pool in PoolRegistry.All)
+                        if (pool.DisplayName == state.pool && pool.Machine != null && pool.Machine.Service != null)
+                            pool.Machine.Service.Restore(state.wear, state.broken);
             GameStats.TicketsSold = data.ticketsSold;
             GameStats.WavesSent = data.wavesSent;
             GameStats.SurfersServed = data.surfersServed;

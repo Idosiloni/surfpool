@@ -13,9 +13,9 @@ namespace SurfPool
         void Update()
         {
             if (Time.time < nextCheck) return;
-            nextCheck = Time.time + checkInterval;
+            nextCheck = Time.time + checkInterval * StaffMember.TimeFactor(gameObject);
             foreach (var pool in PoolRegistry.All)
-                if (pool.IsOpen && pool.Machine != null) pool.Machine.SendForWaiting();
+                if (pool.IsOpen && pool.Machine != null && pool.Machine.SendForWaiting()) StaffMember.RecordWork(gameObject);
         }
     }
 }

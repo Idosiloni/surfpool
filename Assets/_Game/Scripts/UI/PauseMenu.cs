@@ -85,6 +85,9 @@ namespace SurfPool
             AddStat("Tricks / tube rides", $"{GameStats.TricksLanded} / {GameStats.TubeRides}");
             AddStat("Your own rides", GameStats.PlayerRides.ToString());
             AddStat("Total earned", MoneyText.Format(GameStats.TotalEarned));
+            if (ParkLevel.Instance != null) AddStat("Park level", $"{ParkLevel.Instance.Level}  ({ParkLevel.Instance.XpToNext:#,0} XP to next)");
+            foreach (var worker in StaffMember.Active)
+                AddStat(worker.JobTitle, StaffMember.StarText(worker.Stars));
             root.RemoveFromClassList("hidden");
         }
 

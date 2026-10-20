@@ -309,6 +309,14 @@ namespace SurfPool.EditorTools
             operatorGuy.AddComponent<WaveOperator>();
             Staff(operatorGuy, "Wave Operator", 25);
 
+            // Mechanic by the main machine house, hidden until hired.
+            var mechanicMat = Mat("MechanicShirt", new Color(0.2f, 0.32f, 0.55f), 0.3f);
+            var mechanic = Person("Mechanic", new Vector3(-2.6f, 0, -halfW - 1.2f), 60f, mechanicMat, skinMat);
+            mechanic.AddComponent<Mechanic>();
+            Staff(mechanic, "Mechanic", 10);
+            Set(shop, "mechanic", mechanic);
+            mechanic.SetActive(false);
+
             // Surf shop kiosk near the entrance, hidden until bought.
             var surfShop = new GameObject("Surf Shop").transform;
             surfShop.position = new Vector3(40, 0, -33);
@@ -520,6 +528,17 @@ namespace SurfPool.EditorTools
             Set(machine, "water", water);
             var autoLight = Box("Auto Wave Light", built, new Vector3(-6, 4.85f, zc - 9), new Vector3(0.6f, 0.5f, 0.6f), mats.beacon);
             autoLight.SetActive(false);
+
+            // Breakdowns: a flashing red light and black smoke from the roof when the machine is broken.
+            var service = machineGo.AddComponent<MachineService>();
+            var brokenLight = Box("Broken Light", built, new Vector3(-6, 4.85f, zc - 7.6f), new Vector3(0.6f, 0.5f, 0.6f),
+                Mat("BrokenLight", new Color(1f, 0.15f, 0.1f), 0.5f, new Color(3f, 0.3f, 0.2f)));
+            Object.DestroyImmediate(brokenLight.GetComponent<Collider>());
+            var smoke = BuildSmoke();
+            smoke.transform.SetParent(built, false);
+            smoke.transform.position = new Vector3(-10, 5.5f, zc);
+            Set(service, "smoke", smoke);
+            Set(service, "brokenLight", brokenLight);
 
             var console = new GameObject("Wave Console").transform;
             console.SetParent(built, false);
@@ -948,6 +967,41 @@ namespace SurfPool.EditorTools
         }
 
         /// <summary>Particle system for foam blobs. WaveWater emits the particles itself.</summary>
+        /// <summary>Puffs of dark smoke rising from a broken wave machine (played by MachineService).</summary>
+        static ParticleSystem BuildSmoke()
+        {
+            var go = new GameObject("Breakdown Smoke");
+            var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.playOnAwake = false;
+            main.loop = true;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.startLifetime = 3.5f;
+            main.startSpeed = new ParticleSystem.MinMaxCurve(1.2f, 2.2f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.6f, 1.2f);
+            main.startColor = new Color(0.25f, 0.25f, 0.27f);
+            main.gravityModifier = -0.05f;
+            var emission = ps.emission;
+            emission.rateOverTime = 7f;
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 12f;
+            shape.radius = 0.8f;
+            shape.rotation = new Vector3(-90f, 0f, 0f);
+            var size = ps.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 0.4f), new Keyframe(0.5f, 1.2f), new Keyframe(1f, 0f)));
+            var renderer = go.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Mesh;
+            var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            renderer.mesh = sphere.GetComponent<MeshFilter>().sharedMesh;
+            Object.DestroyImmediate(sphere);
+            renderer.sharedMaterial = Mat("Smoke", new Color(0.3f, 0.3f, 0.32f), 0f);
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return ps;
+        }
+
         static ParticleSystem BuildSpray(Material foamMat)
         {
             var go = new GameObject("Wave Spray");

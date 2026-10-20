@@ -57,6 +57,8 @@ namespace SurfPool
                 description = "Unlocks Lefts and Rights. They peel longer than a peak (longer rides, more tricks), and surfers pay $5 more for them. Regular-foot surfers love rights, goofy-foot surfers love lefts." },
             new Upgrade { id = "pro_waves", category = UpgradeCategory.Waves, title = "Pro Wave Program", cost = 4500, level = 11, requires = "pool_expand_2",
                 description = "Unlocks steep, fast, barreling Pro waves. Pro surfers start coming: they pay 6x the base price and do tricks." },
+            new Upgrade { id = "heavy_duty_pumps", category = UpgradeCategory.Waves, title = "Heavy-Duty Pumps", cost = 3500, level = 9,
+                description = "Tougher pumps in every wave machine: they wear out half as fast, so they break down much less." },
             new Upgrade { id = "turbo_2", category = UpgradeCategory.Waves, title = "Turbo Pump II", cost = 4000, level = 12, requires = "faster_machine",
                 description = "Recharge time drops to 1 s. Auto waves every 8 s." },
 
@@ -101,6 +103,8 @@ namespace SurfPool
                 description = "Wage $6/min. Carries returned boards from the bin back to the rack for you." },
             new Upgrade { id = "rental_clerk", category = UpgradeCategory.Staff, title = "Hire Rental Clerk", cost = 700, level = 5, requires = "rental_stand",
                 description = "Wage $8/min. Hands rental boards to renters for you." },
+            new Upgrade { id = "mechanic", category = UpgradeCategory.Staff, title = "Hire Mechanic", cost = 1800, level = 6,
+                description = "Wage $10/min. Services worn wave machines and fixes broken ones in every pool, so you don't have to." },
             new Upgrade { id = "surf_coach", category = UpgradeCategory.Staff, title = "Hire Surf Coach", cost = 2500, level = 9,
                 description = "Wage $15/min. Gives beginners lessons: they wipe out far less, and each beginner session earns a $25 lesson fee." },
             new Upgrade { id = "wave_operator", category = UpgradeCategory.Staff, title = "Hire Wave Operator", cost = 6000, level = 13,
@@ -122,6 +126,7 @@ namespace SurfPool
         [SerializeField] GameObject surfCoach;
         [SerializeField] GameObject waveOperator;
         [SerializeField] GameObject surfShop;
+        [SerializeField] GameObject mechanic;
 
         [Header("Park decoration (hidden until bought)")]
         [Tooltip("Garden pieces: one on the main deck, one on each extra pool's deck (shown once that pool is built).")]
@@ -211,6 +216,23 @@ namespace SurfPool
             return true;
         }
 
+        /// <summary>The worker an upgrade hires (null for other upgrades).</summary>
+        public StaffMember StaffFor(string id)
+        {
+            var worker = id switch
+            {
+                "lifeguard" => lifeguard,
+                "board_runner" => boardRunner,
+                "rental_clerk" => rentalClerk,
+                "desk_clerk" => deskClerk,
+                "surf_coach" => surfCoach,
+                "wave_operator" => waveOperator,
+                "mechanic" => mechanic,
+                _ => null,
+            };
+            return worker != null ? worker.GetComponent<StaffMember>() : null;
+        }
+
         public bool LevelMet(Upgrade upgrade) => ParkLevel.Instance == null || ParkLevel.Instance.Level >= upgrade.level;
 
         /// <summary>Upgrades that open up at exactly this park level (for the level-up banner).</summary>
@@ -247,6 +269,12 @@ namespace SurfPool
                 case "pool_expand_2":
                     spawner.MainPool.SetStage(2);
                     spawner.MaxSurfers += 2;
+                    break;
+                case "mechanic":
+                    if (mechanic != null) mechanic.SetActive(true);
+                    break;
+                case "heavy_duty_pumps":
+                    MachineService.WearMultiplier = 0.5f;
                     break;
                 case "solar_panels":
                     ParkEffects.ElectricityCostMultiplier = 0.5f;

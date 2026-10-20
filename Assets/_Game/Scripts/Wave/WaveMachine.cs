@@ -42,6 +42,13 @@ namespace SurfPool
             }
         }
 
+        MachineService service;
+
+        /// <summary>Wear and breakdowns (null if the machine has no service component).</summary>
+        public MachineService Service => service != null ? service : service = GetComponent<MachineService>();
+
+        public bool Broken => Service != null && Service.Broken;
+
         /// <summary>Power cost of one press with the selected wave (a whole set if upgraded).</summary>
         public int PressCost => OperatingCosts.Instance != null ? OperatingCosts.Instance.PowerCost(Selected, Pool) * wavesPerSet : 0;
 
@@ -129,12 +136,13 @@ namespace SurfPool
 
         bool TrySendSet(WaveLevel level, WaveDirection direction)
         {
-            if (!Ready || !IsUnlocked(level) || !IsUnlocked(direction)) return false;
+            if (!Ready || Broken || !IsUnlocked(level) || !IsUnlocked(direction)) return false;
             for (int i = 0; i < wavesPerSet; i++)
                 pending.Add((Time.time + i * setSpacing, level, direction));
             GameStats.WavesSent += wavesPerSet;
             if (OperatingCosts.Instance != null) OperatingCosts.Instance.MeterWaves(level, Pool, wavesPerSet);
             Sfx.Play(Sound.WaveMachine, transform.position);
+            if (Service != null) Service.AddWear(level, wavesPerSet);
             chargeDuration = cooldown + (wavesPerSet - 1) * setSpacing;
             readyAt = Time.time + chargeDuration;
             return true;

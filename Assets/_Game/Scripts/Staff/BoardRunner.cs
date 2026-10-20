@@ -34,7 +34,7 @@ namespace SurfPool
             }
 
             Vector3 target = rackToBin[waypoint].position;
-            Vector3 next = Vector3.MoveTowards(transform.position, target, walkSpeed * Time.deltaTime);
+            Vector3 next = Vector3.MoveTowards(transform.position, target, walkSpeed / StaffMember.TimeFactor(gameObject) * Time.deltaTime);
             Vector3 step = next - transform.position;
             step.y = 0f;
             if (step.sqrMagnitude > 1e-6f) transform.rotation = Quaternion.LookRotation(step);
@@ -51,6 +51,7 @@ namespace SurfPool
             else if (direction == -1 && waypoint == 0)
             {
                 if (carrying && !rack.TryPutBoard()) bin.Add(); // rack filled up meanwhile: put it back
+                else if (carrying) StaffMember.RecordWork(gameObject);
                 carrying = false;
                 carriedBoard.SetActive(false);
                 direction = 0;

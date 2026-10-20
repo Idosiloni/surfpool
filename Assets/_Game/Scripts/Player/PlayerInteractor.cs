@@ -26,6 +26,9 @@ namespace SurfPool
             bool pressed = (keyboard != null && keyboard.eKey.wasPressedThisFrame)
                         || (mouse != null && Cursor.lockState == CursorLockMode.Locked && mouse.leftButton.wasPressedThisFrame);
             if (pressed) Target.Interact();
+            bool held = (keyboard != null && keyboard.eKey.isPressed)
+                     || (mouse != null && Cursor.lockState == CursorLockMode.Locked && mouse.leftButton.isPressed);
+            if (held && Target is IHoldInteractable holdable) holdable.Hold(Time.deltaTime);
         }
     }
 }

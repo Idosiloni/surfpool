@@ -16,6 +16,7 @@ namespace SurfPool
         {
             if (onDuty == null || Time.time < onDuty.nextWhistle) return;
             onDuty.nextWhistle = Time.time + 6f;
+            StaffMember.RecordWork(onDuty.gameObject);
             Sfx.Play(Sound.Whistle, onDuty.transform.position);
         }
 

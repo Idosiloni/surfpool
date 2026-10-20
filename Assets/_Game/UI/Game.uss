@@ -159,6 +159,11 @@
     margin-top: 4px;
 }
 
+.small-text--alert {
+    color: #FF6B57;
+    -unity-font-style: bold;
+}
+
 .divider {
     height: 2px;
     background-color: #EBD9BF;
@@ -1059,4 +1064,10 @@
     height: 100%;
     background-color: #FFC857;
     transition-duration: 0.4s;
+}
+
+.card-stars {
+    font-size: 16px;
+    color: #C9824F;
+    margin-top: 6px;
 }

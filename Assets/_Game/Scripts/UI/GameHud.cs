@@ -254,7 +254,13 @@ namespace SurfPool
 
             waveBarFill.style.width = Length.Percent(machine.ReadyProgress * 100f);
             waveBarFill.EnableInClassList("bar-fill--charging", !machine.Ready);
-            SetText(waveStatus, machine.Ready
+            var service = machine.Service;
+            waveStatus.EnableInClassList("small-text--alert", service != null && service.NeedsService);
+            if (service != null && service.Broken)
+                SetText(waveStatus, "BROKEN! Hold E at the machine house");
+            else if (service != null && service.NeedsService)
+                SetText(waveStatus, $"Needs a service (wear {Mathf.RoundToInt(service.Wear * 100f)}%)");
+            else SetText(waveStatus, machine.Ready
                 ? $"Ready - press the big button  ·  {MoneyText.Format(machine.PressCost)} power"
                 : $"Recharging... {Mathf.CeilToInt(machine.SecondsUntilReady)}s");
 

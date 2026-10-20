@@ -19,10 +19,11 @@ namespace SurfPool
             if (customer != serving)
             {
                 serving = customer;
-                serveDoneAt = Time.time + serveTime;
+                serveDoneAt = Time.time + serveTime * StaffMember.TimeFactor(gameObject);
             }
             if (serving == null || Time.time < serveDoneAt) return;
             register.Interact();
+            StaffMember.RecordWork(gameObject);
             serving = null;
         }
     }
