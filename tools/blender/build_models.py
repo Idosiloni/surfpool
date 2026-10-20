@@ -348,6 +348,71 @@ def rock(name="Rock", seed=3):
     return obj
 
 
+# ---------------------------------------------------------------- character parts
+# Each part is its own FBX with its pivot at the joint, so Unity can rotate it to animate.
+# Front of the character = Blender -Y (Unity +Z). Tintable parts use plain white materials.
+
+PALETTE.update({"Skin": (1.0, 1.0, 1.0), "Shirt": (1.0, 1.0, 1.0), "Shorts": (1.0, 1.0, 1.0), "Hair": (1.0, 1.0, 1.0), "Eyes": (0.05, 0.08, 0.1)})
+
+
+def taper(name, radius_top, radius_bottom, length, mat, vertices=7, scale_x=1.0, scale_y=1.0):
+    """Tapered limb hanging down from the pivot (z = 0 to z = -length)."""
+    obj = cylinder(name, radius_bottom, length, (0, 0, -length / 2), mat, vertices=vertices, radius_top=radius_top)
+    obj.scale = (scale_x, scale_y, 1)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    return obj
+
+
+def char_torso():
+    obj = cylinder("CharTorso", 0.2, 0.55, (0, 0, 0.275), "Shirt", vertices=8, radius_top=0.23)
+    obj.scale = (1.0, 0.6, 1)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    return obj
+
+
+def char_shorts():
+    obj = cylinder("CharShorts", 0.22, 0.24, (0, 0, -0.08), "Shorts", vertices=8, radius_top=0.21)
+    obj.scale = (1.0, 0.62, 1)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    return obj
+
+
+def char_head():
+    parts = [box("Skull", (0.26, 0.25, 0.28), (0, 0, 0.17), "Skin"),
+             box("Neck", (0.1, 0.1, 0.06), (0, 0, 0.02), "Skin"),
+             box("EyeL", (0.04, 0.02, 0.05), (-0.06, -0.126, 0.19), "Eyes"),
+             box("EyeR", (0.04, 0.02, 0.05), (0.06, -0.126, 0.19), "Eyes"),
+             box("Nose", (0.04, 0.04, 0.05), (0, -0.135, 0.15), "Skin")]
+    return join("CharHead", parts)
+
+
+def char_hair_short():
+    parts = [box("Top", (0.29, 0.28, 0.08), (0, 0.01, 0.33), "Hair"),
+             box("Back", (0.29, 0.06, 0.16), (0, 0.13, 0.24), "Hair"),
+             box("Fringe", (0.27, 0.05, 0.05), (0, -0.12, 0.29), "Hair")]
+    return join("CharHairShort", parts)
+
+
+def char_hair_long():
+    parts = [box("Top", (0.3, 0.29, 0.09), (0, 0.01, 0.33), "Hair"),
+             box("Back", (0.3, 0.08, 0.38), (0, 0.14, 0.15), "Hair"),
+             box("SideL", (0.05, 0.22, 0.24), (-0.15, 0.02, 0.2), "Hair"),
+             box("SideR", (0.05, 0.22, 0.24), (0.15, 0.02, 0.2), "Hair")]
+    return join("CharHairLong", parts)
+
+
+def char_arm():
+    arm = taper("Arm", 0.06, 0.045, 0.58, "Skin")
+    hand = ico("Hand", 0.06, (0, 0, -0.6), "Skin")
+    return join("CharArm", [arm, hand])
+
+
+def char_leg():
+    leg = taper("Leg", 0.085, 0.06, 0.8, "Skin")
+    foot = box("Foot", (0.1, 0.2, 0.06), (0, -0.05, -0.82), "Skin")
+    return join("CharLeg", [leg, foot])
+
+
 def build_all():
     clear_scene()
     built = []
@@ -363,6 +428,7 @@ def build_all():
         lambda: beach_umbrella("BeachUmbrellaCoral", "Coral"),
         lounge_chair,
         lambda: rock("Rock", 3),
+        char_torso, char_shorts, char_head, char_hair_short, char_hair_long, char_arm, char_leg,
     ):
         obj = factory()
         if obj.location.length > 0:  # single-mesh models: make sure the pivot is the base center too

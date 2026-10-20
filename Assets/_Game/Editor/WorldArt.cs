@@ -197,15 +197,21 @@ namespace SurfPool.EditorTools
             return profile;
         }
 
-        /// <summary>A big flat grid with black vertex colors (no foam) for the stylized water shader.</summary>
+        /// <summary>
+        /// A big flat grid with black vertex colors (no foam) for the stylized water shader, with a hole where the
+        /// sand island is so it never covers the pools (the ocean sits above the pool water level).
+        /// </summary>
         static Mesh OceanMesh()
         {
             const string path = "Assets/_Game/Models/OceanPlane.asset";
-            var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
-            if (mesh != null) return mesh;
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing != null) AssetDatabase.DeleteAsset(path);
+            Mesh mesh;
 
-            const int n = 40;
+            const int n = 80;
             const float size = 1600f;
+            // Island footprint in the ocean's local space (ocean is centered at x = 30, z = 0).
+            var hole = Rect.MinMaxRect(-80 - 30 + 2, -100 + 2, 140 - 30 - 2, 204 - 2);
             var vertices = new Vector3[(n + 1) * (n + 1)];
             var colors = new Color[vertices.Length];
             for (int z = 0; z <= n; z++)
@@ -220,9 +226,14 @@ namespace SurfPool.EditorTools
             for (int x = 0; x < n; x++)
             {
                 int i = z * (n + 1) + x;
+                var a = vertices[i];
+                var b = vertices[i + n + 2];
+                var cell = Rect.MinMaxRect(a.x, a.z, b.x, b.z);
+                if (hole.Contains(cell.min) && hole.Contains(cell.max)) continue; // under the island
                 triangles[k++] = i; triangles[k++] = i + n + 1; triangles[k++] = i + 1;
                 triangles[k++] = i + 1; triangles[k++] = i + n + 1; triangles[k++] = i + n + 2;
             }
+            System.Array.Resize(ref triangles, k);
             mesh = new Mesh { name = "OceanPlane", vertices = vertices, colors = colors, triangles = triangles };
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();

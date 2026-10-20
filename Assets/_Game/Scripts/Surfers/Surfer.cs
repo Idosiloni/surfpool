@@ -30,8 +30,7 @@ namespace SurfPool
         static readonly string[] ProTricks = { "Floater!", "Re-entry!", "AIR!", "Tube ride!" };
 
         [Header("Parts")]
-        [SerializeField] Transform body;
-        [SerializeField] Transform head;
+        [SerializeField] CharacterRig rig;
         [SerializeField] Transform board;
 
         [Header("Movement")]
@@ -193,8 +192,9 @@ namespace SurfPool
                 WaveLevel.Pro => new Vector3(0.85f, 0.85f, 0.85f),
                 _ => Vector3.one,
             };
-            Paint(body, Random.ColorHSV(0f, 1f, 0.5f, 0.9f, 0.6f, 1f));
-            Paint(head, Color.Lerp(new Color(0.45f, 0.3f, 0.2f), new Color(1f, 0.85f, 0.7f), Random.value));
+            var skin = Color.Lerp(new Color(0.42f, 0.27f, 0.17f), new Color(1f, 0.84f, 0.7f), Random.value);
+            var hair = Random.value < 0.25f ? new Color(0.95f, 0.82f, 0.45f) : Color.Lerp(new Color(0.08f, 0.06f, 0.05f), new Color(0.45f, 0.28f, 0.15f), Random.value);
+            rig.Paint(skin, Random.ColorHSV(0f, 1f, 0.5f, 0.9f, 0.6f, 1f), Random.ColorHSV(0f, 1f, 0.4f, 0.8f, 0.3f, 0.8f), hair, Random.Range(0, 2));
             Paint(board, Random.ColorHSV(0f, 1f, 0.6f, 1f, 0.8f, 1f));
             isRenter = renter;
             board.gameObject.SetActive(!renter);
@@ -581,20 +581,17 @@ namespace SurfPool
         {
             switch (pose)
             {
-                case Pose.Walk: // standing, board carried on its edge at the side
-                    Place(body, new Vector3(0f, 0.8f, 0f), Vector3.zero);
-                    Place(head, new Vector3(0f, 1.75f, 0f), Vector3.zero);
-                    Place(board, new Vector3(0.4f, 0.9f, 0f), new Vector3(0f, 0f, 90f));
+                case Pose.Walk: // walking or standing, board carried on its edge under the arm
+                    rig.CurrentMode = CharacterRig.Mode.Locomotion;
+                    Place(board, new Vector3(0.42f, 0.95f, 0.05f), new Vector3(0f, 0f, 90f));
                     break;
-                case Pose.Paddle: // lying on the board
+                case Pose.Paddle: // lying on the board, paddling
+                    rig.CurrentMode = CharacterRig.Mode.Paddle;
                     Place(board, new Vector3(0f, 0.05f, 0f), Vector3.zero);
-                    Place(body, new Vector3(0f, 0.3f, -0.1f), new Vector3(90f, 0f, 0f));
-                    Place(head, new Vector3(0f, 0.4f, 0.85f), Vector3.zero);
                     break;
                 case Pose.Ride: // standing sideways on the board, knees bent
+                    rig.CurrentMode = CharacterRig.Mode.Ride;
                     Place(board, new Vector3(0f, 0.05f, 0f), Vector3.zero);
-                    Place(body, new Vector3(0f, 0.75f, 0f), new Vector3(0f, 0f, 12f));
-                    Place(head, new Vector3(-0.2f, 1.6f, 0f), Vector3.zero);
                     break;
             }
         }

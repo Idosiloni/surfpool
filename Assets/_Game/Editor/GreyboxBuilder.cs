@@ -663,21 +663,72 @@ namespace SurfPool.EditorTools
         {
             var root = new GameObject(name);
             root.transform.SetPositionAndRotation(position, Quaternion.Euler(0, yaw, 0));
-            var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            body.name = "Body";
-            Object.DestroyImmediate(body.GetComponent<Collider>());
-            body.transform.SetParent(root.transform, false);
-            body.transform.localPosition = new Vector3(0, 0.8f, 0);
-            body.transform.localScale = new Vector3(0.5f, 0.8f, 0.5f);
-            body.GetComponent<MeshRenderer>().sharedMaterial = shirt;
-            var head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            head.name = "Head";
-            Object.DestroyImmediate(head.GetComponent<Collider>());
-            head.transform.SetParent(root.transform, false);
-            head.transform.localPosition = new Vector3(0, 1.75f, 0);
-            head.transform.localScale = Vector3.one * 0.3f;
-            head.GetComponent<MeshRenderer>().sharedMaterial = skin;
+            var rig = BuildCharacter(root.transform);
+            var so = new SerializedObject(rig);
+            so.FindProperty("paintOnStart").boolValue = true;
+            so.FindProperty("defaultSkin").colorValue = skin.GetColor("_BaseColor");
+            so.FindProperty("defaultShirt").colorValue = shirt.GetColor("_BaseColor");
+            so.FindProperty("defaultShorts").colorValue = new Color(0.1f, 0.18f, 0.3f);
+            so.FindProperty("defaultHair").colorValue = new Color(0.25f, 0.16f, 0.1f);
+            so.ApplyModifiedPropertiesWithoutUndo();
             return root;
+        }
+
+        /// <summary>
+        /// Assembles a low-poly person from the Blender character parts under root: Model > Hips > (Shorts, Torso >
+        /// (Head > hair, shoulders > arms), hips > legs). The CharacterRig animates the joints.
+        /// </summary>
+        static CharacterRig BuildCharacter(Transform root)
+        {
+            Transform Joint(string name, Transform parent, Vector3 localPosition)
+            {
+                var joint = new GameObject(name).transform;
+                joint.SetParent(parent, false);
+                joint.localPosition = localPosition;
+                return joint;
+            }
+            Renderer Part(string model, Transform parent)
+            {
+                var asset = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/_Game/Models/{model}.fbx");
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(asset);
+                go.transform.SetParent(parent, false);
+                go.transform.localPosition = Vector3.zero;
+                go.transform.localRotation = Quaternion.identity;
+                return go.GetComponentInChildren<Renderer>();
+            }
+
+            var model = Joint("Model", root, Vector3.zero);
+            var hips = Joint("Hips", model, new Vector3(0, 0.85f, 0));
+            var shorts = Part("CharShorts", hips);
+            var torso = Joint("Torso", hips, Vector3.zero);
+            var shirt = Part("CharTorso", torso);
+            var head = Joint("Head", torso, new Vector3(0, 0.55f, 0));
+            var headSkin = Part("CharHead", head);
+            var hairShort = Part("CharHairShort", head);
+            var hairLong = Part("CharHairLong", head);
+            var shoulderL = Joint("Shoulder L", torso, new Vector3(-0.27f, 0.5f, 0));
+            var shoulderR = Joint("Shoulder R", torso, new Vector3(0.27f, 0.5f, 0));
+            var armL = Part("CharArm", shoulderL);
+            var armR = Part("CharArm", shoulderR);
+            var hipL = Joint("Hip L", hips, new Vector3(-0.1f, 0, 0));
+            var hipR = Joint("Hip R", hips, new Vector3(0.1f, 0, 0));
+            var legL = Part("CharLeg", hipL);
+            var legR = Part("CharLeg", hipR);
+
+            var rig = root.gameObject.AddComponent<CharacterRig>();
+            Set(rig, "model", model);
+            Set(rig, "hips", hips);
+            Set(rig, "torso", torso);
+            Set(rig, "head", head);
+            Set(rig, "shoulderL", shoulderL);
+            Set(rig, "shoulderR", shoulderR);
+            Set(rig, "hipL", hipL);
+            Set(rig, "hipR", hipR);
+            SetArray(rig, "skinRenderers", headSkin, armL, armR, legL, legR);
+            Set(rig, "shirtRenderer", shirt);
+            Set(rig, "shortsRenderer", shorts);
+            SetArray(rig, "hairRenderers", hairShort, hairLong);
+            return rig;
         }
 
         static void Staff(GameObject go, string title, int wage)
@@ -704,22 +755,11 @@ namespace SurfPool.EditorTools
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
             var root = new GameObject("Surfer");
-            Transform Part(PrimitiveType type, string name, Vector3 scale)
-            {
-                var go = GameObject.CreatePrimitive(type);
-                go.name = name;
-                Object.DestroyImmediate(go.GetComponent<Collider>());
-                go.transform.SetParent(root.transform, false);
-                go.transform.localScale = scale;
-                go.GetComponent<MeshRenderer>().sharedMaterial = mat;
-                return go.transform;
-            }
-            var body = Part(PrimitiveType.Capsule, "Body", new Vector3(0.5f, 0.8f, 0.5f));
-            var head = Part(PrimitiveType.Sphere, "Head", new Vector3(0.3f, 0.3f, 0.3f));
-            var board = Part(PrimitiveType.Cube, "Board", Vector3.one);
+            var rig = BuildCharacter(root.transform);
+            var board = new GameObject("Board", typeof(MeshFilter), typeof(MeshRenderer)).transform;
+            board.SetParent(root.transform, false);
             board.GetComponent<MeshFilter>().sharedMesh = WorldArt.ModelMesh("Surfboard");
-            body.localPosition = new Vector3(0, 0.8f, 0);
-            head.localPosition = new Vector3(0, 1.75f, 0);
+            board.GetComponent<MeshRenderer>().sharedMaterial = mat;
 
             // Collider so the player can look at a surfer and hand them a board.
             var capsule = root.AddComponent<CapsuleCollider>();
@@ -729,8 +769,7 @@ namespace SurfPool.EditorTools
             root.AddComponent<Rigidbody>().isKinematic = true;
 
             var surfer = root.AddComponent<Surfer>();
-            Set(surfer, "body", body);
-            Set(surfer, "head", head);
+            Set(surfer, "rig", rig);
             Set(surfer, "board", board);
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
