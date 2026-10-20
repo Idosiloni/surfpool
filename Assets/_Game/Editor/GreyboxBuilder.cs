@@ -38,6 +38,7 @@ namespace SurfPool.EditorTools
             var greenMat = Mat("ButtonGreen", new Color(0.2f, 0.85f, 0.3f), 0.6f);
             var redMat = Mat("ButtonRed", new Color(0.9f, 0.2f, 0.15f), 0.6f);
             var screenMat = Mat("Screen", new Color(0.05f, 0.1f, 0.15f), 0.9f, new Color(0.2f, 0.5f, 0.9f));
+            var rentalBoardMat = Mat("RentalBoard", new Color(1f, 0.85f, 0.15f), 0.4f);
             var beaconMat = Mat("Beacon", new Color(1f, 0.85f, 0.1f), 0.5f, new Color(2f, 1.6f, 0.2f));
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
@@ -125,6 +126,20 @@ namespace SurfPool.EditorTools
             Set(hud, "interactor", interactor);
             Set(hud, "player", fps);
 
+            // The board the player carries, held low on the right side of the view.
+            var held = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            held.name = "Held Board";
+            Object.DestroyImmediate(held.GetComponent<Collider>());
+            held.transform.SetParent(camGo.transform, false);
+            held.transform.localPosition = new Vector3(0.45f, -0.42f, 0.75f);
+            held.transform.localRotation = Quaternion.Euler(-10f, -20f, 75f);
+            held.transform.localScale = new Vector3(0.4f, 0.05f, 1.4f);
+            var heldRenderer = held.GetComponent<MeshRenderer>();
+            heldRenderer.sharedMaterial = rentalBoardMat;
+            heldRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            var carry = player.AddComponent<PlayerCarry>();
+            Set(carry, "heldBoard", held);
+
             // Money.
             var game = new GameObject("Game");
             game.AddComponent<Wallet>();
@@ -163,6 +178,45 @@ namespace SurfPool.EditorTools
             var bench = Box("Surfer Bench", env, new Vector3(30, 0.25f, -15), new Vector3(3, 0.5f, 0.8f), deskMat);
             bench.SetActive(false);
 
+            // Board rental stand east of the ticket desk, hidden until bought.
+            var stand = new GameObject("Rental Stand").transform;
+            stand.position = new Vector3(30, 0, -22.5f);
+            Box("Rental Counter", stand, stand.position + new Vector3(0, 0.55f, 0), new Vector3(3, 1.1f, 1), deskMat);
+            Box("Rental Sign", stand, stand.position + new Vector3(0, 2.45f, -0.45f), new Vector3(2.4f, 0.5f, 0.08f), rentalBoardMat);
+            Box("Sign Post L", stand, stand.position + new Vector3(-1.1f, 1.2f, -0.45f), new Vector3(0.08f, 2.4f, 0.08f), consoleMat);
+            Box("Sign Post R", stand, stand.position + new Vector3(1.1f, 1.2f, -0.45f), new Vector3(0.08f, 2.4f, 0.08f), consoleMat);
+
+            const int boardSlots = 10;
+            var rackRoot = new GameObject("Board Rack").transform;
+            rackRoot.SetParent(stand, false);
+            rackRoot.position = new Vector3(32.6f, 0, -20.6f);
+            Box("Rack Frame", rackRoot, rackRoot.position + new Vector3(0, 0.6f, 0), new Vector3(0.4f, 1.2f, 2.4f), consoleMat);
+            var rackSlots = new Object[boardSlots];
+            for (int i = 0; i < boardSlots; i++)
+            {
+                float z = -1.1f + i * (2.2f / (boardSlots - 1));
+                var slot = Box($"Rack Board {i + 1}", rackRoot, rackRoot.position + new Vector3(-0.3f, 0.95f, z), new Vector3(0.45f, 1.8f, 0.06f), rentalBoardMat);
+                Object.DestroyImmediate(slot.GetComponent<Collider>());
+                rackSlots[i] = slot;
+            }
+            var rack = rackRoot.gameObject.AddComponent<RentalRack>();
+            SetArray(rack, "slots", rackSlots);
+
+            var binRoot = new GameObject("Return Bin").transform;
+            binRoot.SetParent(stand, false);
+            binRoot.position = new Vector3(34.5f, 0, -24.6f);
+            Box("Bin", binRoot, binRoot.position + new Vector3(0, 0.3f, 0), new Vector3(2.0f, 0.6f, 1.0f), consoleMat);
+            var binPile = new Object[boardSlots];
+            for (int i = 0; i < boardSlots; i++)
+            {
+                var pileBoard = Box($"Returned Board {i + 1}", binRoot, binRoot.position + new Vector3((i % 2) * 0.1f - 0.05f, 0.64f + i * 0.07f, 0), new Vector3(1.9f, 0.06f, 0.45f), rentalBoardMat);
+                Object.DestroyImmediate(pileBoard.GetComponent<Collider>());
+                binPile[i] = pileBoard;
+            }
+            var bin = binRoot.gameObject.AddComponent<ReturnBin>();
+            SetArray(bin, "pile", binPile);
+            stand.gameObject.SetActive(false);
+
             // The route surfers walk. Move these points in the scene to change where they go.
             var route = new GameObject("Surfer Route").transform;
             var entrance = Point("Entrance", route, new Vector3(30, 0, -38));
@@ -177,6 +231,11 @@ namespace SurfPool.EditorTools
             var beachExit = Point("Beach Exit", route, new Vector3(PoolLength + 3, 0, -6));
             var exitCorner = Point("Exit Corner", route, new Vector3(PoolLength + 6, 0, -30));
             var exit = Point("Exit", route, new Vector3(45, 0, -40));
+            var rentalApproach = Point("Rental Approach", route, new Vector3(30, 0, -27.5f));
+            var rentalSpot = Point("Rental Spot", route, new Vector3(30, 0, -24.4f));
+            var rentalExit = Point("Rental Exit", route, new Vector3(27.3f, 0, -24.4f));
+            var rentalSide = Point("Rental Side", route, new Vector3(27.3f, 0, -19));
+            var binSpot = Point("Return Bin Spot", route, new Vector3(35.8f, 0, -25.8f));
 
             var spawnerGo = new GameObject("Surfer Spawner");
             var spawner = spawnerGo.AddComponent<SurferSpawner>();
@@ -189,6 +248,12 @@ namespace SurfPool.EditorTools
             Set(spawner, "lineup", lineup);
             Set(spawner, "beachLanding", landing);
             SetArray(spawner, "pathOut", beachExit, exitCorner, exit);
+            SetArray(spawner, "rentalPathIn", deskExit, rentalApproach);
+            Set(spawner, "rentalSpot", rentalSpot);
+            SetArray(spawner, "rentalPathToPool", rentalExit, rentalSide, poolSide, poolEntry);
+            SetArray(spawner, "returnPathOut", beachExit, binSpot, exit);
+            Set(spawner, "returnBinSpot", binSpot);
+            Set(spawner, "returnBin", bin);
             Set(register, "spawner", spawner);
 
             Set(shop, "machine", machine);
@@ -197,6 +262,8 @@ namespace SurfPool.EditorTools
             Set(shop, "pricing", pricing);
             Set(shop, "autoWaveLight", autoLight);
             Set(shop, "extraBench", bench);
+            Set(shop, "rentalStand", stand.gameObject);
+            Set(shop, "rentalRack", rack);
 
             Set(hud, "pricing", pricing);
             Set(hud, "spawner", spawner);
@@ -300,6 +367,13 @@ namespace SurfPool.EditorTools
             var board = Part(PrimitiveType.Cube, "Board", new Vector3(0.5f, 0.07f, 2f));
             body.localPosition = new Vector3(0, 0.8f, 0);
             head.localPosition = new Vector3(0, 1.75f, 0);
+
+            // Collider so the player can look at a surfer and hand them a board.
+            var capsule = root.AddComponent<CapsuleCollider>();
+            capsule.center = new Vector3(0, 0.9f, 0);
+            capsule.height = 1.8f;
+            capsule.radius = 0.35f;
+            root.AddComponent<Rigidbody>().isKinematic = true;
 
             var surfer = root.AddComponent<Surfer>();
             Set(surfer, "body", body);

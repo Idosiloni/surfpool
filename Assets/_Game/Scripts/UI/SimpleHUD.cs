@@ -75,6 +75,7 @@ namespace SurfPool
 
             string stats = "";
             if (pricing != null) stats += $"Ticket price: ${pricing.Price}";
+            if (pricing != null && spawner != null && spawner.RenterChance > 0f) stats += $"     Board rental: ${pricing.RentalPrice}";
             if (spawner != null) stats += $"     Happy surfers: {spawner.Served}     Lost customers: {spawner.Lost}";
             GUI.Label(new Rect(20, 84, 700, 26), stats, statsStyle);
 

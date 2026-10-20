@@ -5,14 +5,15 @@ using UnityEngine;
 namespace SurfPool
 {
     /// <summary>
-    /// Sends surfers into the park, runs the line at the ticket desk, counts happy and lost customers,
-    /// and holds the route surfers walk. Move the route points in the scene to change it.
+    /// Sends surfers into the park, runs the lines at the ticket desk and the rental counter, counts happy and
+    /// lost customers, and holds the routes surfers walk. Move the route points in the scene to change them.
     /// </summary>
     public class SurferSpawner : MonoBehaviour
     {
         [SerializeField] Surfer surferPrefab;
         [SerializeField] WaveWater water;
         [SerializeField] PriceBoard pricing;
+        [SerializeField] ReturnBin returnBin;
 
         [Header("Route")]
         [Tooltip("From the entrance to the back of the desk line. The first point is where surfers appear.")]
@@ -29,27 +30,44 @@ namespace SurfPool
         [Tooltip("From the beach to the exit, where they disappear.")]
         [SerializeField] Transform[] pathOut;
 
+        [Header("Rental route")]
+        [Tooltip("From the ticket desk to the back of the rental line.")]
+        [SerializeField] Transform[] rentalPathIn;
+        [Tooltip("The spot in front of the rental counter. The line forms behind it.")]
+        [SerializeField] Transform rentalSpot;
+        [Tooltip("From the rental counter to the pool edge.")]
+        [SerializeField] Transform[] rentalPathToPool;
+        [Tooltip("From the beach past the return bin to the exit. Must include the Return Bin Spot.")]
+        [SerializeField] Transform[] returnPathOut;
+        [Tooltip("The point on Return Path Out where renters drop their board in the bin.")]
+        [SerializeField] Transform returnBinSpot;
+
         [Header("Spawning")]
         [Tooltip("Most surfers in the park at once.")]
         [SerializeField] int maxSurfers = 2;
         [Tooltip("Seconds between new surfers arriving.")]
         [SerializeField] float spawnDelay = 6f;
+        [Tooltip("Share of new surfers who come without a board and need to rent one (0 until the rental stand is bought).")]
+        [Range(0f, 1f)] [SerializeField] float renterChance;
 
-        readonly List<Surfer> queue = new();
+        readonly List<Surfer> deskLine = new();
+        readonly List<Surfer> rentalLine = new();
         float nextSpawnTime;
 
         public WaveWater Water => water;
         public PriceBoard Pricing => pricing;
+        public ReturnBin ReturnBin => returnBin;
         public Vector3[] PathIn => Points(pathIn);
         public Vector3[] PathBackOut => Points(pathIn).Reverse().ToArray();
         public Vector3[] PathToPool => Points(pathToPool);
         public Vector3[] PathOut => Points(pathOut);
+        public Vector3[] RentalPathIn => Points(rentalPathIn);
+        public Vector3[] RentalPathToPool => Points(rentalPathToPool);
+        public Vector3[] ReturnPathOut => Points(returnPathOut);
+        public Vector3 ReturnBinSpot => returnBinSpot.position;
+        public Vector3 Entrance => pathIn[0].position;
         public Vector3 Lineup => lineup.position;
         public Vector3 BeachLanding => beachLanding.position;
-        public Vector3 DeskSpot => deskSpot.position;
-
-        /// <summary>Direction a surfer in line faces: toward the register.</summary>
-        public Vector3 DeskFacing => (deskSpot.position - pathIn[pathIn.Length - 1].position).normalized;
 
         public int Served { get; private set; }
         public int Lost { get; private set; }
@@ -60,8 +78,14 @@ namespace SurfPool
             set => maxSurfers = Mathf.Max(1, value);
         }
 
-        /// <summary>The surfer at the front of the line, if they're ready to pay.</summary>
-        public Surfer NextCustomer => queue.Count > 0 && queue[0].WaitingToPay ? queue[0] : null;
+        public float RenterChance
+        {
+            get => renterChance;
+            set => renterChance = Mathf.Clamp01(value);
+        }
+
+        /// <summary>The surfer at the front of the desk line, if they're ready to pay.</summary>
+        public Surfer NextCustomer => deskLine.Count > 0 && deskLine[0].WaitingToPay ? deskLine[0] : null;
 
         void Start()
         {
@@ -72,25 +96,32 @@ namespace SurfPool
         {
             if (Surfer.All.Count >= maxSurfers || Time.time < nextSpawnTime) return;
             var surfer = Instantiate(surferPrefab, pathIn[0].position, pathIn[0].rotation);
-            surfer.Init(this);
+            surfer.Init(this, Random.value < renterChance);
             nextSpawnTime = Time.time + spawnDelay;
         }
 
-        public void JoinQueue(Surfer surfer)
+        public void JoinLine(Surfer surfer, bool rental)
         {
-            if (!queue.Contains(surfer)) queue.Add(surfer);
+            var line = rental ? rentalLine : deskLine;
+            if (!line.Contains(surfer)) line.Add(surfer);
         }
 
-        public void LeaveQueue(Surfer surfer) => queue.Remove(surfer);
-
-        public int QueueIndex(Surfer surfer) => queue.IndexOf(surfer);
-
-        /// <summary>Where this surfer should stand in the desk line.</summary>
-        public Vector3 QueueSlot(Surfer surfer)
+        public void LeaveLines(Surfer surfer)
         {
-            int index = Mathf.Max(0, queue.IndexOf(surfer));
-            Vector3 back = (pathIn[pathIn.Length - 1].position - deskSpot.position).normalized;
-            return deskSpot.position + back * (queueSpacing * index);
+            deskLine.Remove(surfer);
+            rentalLine.Remove(surfer);
+        }
+
+        /// <summary>Where this surfer should stand in its line, and whether that's the front.</summary>
+        public (Vector3 slot, bool front, Vector3 facing) LineSlot(Surfer surfer)
+        {
+            bool rental = rentalLine.Contains(surfer);
+            var line = rental ? rentalLine : deskLine;
+            var spot = rental ? rentalSpot : deskSpot;
+            var path = rental ? rentalPathIn : pathIn;
+            int index = Mathf.Max(0, line.IndexOf(surfer));
+            Vector3 back = (path[path.Length - 1].position - spot.position).normalized;
+            return (spot.position + back * (queueSpacing * index), index == 0, -back);
         }
 
         public void ReportServed() => Served++;

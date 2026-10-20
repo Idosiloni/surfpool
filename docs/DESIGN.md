@@ -18,8 +18,12 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
 - [x] **Step 1 — Wave:** walk around a pool in first person, press a button on the wave machine, a wave rolls.
 - [x] **Step 2 — First surfer:** one NPC walks in, pays at the desk, rides the wave, leaves.
 - [x] **Step 3 — Money loop:** ticket prices, cash register, money HUD, buy an upgrade.
-- [ ] **Step 4+ — Grow:** surf shop, board rentals, snack bar, cleaning, lifeguards, wave settings
-      (beginner/pro), bigger pools, unlocks, day/night, reputation.
+- [ ] **Step 4+ — Grow:** side businesses and staff, one at a time:
+  - [x] Board rentals (rental stand upgrade, rack → renter, return bin → rack restock chore)
+  - [ ] Snack bar
+  - [ ] Wave menu (beginner / intermediate / pro, left/right) with price multipliers
+  - [ ] Hire staff (lifeguard, desk clerk, rental clerk) to automate chores
+  - [ ] Surf shop, lessons, cleaning, bigger pools, day/night, reputation
 
 ## Ideas parking lot
 - Surfer wipeouts (funny ragdolls)

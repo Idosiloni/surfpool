@@ -12,6 +12,8 @@ namespace SurfPool
         public string title;
         [TextArea] public string description;
         public int cost;
+        [Tooltip("Id of an upgrade that must be bought first. Empty = none.")]
+        public string requires;
         [NonSerialized] public bool owned;
     }
 
@@ -25,8 +27,12 @@ namespace SurfPool
         {
             new Upgrade { id = "more_surfers", title = "Bigger Lineup", cost = 60,
                 description = "Two more surfers can be in the park at once. Adds a bench by the pool." },
+            new Upgrade { id = "rental_stand", title = "Board Rental Stand", cost = 80,
+                description = "Opens a rental counter. Surfers without boards start coming. Hand them a board from the rack ($10), then carry returned boards from the bin back to the rack." },
             new Upgrade { id = "faster_machine", title = "Turbo Pump", cost = 100,
                 description = "The wave machine recharges twice as fast (4s -> 2s)." },
+            new Upgrade { id = "more_boards", title = "More Rental Boards", cost = 120, requires = "rental_stand",
+                description = "Four more boards and slots on the rental rack." },
             new Upgrade { id = "auto_waves", title = "Auto Wave Timer", cost = 150,
                 description = "The machine sends a wave by itself every 12 seconds. A yellow light turns on." },
             new Upgrade { id = "bigger_waves", title = "Bigger Waves", cost = 250,
@@ -40,6 +46,8 @@ namespace SurfPool
         [SerializeField] PriceBoard pricing;
         [SerializeField] GameObject autoWaveLight;
         [SerializeField] GameObject extraBench;
+        [SerializeField] GameObject rentalStand;
+        [SerializeField] RentalRack rentalRack;
 
         bool open;
         int openedFrame;
@@ -75,6 +83,11 @@ namespace SurfPool
         {
             var upgrade = upgrades.Find(u => u.id == id);
             if (upgrade == null || upgrade.owned) return false;
+            if (!RequirementMet(upgrade))
+            {
+                message = $"Buy {TitleOf(upgrade.requires)} first.";
+                return false;
+            }
             if (!Wallet.Instance.Spend(upgrade.cost, upgrade.title))
             {
                 message = $"Not enough money for {upgrade.title}.";
@@ -86,6 +99,11 @@ namespace SurfPool
             return true;
         }
 
+        bool RequirementMet(Upgrade upgrade) =>
+            string.IsNullOrEmpty(upgrade.requires) || upgrades.Exists(u => u.id == upgrade.requires && u.owned);
+
+        string TitleOf(string id) => upgrades.Find(u => u.id == id)?.title ?? id;
+
         void Apply(string id)
         {
             switch (id)
@@ -93,6 +111,14 @@ namespace SurfPool
                 case "more_surfers":
                     spawner.MaxSurfers += 2;
                     if (extraBench != null) extraBench.SetActive(true);
+                    break;
+                case "rental_stand":
+                    rentalStand.SetActive(true);
+                    spawner.RenterChance = 0.5f;
+                    spawner.MaxSurfers += 1;
+                    break;
+                case "more_boards":
+                    rentalRack.AddBoards(4);
                     break;
                 case "faster_machine":
                     machine.Cooldown = 2f;
@@ -118,7 +144,7 @@ namespace SurfPool
                 buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = 16 };
             }
 
-            float w = Mathf.Min(620, Screen.width - 40), h = Mathf.Min(150 + upgrades.Count * 90, Screen.height - 40);
+            float w = Mathf.Min(640, Screen.width - 40), h = Mathf.Min(150 + upgrades.Count * 80, Screen.height - 40);
             var area = new Rect((Screen.width - w) / 2, (Screen.height - h) / 2, w, h);
             GUI.color = new Color(0.08f, 0.1f, 0.14f, 0.96f);
             GUI.DrawTexture(area, Texture2D.whiteTexture);
@@ -135,8 +161,10 @@ namespace SurfPool
                 GUILayout.Label($"<b>{upgrade.title}</b>  —  ${upgrade.cost}", new GUIStyle(textStyle) { richText = true });
                 GUILayout.Label(upgrade.description, textStyle);
                 GUILayout.EndVertical();
-                GUI.enabled = !upgrade.owned && Wallet.Instance.Money >= upgrade.cost;
-                if (GUILayout.Button(upgrade.owned ? "Owned" : "Buy", buttonStyle, GUILayout.Width(100), GUILayout.Height(40)))
+                bool unlocked = RequirementMet(upgrade);
+                GUI.enabled = !upgrade.owned && unlocked && Wallet.Instance.Money >= upgrade.cost;
+                string label = upgrade.owned ? "Owned" : unlocked ? "Buy" : "Locked";
+                if (GUILayout.Button(label, buttonStyle, GUILayout.Width(100), GUILayout.Height(40)))
                     Buy(upgrade.id);
                 GUI.enabled = true;
                 GUILayout.EndHorizontal();

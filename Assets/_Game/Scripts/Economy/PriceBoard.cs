@@ -15,7 +15,11 @@ namespace SurfPool
         [SerializeField] int minPrice = 5;
         [SerializeField] int maxPrice = 150;
 
+        [Header("Board rental")]
+        [SerializeField] int rentalPrice = 10;
+
         public int Price => price;
+        public int RentalPrice => rentalPrice;
 
         public int FairPrice
         {

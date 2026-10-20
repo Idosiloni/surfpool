@@ -4,17 +4,18 @@ using UnityEngine;
 namespace SurfPool
 {
     /// <summary>
-    /// A surfer customer: walks in and joins the desk line, waits to pay, walks to the pool, paddles out,
-    /// rides a few waves (paddling back between them), tips if happy, then walks out of the park.
-    /// Runs out of patience if kept waiting too long at the desk or for a wave, and leaves angry.
+    /// A surfer customer: walks in and joins the desk line, waits to pay, (renters: lines up at the rental counter
+    /// for a board,) walks to the pool, paddles out, rides a few waves (paddling back between them), tips if happy,
+    /// then walks out of the park (renters drop their board in the return bin on the way).
+    /// Runs out of patience if kept waiting too long in a line or for a wave, and leaves angry.
     /// </summary>
-    public class Surfer : MonoBehaviour
+    public class Surfer : MonoBehaviour, IInteractable
     {
         public static readonly List<Surfer> All = new();
 
         enum State
         {
-            WalkingIn, Queueing, WaitingAtDesk, WalkingToPool, Paddling, WaitingForWave,
+            WalkingIn, InDeskLine, WalkingToRental, InRentalLine, WalkingToPool, Paddling, WaitingForWave,
             Riding, PaddlingBack, SwimmingToBeach, WalkingOut,
         }
 
@@ -23,6 +24,7 @@ namespace SurfPool
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         static readonly string[] RideShouts = { "Woohoo!", "Shredding!", "Radical!", "Let's gooo!" };
         static readonly string[] HappyShouts = { "Stoked!", "Epic session!", "Best wave pool ever!", "So good, dude!" };
+        static readonly Color RentalBoardColor = new(1f, 0.85f, 0.15f);
 
         [Header("Parts")]
         [SerializeField] Transform body;
@@ -69,13 +71,17 @@ namespace SurfPool
         float moodTotal;
         int moodSamples;
         bool angry;
+        bool atFront;
+        bool isRenter;
+        bool hasRentalBoard;
         string shout;
         float shoutUntil;
 
         /// <summary>Most this surfer will pay for a session.</summary>
         public float MaxPrice { get; private set; }
-        public bool WaitingToPay => state == State.WaitingAtDesk;
-        public bool ShowPatience => state is State.Queueing or State.WaitingAtDesk or State.WaitingForWave;
+        public bool WaitingToPay => state == State.InDeskLine && atFront;
+        public bool WaitingForBoard => state == State.InRentalLine && atFront;
+        public bool ShowPatience => state is State.InDeskLine or State.InRentalLine or State.WaitingForWave;
         public float Patience => patience;
 
         /// <summary>Short text shown above the surfer's head.</summary>
@@ -86,9 +92,10 @@ namespace SurfPool
                 if (Time.time < shoutUntil) return shout;
                 return state switch
                 {
-                    State.WaitingAtDesk => spawner.Pricing.Price > MaxPrice
+                    State.InDeskLine when atFront => spawner.Pricing.Price > MaxPrice
                         ? $"${spawner.Pricing.Price}?! That's a lot..."
-                        : "Wants a surf session",
+                        : isRenter ? "Wants a session + rental board" : "Wants a surf session",
+                    State.InRentalLine when atFront => "Needs a rental board",
                     State.WaitingForWave => $"Waiting for a wave... ({ridesDone + 1}/{wavesPerSession})",
                     _ => null,
                 };
@@ -98,7 +105,34 @@ namespace SurfPool
         void OnEnable() => All.Add(this);
         void OnDisable() => All.Remove(this);
 
-        public void Init(SurferSpawner owner)
+        /// <summary>Shown when the player looks at a surfer waiting for a rental board.</summary>
+        public string Prompt
+        {
+            get
+            {
+                if (!WaitingForBoard) return null;
+                var carry = PlayerCarry.Instance;
+                return carry != null && carry.HasBoard
+                    ? $"Give rental board (${spawner.Pricing.RentalPrice})"
+                    : "Needs a board - grab one from the rack";
+            }
+        }
+
+        public void Interact()
+        {
+            var carry = PlayerCarry.Instance;
+            if (!WaitingForBoard || carry == null || !carry.HandOverBoard()) return;
+            Wallet.Instance.Add(spawner.Pricing.RentalPrice, "board rental");
+            RecordMood(patience);
+            hasRentalBoard = true;
+            board.gameObject.SetActive(true);
+            Paint(board, RentalBoardColor);
+            spawner.LeaveLines(this);
+            Shout("Thanks!", 2f);
+            Walk(State.WalkingToPool, spawner.RentalPathToPool, State.Paddling);
+        }
+
+        public void Init(SurferSpawner owner, bool renter)
         {
             spawner = owner;
             water = owner.Water;
@@ -106,18 +140,28 @@ namespace SurfPool
             Paint(body, Random.ColorHSV(0f, 1f, 0.5f, 0.9f, 0.6f, 1f));
             Paint(head, Color.Lerp(new Color(0.45f, 0.3f, 0.2f), new Color(1f, 0.85f, 0.7f), Random.value));
             Paint(board, Random.ColorHSV(0f, 1f, 0.6f, 1f, 0.8f, 1f));
-            Walk(State.WalkingIn, owner.PathIn, State.Queueing);
+            isRenter = renter;
+            board.gameObject.SetActive(!renter);
+            Walk(State.WalkingIn, owner.PathIn, State.InDeskLine);
         }
 
         /// <summary>Called by the register when the player sells this surfer a session.</summary>
         public void Pay(int price)
         {
-            if (state != State.WaitingAtDesk) return;
+            if (!WaitingToPay) return;
             paidPrice = price;
             RecordMood(patience);
-            spawner.LeaveQueue(this);
+            spawner.LeaveLines(this);
             lineupTarget = spawner.Lineup + new Vector3(0f, 0f, Random.Range(-4f, 4f));
-            Walk(State.WalkingToPool, spawner.PathToPool, State.Paddling);
+            if (isRenter)
+            {
+                patience = 1f;
+                Walk(State.WalkingToRental, spawner.RentalPathIn, State.InRentalLine);
+            }
+            else
+            {
+                Walk(State.WalkingToPool, spawner.PathToPool, State.Paddling);
+            }
         }
 
         /// <summary>Called when the player tries to charge more than this surfer will pay.</summary>
@@ -128,13 +172,14 @@ namespace SurfPool
             switch (state)
             {
                 case State.WalkingIn:
+                case State.WalkingToRental:
                 case State.WalkingToPool:
                 case State.WalkingOut:
                     SetPose(Pose.Walk);
                     FollowPath();
                     break;
-                case State.Queueing:
-                case State.WaitingAtDesk:
+                case State.InDeskLine:
+                case State.InRentalLine:
                     SetPose(Pose.Walk);
                     StandInLine();
                     break;
@@ -179,30 +224,36 @@ namespace SurfPool
                     return;
                 }
                 state = stateAfterPath;
-                if (state == State.Queueing) spawner.JoinQueue(this);
+                if (state is State.InDeskLine or State.InRentalLine)
+                {
+                    atFront = false;
+                    spawner.JoinLine(this, state == State.InRentalLine);
+                }
                 return;
             }
             Vector3 target = path.Peek();
             StepTowards(target);
-            if ((target - transform.position).sqrMagnitude < 0.0004f) path.Dequeue();
+            if ((target - transform.position).sqrMagnitude >= 0.0004f) return;
+            path.Dequeue();
+            if (hasRentalBoard && (target - spawner.ReturnBinSpot).sqrMagnitude < 0.01f) ReturnBoard();
         }
 
         void StandInLine()
         {
             if (DrainPatience(deskPatience))
             {
-                LeaveAngry("This line is way too slow!");
+                LeaveAngry(state == State.InRentalLine ? "Where's my board?!" : "This line is way too slow!");
                 return;
             }
-            Vector3 slot = spawner.QueueSlot(this);
+            var (slot, front, facing) = spawner.LineSlot(this);
             if ((slot - transform.position).sqrMagnitude > 0.0004f)
             {
                 StepTowards(slot);
-                state = State.Queueing;
+                atFront = false;
                 return;
             }
-            Face(spawner.DeskFacing);
-            state = spawner.QueueIndex(this) == 0 ? State.WaitingAtDesk : State.Queueing;
+            Face(facing);
+            atFront = front;
         }
 
         void StepTowards(Vector3 target)
@@ -225,7 +276,7 @@ namespace SurfPool
                 var landing = spawner.BeachLanding;
                 landing.z = transform.position.z;
                 var route = new List<Vector3> { landing };
-                route.AddRange(spawner.PathOut);
+                route.AddRange(hasRentalBoard ? spawner.ReturnPathOut : spawner.PathOut);
                 Walk(State.WalkingOut, route.ToArray(), State.WalkingOut);
                 return;
             }
@@ -303,12 +354,21 @@ namespace SurfPool
             if (angry) return;
             angry = true;
             Shout(message, 5f);
-            spawner.LeaveQueue(this);
+            spawner.LeaveLines(this);
             spawner.ReportLost();
-            if (state is State.WalkingIn or State.Queueing or State.WaitingAtDesk)
+            if (state == State.InRentalLine)
+                Walk(State.WalkingOut, new[] { spawner.Entrance }, State.WalkingOut);
+            else if (state is State.WalkingIn or State.InDeskLine)
                 Walk(State.WalkingOut, spawner.PathBackOut, State.WalkingOut);
             else
                 state = State.SwimmingToBeach;
+        }
+
+        void ReturnBoard()
+        {
+            hasRentalBoard = false;
+            board.gameObject.SetActive(false);
+            spawner.ReturnBin.Add();
         }
 
         /// <summary>Counts down patience; returns true when it runs out.</summary>
