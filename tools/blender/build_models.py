@@ -1060,9 +1060,9 @@ def build_all(only_new=False):
         lambda: beach_umbrella("BeachUmbrellaCoral", "Coral"),
         lounge_chair,
         lambda: rock("Rock", 3),
-        board_foamie, board_fun, board_short,
         cash_register, computer, wave_console, price_stand, car, counter, board_rack, return_crate, bench,
-        char_torso, char_shorts, char_head, char_hair_short, char_hair_long, char_arm, char_leg,
+        # Surfboards and people are built by build_boards.py and build_characters.py (the old board_* and char_*
+        # functions here are not exported any more, so they can't overwrite the new models).
     ) + AMBIENCE_MODELS
     for factory in factories:
         obj = factory()
