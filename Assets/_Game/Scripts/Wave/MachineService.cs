@@ -92,7 +92,7 @@ namespace SurfPool
             repairProgress = 0f;
             ShowBroken(false);
             Sfx.Play(Sound.Buy);
-            Notifications.Post(wasBroken ? $"{PoolName} machine fixed. Back to surfing!" : $"{PoolName} machine serviced. Good as new.");
+            Notifications.Post(wasBroken ? $"{PoolName} machine fixed. Back to surfing!" : $"{PoolName} machine serviced. Good as new.", Notice.Good);
         }
 
         public void Restore(float wear, bool broken)

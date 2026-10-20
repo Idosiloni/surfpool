@@ -2,8 +2,13 @@
     <ui:Style src="Game.uss" />
     <ui:VisualElement name="settingsRoot" class="screen-overlay hidden">
         <ui:VisualElement class="screen-window settings-window">
-            <ui:Label text="Settings" class="screen-title" />
-            <ui:Label text="Saved automatically." class="screen-subtitle" />
+            <ui:VisualElement class="screen-header">
+                <ui:VisualElement>
+                    <ui:Label text="Settings" class="screen-title" />
+                    <ui:Label text="Saved automatically." class="screen-subtitle" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:Label text="SurfOS" class="window-tag window-tag--teal" />
             <ui:VisualElement class="report-column section-gap">
                 <ui:Label text="CONTROLS" class="section-title" />
                 <ui:Slider name="setSensitivity" label="Mouse sensitivity" low-value="0.25" high-value="3" class="settings-slider" />

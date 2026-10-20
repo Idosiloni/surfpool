@@ -55,7 +55,7 @@ namespace SurfPool
             int profit = report.TotalIncome - report.TotalExpenses;
             totals.text = $"Income {MoneyText.Format(report.TotalIncome)}   ·   Spent {MoneyText.Format(report.TotalExpenses)}   ·   Profit {(profit >= 0 ? "+" : "")}{MoneyText.Format(profit)}";
             next.text = $"Save & start day {report.day + 1}";
-            root.RemoveFromClassList("hidden");
+            UiMotion.Show(root);
         }
 
         static void Fill(VisualElement container, System.Collections.Generic.SortedDictionary<string, int> book, string sign)

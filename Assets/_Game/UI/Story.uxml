@@ -2,7 +2,10 @@
     <ui:Style src="Game.uss" />
     <ui:VisualElement name="storyRoot" class="screen-overlay">
         <ui:VisualElement class="screen-window story-window">
-            <ui:Label name="storyHeading" text="A letter from Uncle Kai" class="screen-title" />
+            <ui:VisualElement class="screen-header">
+                <ui:Label name="storyHeading" text="A letter from Uncle Kai" class="screen-title" />
+            </ui:VisualElement>
+            <ui:Label text="Mail" class="window-tag window-tag--sun" />
             <ui:Label name="storyBody" class="story-body" />
             <ui:Label name="storySignature" text="Aloha, Uncle Kai" class="story-signature" />
             <ui:Button name="storyButton" text="Let's surf!" class="send-button story-button" />

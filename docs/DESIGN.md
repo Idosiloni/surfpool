@@ -57,7 +57,7 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
   - [x] Main menu, settings (mouse sensitivity, volume, quality, fullscreen)
   - [x] Riding feel: smooth pose blending, real pop-up timing, board lies on the wave face and leans into turns, rail spray, distinct snaps/cutbacks/floaters/airs, head-covering wipeouts, forward crawl paddling, sitting up on boards in the lineup; first-person camera lean/FOV/pop-up rise; no dropping in or overlapping riders (see `docs/research/surfing-motion.md`)
   - [ ] Ambience + growth: park glow-up by level, more life, level-up celebrations, sound that grows with the park
-  - [ ] UI restyle with a strong beach-surf art direction (see `docs/research/ui-powerwash.md`)
+  - [x] UI restyle with a strong beach-surf art direction, "Sunset Surf Shop": Lilita One + Fredoka + Pacifico, ink-outlined chunky cards with dark sign strips, colored icon tiles, tilted price stickers + OWNED stamps, tab badges, key-cap buttons, toasts with kinds, pop-in windows over a dusk backdrop, retro sunset-poster main menu (see `docs/research/ui-powerwash.md`)
   - [ ] Steam build
 
 ## Ideas parking lot

@@ -53,7 +53,10 @@ namespace SurfPool
             if (open && UnityEngine.Cursor.lockState == CursorLockMode.Locked) FirstPersonController.LockCursor(false);
             // Stay hidden once read (UI live-reload in the Editor rebuilds the screen visible).
             // Also wait behind the title screen until the player presses Play.
-            if (root != null) root.EnableInClassList("hidden", !open || MainMenu.Showing);
+            if (root == null) return;
+            bool visible = open && !MainMenu.Showing;
+            if (visible) UiMotion.Show(root);
+            else root.AddToClassList("hidden");
         }
 
         public void Close()

@@ -2,8 +2,13 @@
     <ui:Style src="Game.uss" />
     <ui:VisualElement name="reportRoot" class="screen-overlay hidden">
         <ui:VisualElement class="screen-window report-window">
-            <ui:Label name="reportTitle" text="Day 1 is over!" class="screen-title" />
-            <ui:Label name="reportSummary" class="screen-subtitle" />
+            <ui:VisualElement class="screen-header">
+                <ui:VisualElement>
+                    <ui:Label name="reportTitle" text="Day 1 is over!" class="screen-title" />
+                    <ui:Label name="reportSummary" class="screen-subtitle" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:Label text="Closing time" class="window-tag" />
             <ui:VisualElement class="report-columns section-gap">
                 <ui:VisualElement class="report-column">
                     <ui:Label text="INCOME" class="section-title" />

@@ -123,7 +123,7 @@ namespace SurfPool
                 int bonus = Mathf.Max(100, Mathf.RoundToInt(income * 0.1f));
                 wallet.Add(bonus, "inspection bonus");
                 if (ParkReputation.Instance != null) ParkReputation.Instance.Record(1f);
-                Notifications.Post($"Inspector: \"Spotless!\" Clean park bonus {MoneyText.Format(bonus)}.");
+                Notifications.Post($"Inspector: \"Spotless!\" Clean park bonus {MoneyText.Format(bonus)}.", Notice.Reward);
             }
             else
             {

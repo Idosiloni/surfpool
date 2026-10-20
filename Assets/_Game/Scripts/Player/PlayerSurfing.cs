@@ -243,7 +243,7 @@ namespace SurfPool
             score += 150;
             GameStats.TricksLanded++;
             Sfx.Play(Sound.Cheer, transform.position);
-            Notifications.Post("AIR! +150");
+            Notifications.Post("AIR! +150", Notice.Reward);
         }
 
         void Ride(Keyboard keyboard)
@@ -332,7 +332,7 @@ namespace SurfPool
             GameStats.PlayerRides++;
             ParkLevel.Add(ParkLevel.XpPlayerRide);
             Sfx.Play(Sound.Cheer, transform.position);
-            Notifications.Post($"Great ride! Score {score} ({tricks} airs). Sponsors paid ${bonus}.");
+            Notifications.Post($"Great ride! Score {score} ({tricks} airs). Sponsors paid ${bonus}.", Notice.Reward);
         }
 
         void StartWipeout()

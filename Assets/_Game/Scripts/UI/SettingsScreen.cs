@@ -52,7 +52,7 @@ namespace SurfPool
         {
             if (instance == null) return;
             instance.Refresh();
-            instance.root.RemoveFromClassList("hidden");
+            UiMotion.Show(instance.root);
         }
 
         void Refresh()

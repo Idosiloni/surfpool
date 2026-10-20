@@ -178,15 +178,18 @@ def clock():
 
 
 def coin():
-    s = polyline([(0.6 + 0.1 * np.cos(a), 0.58 + 0.08 * np.sin(a)) for a in np.linspace(0, np.pi * 1.5, 12)]
-                 + [(0.6 - 0.1 * np.cos(a), 0.42 + 0.08 * np.sin(a)) for a in np.linspace(np.pi * 0.5, -np.pi, 12)], 0.06)
-    return union(cut(circle(0.5, 0.5, 0.42), circle(0.5, 0.5, 0.33)), s, segment(0.5, 0.26, 0.5, 0.74, 0.05))
+    """A coin with a dollar sign: ring, an S made of two arcs, and short stubs above and below."""
+    upper = [(0.5 + 0.11 * np.cos(a), 0.585 + 0.095 * np.sin(a)) for a in np.linspace(np.radians(25), np.radians(270), 18)]
+    lower = [(0.5 + 0.11 * np.cos(a), 0.395 + 0.095 * np.sin(a)) for a in np.linspace(np.radians(90), np.radians(-155), 18)]
+    s = polyline(upper + lower[1:], 0.065)
+    stubs = union(segment(0.5, 0.2, 0.5, 0.3, 0.06), segment(0.5, 0.68, 0.5, 0.78, 0.06))
+    return union(cut(circle(0.5, 0.5, 0.43), circle(0.5, 0.5, 0.34)), s, stubs)
 
 
 def main():
     for name, fn in [("wave", wave), ("palm", palm), ("target", target), ("pin", pin), ("flag", flag), ("pool", pool),
                      ("board", board), ("person", person), ("tag", tag), ("smile", smile), ("frown", frown),
-                     ("trash", trash), ("bolt", bolt), ("star", star), ("clock", clock)]:
+                     ("trash", trash), ("bolt", bolt), ("star", star), ("clock", clock), ("coin", coin)]:
         save(name, fn())
         print("icon", name)
 

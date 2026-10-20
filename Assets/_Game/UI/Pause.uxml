@@ -2,8 +2,13 @@
     <ui:Style src="Game.uss" />
     <ui:VisualElement name="pauseRoot" class="screen-overlay hidden">
         <ui:VisualElement class="screen-window report-window">
-            <ui:Label text="Paused" class="screen-title" />
-            <ui:Label name="pauseSubtitle" class="screen-subtitle" />
+            <ui:VisualElement class="screen-header">
+                <ui:VisualElement>
+                    <ui:Label text="Paused" class="screen-title" />
+                    <ui:Label name="pauseSubtitle" class="screen-subtitle" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:Label text="Taking a break" class="window-tag window-tag--sun" />
             <ui:VisualElement class="report-columns section-gap">
                 <ui:VisualElement class="report-column">
                     <ui:Label text="CONTROLS" class="section-title" />
@@ -21,7 +26,10 @@
                 <ui:Slider name="volAmbience" label="Beach" low-value="0" high-value="1" class="volume-slider" />
             </ui:VisualElement>
             <ui:VisualElement class="screen-footer section-gap">
-                <ui:Button name="pauseResume" text="Resume (Tab)" class="send-button" />
+                <ui:Button name="pauseResume" class="send-button key-button">
+                    <ui:Label text="Tab" class="key-badge" />
+                    <ui:Label text="Resume" class="key-button-text" />
+                </ui:Button>
                 <ui:Button name="pauseSave" text="Save game" class="close-button pause-button" />
                 <ui:Button name="pauseSettings" text="Settings" class="close-button pause-button" />
                 <ui:Button name="pauseMenu" text="Main menu" class="close-button pause-button" />

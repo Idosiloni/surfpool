@@ -100,7 +100,7 @@ namespace SurfPool
             if (ParkLevel.Instance != null) AddStat("Park level", $"{ParkLevel.Instance.Level}  ({ParkLevel.Instance.XpToNext:#,0} XP to next)");
             foreach (var worker in StaffMember.Active)
                 AddStat(worker.JobTitle, StaffMember.StarText(worker.Stars));
-            root.RemoveFromClassList("hidden");
+            UiMotion.Show(root);
         }
 
         void AddStat(string name, string value)

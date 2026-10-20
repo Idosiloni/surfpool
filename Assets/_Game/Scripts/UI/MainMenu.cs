@@ -53,6 +53,7 @@ namespace SurfPool
                 return;
             }
             Showing = true;
+            UiMotion.Enter(root, "menu-root--enter"); // panel slides in, poster spins in
             Time.timeScale = 0f;
             InputBlocker.Block();
             FirstPersonController.LockCursor(false);

@@ -35,8 +35,21 @@ namespace SurfPool
             tabs.Clear();
             foreach (UpgradeCategory category in Enum.GetValues(typeof(UpgradeCategory)))
             {
-                var button = new Button(() => SelectTab(category)) { text = category.ToString() };
+                var button = new Button(() => SelectTab(category));
                 button.AddToClassList("tab");
+                button.AddToClassList("tab--" + category.ToString().ToLowerInvariant());
+                var icon = new VisualElement();
+                icon.AddToClassList("icon");
+                icon.AddToClassList("tab-icon");
+                icon.AddToClassList("icon--" + IconFor(category));
+                button.Add(icon);
+                var label = new Label(category.ToString());
+                label.AddToClassList("tab-label");
+                button.Add(label);
+                var badge = new Label { name = "tabBadge" };
+                badge.AddToClassList("tab-badge");
+                badge.AddToClassList("hidden");
+                button.Add(badge);
                 tabs.Add(button);
             }
             SelectTab(UpgradeCategory.Waves);
@@ -47,7 +60,8 @@ namespace SurfPool
             if (shop.IsOpen != shown)
             {
                 shown = shop.IsOpen;
-                screenRoot.EnableInClassList("hidden", !shown);
+                if (shown) UiMotion.Show(screenRoot);
+                else screenRoot.AddToClassList("hidden");
                 shownMoney = int.MinValue;
             }
             if (!shown) return;
@@ -105,24 +119,17 @@ namespace SurfPool
 
                 var top = new VisualElement();
                 top.AddToClassList("card-top");
+                var tile = new VisualElement();
+                tile.AddToClassList("icon-tile");
                 var icon = new VisualElement();
                 icon.AddToClassList("icon");
                 icon.AddToClassList("card-icon");
-                icon.AddToClassList("icon--" + upgrade.category switch
-                {
-                    UpgradeCategory.Waves => "wave",
-                    UpgradeCategory.Pools => "pool",
-                    UpgradeCategory.Park => "palm",
-                    UpgradeCategory.Rentals => "board",
-                    _ => "person",
-                });
-                top.Add(icon);
+                icon.AddToClassList("icon--" + IconFor(upgrade.category));
+                tile.Add(icon);
+                top.Add(tile);
                 var title = new Label(upgrade.title);
                 title.AddToClassList("card-title");
-                var cost = new Label(MoneyText.Format(upgrade.cost));
-                cost.AddToClassList("cost-chip");
                 top.Add(title);
-                top.Add(cost);
                 card.Add(top);
 
                 var description = new Label(upgrade.description);
@@ -194,8 +201,41 @@ namespace SurfPool
                     buy.text = "Buy";
                 }
                 card.Add(buy);
+
+                // Corner sticker: the price (coral when you can't afford it yet), or a stamp once it's yours.
+                var corner = new Label(upgrade.owned ? (worker != null ? "HIRED" : "OWNED") : MoneyText.Format(upgrade.cost));
+                corner.AddToClassList(upgrade.owned ? "price-stamp" : "cost-chip");
+                corner.EnableInClassList("cost-chip--short", !upgrade.owned && cash < upgrade.cost);
+                card.Add(corner);
                 row.Add(card);
             }
+            UpdateTabBadges(cash);
         }
+
+        /// <summary>The little coral number on each tab: upgrades you can buy right now.</summary>
+        void UpdateTabBadges(int cash)
+        {
+            int i = 0;
+            foreach (var button in tabs.Children())
+            {
+                var category = (UpgradeCategory)i++;
+                int count = 0;
+                foreach (var upgrade in shop.Upgrades)
+                    if (upgrade.category == category && !upgrade.owned && shop.LevelMet(upgrade) && shop.RequirementMet(upgrade) && cash >= upgrade.cost)
+                        count++;
+                var badge = button.Q<Label>("tabBadge");
+                badge.text = count.ToString();
+                badge.EnableInClassList("hidden", count == 0);
+            }
+        }
+
+        static string IconFor(UpgradeCategory category) => category switch
+        {
+            UpgradeCategory.Waves => "wave",
+            UpgradeCategory.Pools => "pool",
+            UpgradeCategory.Park => "palm",
+            UpgradeCategory.Rentals => "board",
+            _ => "person",
+        };
     }
 }

@@ -76,7 +76,7 @@ namespace SurfPool
                 Wallet.Instance.Add(reward, "daily challenges");
                 ParkLevel.Add(30);
                 Sfx.Play(Sound.Buy);
-                Notifications.Post($"Daily challenge done: {challenge.text}! +{MoneyText.Format(reward)}");
+                Notifications.Post($"Daily challenge done: {challenge.text}! +{MoneyText.Format(reward)}", Notice.Reward);
             }
         }
     }

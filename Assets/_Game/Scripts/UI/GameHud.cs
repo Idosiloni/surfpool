@@ -541,6 +541,7 @@ namespace SurfPool
 
         void ShowPopup(int amount, string reason)
         {
+            if (amount > 0) UiMotion.Bump(money, "money-label--bump");
             var label = new Label((amount >= 0 ? "+" : "") + MoneyText.Short(amount) + (string.IsNullOrEmpty(reason) ? "" : "  " + reason))
             {
                 pickingMode = PickingMode.Ignore,
@@ -553,15 +554,33 @@ namespace SurfPool
             label.schedule.Execute(label.RemoveFromHierarchy).StartingIn(1500);
         }
 
-        void ShowToast(string message, bool bad)
+        void ShowToast(string message, Notice kind)
         {
-            while (toasts.childCount >= 2) toasts.RemoveAt(0);
-            var toast = new Label(message) { pickingMode = PickingMode.Ignore };
+            while (toasts.childCount >= 3) toasts.RemoveAt(0);
+            var toast = new VisualElement { pickingMode = PickingMode.Ignore };
             toast.AddToClassList("toast");
-            toast.EnableInClassList("toast--bad", bad);
+            toast.AddToClassList("toast--" + kind.ToString().ToLowerInvariant());
+            var tile = new VisualElement { pickingMode = PickingMode.Ignore };
+            tile.AddToClassList("toast-tile");
+            var icon = new VisualElement { pickingMode = PickingMode.Ignore };
+            icon.AddToClassList("icon");
+            icon.AddToClassList("toast-icon");
+            icon.AddToClassList(kind switch
+            {
+                Notice.Good => "icon--coin",
+                Notice.Reward => "icon--star",
+                Notice.Bad => "icon--bolt",
+                _ => "icon--wave",
+            });
+            tile.Add(icon);
+            toast.Add(tile);
+            var text = new Label(message) { pickingMode = PickingMode.Ignore };
+            text.AddToClassList("toast-text");
+            toast.Add(text);
             toasts.Add(toast);
-            toast.schedule.Execute(() => toast.AddToClassList("toast--leaving")).StartingIn(3500);
-            toast.schedule.Execute(toast.RemoveFromHierarchy).StartingIn(4100);
+            UiMotion.Enter(toast, "toast--entering");
+            toast.schedule.Execute(() => toast.AddToClassList("toast--leaving")).StartingIn(3800);
+            toast.schedule.Execute(toast.RemoveFromHierarchy).StartingIn(4400);
         }
 
         static void SetText(Label label, string text)

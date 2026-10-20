@@ -8,6 +8,7 @@ namespace SurfPool
     {
         static readonly Color Gold = new(1f, 0.74f, 0.2f);
         static readonly Color Empty = new(0.04f, 0.18f, 0.23f, 0.15f);
+        static readonly Color Ink = new(0.04f, 0.18f, 0.23f, 0.85f);
 
         float stars;
 
@@ -41,7 +42,27 @@ namespace SurfPool
                 FillStar(painter, center, radius, Empty, false);
                 if (stars >= i + 1) FillStar(painter, center, radius, Gold, false);
                 else if (stars >= i + 0.5f) FillStar(painter, center, radius, Gold, true);
+                if (stars >= i + 0.5f) OutlineStar(painter, center, radius);
             }
+        }
+
+        /// <summary>Ink outline around a lit star, to match the cartoon outlines of the rest of the UI.</summary>
+        static void OutlineStar(Painter2D painter, Vector2 center, float radius)
+        {
+            painter.strokeColor = Ink;
+            painter.lineWidth = Mathf.Max(1.5f, radius * 0.14f);
+            painter.lineJoin = LineJoin.Round;
+            painter.BeginPath();
+            for (int p = 0; p < 10; p++)
+            {
+                float r = p % 2 == 0 ? radius : radius * 0.45f;
+                float angle = Mathf.Deg2Rad * (-90f + p * 36f);
+                var point = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * r;
+                if (p == 0) painter.MoveTo(point);
+                else painter.LineTo(point);
+            }
+            painter.ClosePath();
+            painter.Stroke();
         }
 
         /// <summary>A five-pointed star; leftHalf clips it to its left half for half stars.</summary>

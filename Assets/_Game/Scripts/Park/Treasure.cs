@@ -45,11 +45,11 @@ namespace SurfPool
             Wallet.Instance.Add(FindReward, "treasure");
             ParkLevel.Add(FindXp);
             Sfx.Play(Sound.Buy);
-            Notifications.Post($"Found {title}! {note} ({Found}/{Found + left})");
+            Notifications.Post($"Found {title}! {note} ({Found}/{Found + left})", Notice.Reward);
             if (left == 0)
             {
                 Wallet.Instance.Add(AllFoundBonus, "treasure");
-                Notifications.Post($"You found ALL of Uncle Kai's treasures! Bonus {MoneyText.Format(AllFoundBonus)}!");
+                Notifications.Post($"You found ALL of Uncle Kai's treasures! Bonus {MoneyText.Format(AllFoundBonus)}!", Notice.Reward);
                 Sfx.Play(Sound.Mission);
                 Sfx.Duck();
             }

@@ -5,9 +5,10 @@
             <ui:VisualElement class="screen-header">
                 <ui:VisualElement>
                     <ui:Label text="Wave Control" class="screen-title" />
-                    <ui:Label text="Pick a wave, then SEND it (or press the big red button). Esc or E to close." class="screen-subtitle" />
+                    <ui:Label text="Pick a wave, then SEND it (or press the big red button)." class="screen-subtitle" />
                 </ui:VisualElement>
             </ui:VisualElement>
+            <ui:Label text="Machine house" class="window-tag" />
 
             <ui:Label text="WAVE" class="section-title section-gap" />
             <ui:VisualElement name="waveCards" class="wave-cards" />
@@ -26,7 +27,10 @@
 
             <ui:VisualElement class="screen-footer section-gap">
                 <ui:Button name="sendButton" text="SEND WAVE" class="send-button" />
-                <ui:Button name="waveCloseButton" text="Close (Esc)" class="close-button" />
+                <ui:Button name="waveCloseButton" class="close-button key-button">
+                    <ui:Label text="Esc" class="key-badge" />
+                    <ui:Label text="Close" class="key-button-text" />
+                </ui:Button>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

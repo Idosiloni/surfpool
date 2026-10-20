@@ -4,16 +4,20 @@
         <ui:VisualElement class="screen-window">
             <ui:VisualElement class="screen-header">
                 <ui:VisualElement>
-                    <ui:Label text="SurfOS  ·  Park Upgrades" class="screen-title" />
-                    <ui:Label text="Pick a tab, buy with the mouse. Esc or E to close." class="screen-subtitle" />
+                    <ui:Label text="Park Upgrades" class="screen-title" />
+                    <ui:Label text="Pick a tab, buy with the mouse." class="screen-subtitle" />
                 </ui:VisualElement>
                 <ui:Label name="screenMoney" text="$ 0" class="screen-money" />
             </ui:VisualElement>
+            <ui:Label text="SurfOS" class="window-tag window-tag--teal" />
             <ui:VisualElement name="tabs" class="tabs" />
             <ui:ScrollView name="cards" class="cards" />
             <ui:VisualElement class="screen-footer">
                 <ui:Label name="screenMessage" class="screen-message" />
-                <ui:Button name="closeButton" text="Close (Esc)" class="close-button" />
+                <ui:Button name="closeButton" class="close-button key-button">
+                    <ui:Label text="Esc" class="key-badge" />
+                    <ui:Label text="Close" class="key-button-text" />
+                </ui:Button>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
