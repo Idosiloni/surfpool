@@ -55,6 +55,27 @@ namespace SurfPool
         /// <summary>Throw both arms up and wave (cheering spectators, sitting or standing still).</summary>
         public bool CheerArms { get; set; }
 
+        /// <summary>Short arm-and-torso moves played on top of any pose (celebrations, hoots, lineup fidgets).</summary>
+        public enum Gesture { None, Claim, Shaka, FistPump, SoulArch, Hoot, Stretch, Splash, ScratchHead }
+
+        Gesture gesture;
+        float gestureStart, gestureLength;
+
+        /// <summary>Plays a gesture for a few seconds (it fades in and out over the current pose).</summary>
+        public void PlayGesture(Gesture move, float seconds)
+        {
+            gesture = move;
+            gestureStart = Time.time;
+            gestureLength = Mathf.Max(0.3f, seconds);
+        }
+
+        public bool Gesturing => gesture != Gesture.None && Time.time - gestureStart < gestureLength;
+
+        /// <summary>Something to look at (a big moment, a friend's wave); null = look where the pose looks.</summary>
+        public Vector3? LookTarget { get; set; }
+
+        float lookWeight;
+
         // ---- riding inputs, set by whoever is surfing ----
 
         /// <summary>Regular stance (left foot forward) or goofy (right foot forward).</summary>
@@ -238,7 +259,84 @@ namespace SurfPool
                 float w = blendTime <= 0f ? 1f : Mathf.Clamp01(elapsed / blendTime);
                 current = w >= 1f ? target : PoseData.Lerp(snapshot, target, w * w * (3f - 2f * w));
             }
-            Apply(current);
+            var shown = current;
+            shown = WithGesture(shown);
+            ApplyLook(ref shown, dt);
+            Apply(shown);
+        }
+
+        /// <summary>Layers the active gesture over the pose (arms, torso, head), fading in and out.</summary>
+        PoseData WithGesture(PoseData pose)
+        {
+            if (gesture == Gesture.None) return pose;
+            float t = Time.time - gestureStart;
+            if (t >= gestureLength)
+            {
+                gesture = Gesture.None;
+                return pose;
+            }
+            float w = Mathf.Clamp01(t / 0.2f) * Mathf.Clamp01((gestureLength - t) / 0.25f);
+            w = w * w * (3f - 2f * w);
+            float wave = Mathf.Sin(t * 10f);
+            Quaternion E3(float x, float y, float z) => Quaternion.Euler(x, y, z);
+            void Arms(Quaternion left, Quaternion right, float elbowL, float elbowR)
+            {
+                pose.shoulderL = Quaternion.Slerp(pose.shoulderL, left, w);
+                pose.shoulderR = Quaternion.Slerp(pose.shoulderR, right, w);
+                pose.elbowL = Quaternion.Slerp(pose.elbowL, E3(-elbowL, 0, 0), w);
+                pose.elbowR = Quaternion.Slerp(pose.elbowR, E3(-elbowR, 0, 0), w);
+            }
+            void Right(Quaternion right, float elbow)
+            {
+                pose.shoulderR = Quaternion.Slerp(pose.shoulderR, right, w);
+                pose.elbowR = Quaternion.Slerp(pose.elbowR, E3(-elbow, 0, 0), w);
+            }
+            switch (gesture)
+            {
+                case Gesture.Claim: // both arms straight up, chest out: "I got that one!"
+                    Arms(E3(0, 0, -168f), E3(0, 0, 168f), 8f, 8f);
+                    pose.torso = Quaternion.Slerp(pose.torso, pose.torso * E3(-12f, 0, 0), w);
+                    break;
+                case Gesture.Shaka: // one hand out and wiggling
+                    Right(E3(-55f, 0, 70f + wave * 8f), 75f);
+                    break;
+                case Gesture.FistPump:
+                    Right(E3(0, 0, 150f + Mathf.Sin(t * 13f) * 18f), 70f + Mathf.Sin(t * 13f) * 30f);
+                    break;
+                case Gesture.SoulArch: // arms swept back, chest to the sky
+                    Arms(E3(40f, 0, -65f), E3(40f, 0, 65f), 10f, 10f);
+                    pose.torso = Quaternion.Slerp(pose.torso, pose.torso * E3(-22f, 0, 0), w);
+                    pose.head = Quaternion.Slerp(pose.head, pose.head * E3(-20f, 0, 0), w);
+                    break;
+                case Gesture.Hoot: // one arm up, waving, for a friend's wave
+                    pose.shoulderL = Quaternion.Slerp(pose.shoulderL, E3(0, 0, -158f - wave * 14f), w);
+                    pose.elbowL = Quaternion.Slerp(pose.elbowL, E3(-30f, 0, 0), w);
+                    break;
+                case Gesture.Stretch: // arms up and out, a big lazy stretch
+                    Arms(E3(-20f, 0, -150f), E3(-20f, 0, 150f), 20f, 20f);
+                    pose.torso = Quaternion.Slerp(pose.torso, pose.torso * E3(-10f, 0, 0), w);
+                    break;
+                case Gesture.Splash: // a hand sweeping the water
+                    Right(E3(-30f + Mathf.Sin(t * 6f) * 40f, 0, 55f), 20f);
+                    break;
+                case Gesture.ScratchHead:
+                    Right(E3(-135f, 0, 45f + wave * 4f), 120f);
+                    break;
+            }
+            return pose;
+        }
+
+        /// <summary>Turns the head (and a little of the torso) toward LookTarget.</summary>
+        void ApplyLook(ref PoseData pose, float dt)
+        {
+            lookWeight = Mathf.MoveTowards(lookWeight, LookTarget.HasValue ? 1f : 0f, dt * 3f);
+            if (lookWeight <= 0f || !LookTarget.HasValue) return;
+            Vector3 dir = model.InverseTransformDirection(LookTarget.Value - head.position);
+            float yaw = Mathf.Clamp(Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg, -75f, 75f);
+            float pitch = Mathf.Clamp(-Mathf.Atan2(dir.y, new Vector2(dir.x, dir.z).magnitude) * Mathf.Rad2Deg, -25f, 25f);
+            float w = lookWeight * lookWeight * (3f - 2f * lookWeight);
+            pose.head = Quaternion.Slerp(pose.head, Quaternion.Euler(pitch, yaw * 0.7f, 0f), w);
+            pose.torso = Quaternion.Slerp(pose.torso, pose.torso * Quaternion.Euler(0f, yaw * 0.3f, 0f), w);
         }
 
         void Apply(in PoseData pose)

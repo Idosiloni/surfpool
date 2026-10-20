@@ -25,8 +25,6 @@ namespace SurfPool
         enum Move { None, Snap, Cutback, Floater, BottomTurn }
 
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        static readonly string[] RideShouts = { "Woohoo!", "Shredding!", "Radical!", "Let's gooo!" };
-        static readonly string[] HappyShouts = { "Stoked!", "Epic session!", "Best wave pool ever!", "So good, dude!" };
         static readonly Color RentalBoardColor = new(1f, 0.85f, 0.15f);
         static readonly string[] BeginnerTricks = { "Popped up!", "Trimming!", "Standing!" };
         static readonly string[] IntermediateTricks = { "Bottom turn!", "Cutback!", "Snap!" };
@@ -105,7 +103,14 @@ namespace SurfPool
         bool airSpin, wasAirborne;
         float landSquash, kickOutStart = -10f;
 
-        const float KickOutTime = 0.7f;
+        float kickOutTime = 0.7f;
+        bool celebrate;
+        Archetype archetype;
+        float nextFidget, lookUntil, hootAt = -1f;
+        Surfer dropInVictim;
+
+        /// <summary>Who this surfer is (grom, kook, charger...): what they say and how they celebrate.</summary>
+        public Archetype Type => archetype;
         Move move;
         float moveStart, moveLength, moveDirection;
         int tricksLanded;
@@ -163,10 +168,16 @@ namespace SurfPool
             }
         }
 
-        void OnEnable() => All.Add(this);
+        void OnEnable()
+        {
+            All.Add(this);
+            Highlights.Happened += OnHighlight;
+        }
+
         void OnDisable()
         {
             All.Remove(this);
+            Highlights.Happened -= OnHighlight;
             if (SnackBar.Instance != null) SnackBar.Instance.Leave(this);
         }
 
@@ -214,6 +225,7 @@ namespace SurfPool
             PreferredDirection = Random.value < 0.6f ? WaveDirection.Right : WaveDirection.Left;
             MaxPrice = owner.Pricing.FairFor(Skill, pool) * Random.Range(0.8f, 1.5f);
             UseBoardFor(Skill);
+            archetype = SurferPersonalities.Roll(Skill);
             rig.Goofy = Random.value < 0.35f;
             rig.Style = Skill switch { WaveLevel.Beginner => 0f, WaveLevel.Intermediate => 0.55f, _ => 1f };
             var skin = Color.Lerp(new Color(0.42f, 0.27f, 0.17f), new Color(1f, 0.84f, 0.7f), Random.value);
@@ -250,6 +262,22 @@ namespace SurfPool
 
         void Update()
         {
+            // A delayed hoot for someone else's wave, and letting go of whatever caught our eye.
+            if (hootAt > 0f && Time.time >= hootAt)
+            {
+                hootAt = -1f;
+                if (state == State.WaitingForWave)
+                {
+                    rig.PlayGesture(CharacterRig.Gesture.Hoot, 1.3f);
+                    Shout(SurferPersonalities.Line(archetype, Moment.Hoot), 1.5f);
+                }
+            }
+            if (lookUntil > 0f && Time.time >= lookUntil)
+            {
+                lookUntil = 0f;
+                rig.LookTarget = null;
+            }
+
             switch (state)
             {
                 case State.WalkingIn:
@@ -284,6 +312,7 @@ namespace SurfPool
                     SetPose(waveComing ? Pose.Paddle : Pose.Straddle);
                     rig.Sprint = waveComing;
                     Float(transform.position + Separation(WaterSpace) * Time.deltaTime, waveComing ? Vector3.right : Vector3.left);
+                    if (!waveComing && Time.time >= nextFidget && !rig.Gesturing) Fidget();
                     if (DrainPatience(wavePatience * ParkEffects.WavePatienceMultiplier)) LeaveAngry("Where are the waves?!");
                     else TryCatchWave();
                     break;
@@ -357,9 +386,14 @@ namespace SurfPool
         /// </summary>
         bool KickOut()
         {
-            float t = (Time.time - kickOutStart) / KickOutTime;
+            float t = (Time.time - kickOutStart) / kickOutTime;
             if (t < 0f || t >= 1f) return false;
             SetPose(Pose.Ride);
+            if (celebrate)
+            {
+                celebrate = false;
+                rig.PlayGesture(SurferPersonalities.Celebration(archetype), kickOutTime);
+            }
             float hop = Mathf.Sin(t * Mathf.PI);
             Vector3 p = transform.position + Vector3.left * (2.5f * Time.deltaTime);
             p.y = water.SurfaceHeightAt(p) + hop * 0.5f;
@@ -376,6 +410,38 @@ namespace SurfPool
             return true;
         }
 
+        /// <summary>Sitting in the lineup: now and then stretch, splash about or scratch the head.</summary>
+        void Fidget()
+        {
+            if (nextFidget > 0f)
+            {
+                var moves = new[] { CharacterRig.Gesture.Stretch, CharacterRig.Gesture.Splash, CharacterRig.Gesture.ScratchHead };
+                rig.PlayGesture(moves[Random.Range(0, moves.Length)], Random.Range(1.4f, 2.2f));
+            }
+            nextFidget = Time.time + Random.Range(6f, 15f);
+        }
+
+        /// <summary>Surfers waiting nearby hoot when someone catches a wave (half of them, after a beat).</summary>
+        void HootForMe()
+        {
+            foreach (var other in All)
+            {
+                if (other == this || other.pool != pool || other.state != State.WaitingForWave) continue;
+                if ((other.transform.position - transform.position).sqrMagnitude > 12f * 12f || Random.value > 0.5f) continue;
+                other.hootAt = Time.time + Random.Range(0.2f, 0.8f);
+                other.lookUntil = Time.time + 2.5f;
+                other.rig.LookTarget = transform.position + Vector3.up;
+            }
+        }
+
+        /// <summary>Big moments nearby (a pro's tube or air) turn heads.</summary>
+        void OnHighlight(Vector3 where, float strength)
+        {
+            if ((where - transform.position).sqrMagnitude > 40f * 40f || state == State.Riding) return;
+            rig.LookTarget = where + Vector3.up;
+            lookUntil = Time.time + 2.5f;
+        }
+
         /// <summary>Is a wave this surfer hasn't passed on rolling up behind (turn and paddle hard to catch it)?</summary>
         bool WaveComing()
         {
@@ -390,14 +456,14 @@ namespace SurfPool
             return false;
         }
 
-        /// <summary>Is someone else already riding this wave within space meters (along the wave) of z?</summary>
-        bool RiderNear(float wave, float z, float space)
+        /// <summary>Someone else already riding this wave within space meters (along the wave) of z, or null.</summary>
+        Surfer RiderNear(float wave, float z, float space)
         {
             foreach (var other in All)
                 if (other != this && other.water == water && other.state == State.Riding && other.rideWave == wave
                     && Mathf.Abs(other.rideZ - z) < space)
-                    return true;
-            return false;
+                    return other;
+            return null;
         }
 
         /// <summary>
@@ -609,7 +675,11 @@ namespace SurfPool
                 if (whitewash && !water.IsBroken(wave)) continue; // not whitewater yet: wait for it
                 // Etiquette: no dropping in on someone already riding this green wave right beside you.
                 // (Whitewater is shared; riders there just keep their distance.)
-                if (!whitewash && RiderNear(wave, water.transform.InverseTransformPoint(transform.position).z, DropInSpace))
+                dropInVictim = null;
+                var near = whitewash ? null : RiderNear(wave, water.transform.InverseTransformPoint(transform.position).z, DropInSpace);
+                if (near != null && archetype == Archetype.Kook && Random.value < 0.1f)
+                    dropInVictim = near; // kooks don't always know the rules...
+                else if (near != null)
                 {
                     skippedWave = wave;
                     if (Random.value < 0.5f) Shout("Your wave, go go!", 2f);
@@ -664,7 +734,15 @@ namespace SurfPool
                 landSquash = 0f;
                 wasAirborne = false;
                 Shout(whitewash ? "Riding the whitewater!" : diff < 0 ? "Kinda small..." : diff > 0 ? "Whoa, big one!"
-                    : backside ? "Going backside!" : RideShouts[Random.Range(0, RideShouts.Length)], 2f);
+                    : backside ? "Going backside!" : SurferPersonalities.Line(archetype, Moment.Catch), 2f);
+                if (dropInVictim != null)
+                {
+                    // Drop-in drama: the surfer already on it yells, the kook apologizes, the lifeguard whistles.
+                    dropInVictim.Shout(SurferPersonalities.Line(dropInVictim.archetype, Moment.DropInVictim), 2.5f);
+                    Shout(SurferPersonalities.Line(archetype, Moment.DropInSorry), 2.5f);
+                    Lifeguard.Whistle();
+                }
+                HootForMe();
                 return;
             }
         }
@@ -855,7 +933,7 @@ namespace SurfPool
             Sfx.Play(Sound.Splash, transform.position);
             RideFeel.Splash(water, transform.position, 24, 3f);
             Lifeguard.Whistle();
-            Shout("WIPEOUT!", 2.5f);
+            Shout(SurferPersonalities.Line(archetype, Moment.Wipeout), 2.5f);
         }
 
         /// <summary>Spins under the water for a moment, then pops back up.</summary>
@@ -878,7 +956,13 @@ namespace SurfPool
 
         void FinishRide(bool wipedOut)
         {
-            if (!wipedOut) kickOutStart = Time.time; // ride out over the back of the wave before lying down
+            if (!wipedOut)
+            {
+                // Ride out over the back of the wave before lying down; a good ride gets a celebration on the way.
+                kickOutStart = Time.time;
+                celebrate = rideQuality >= 0.85f || rodeFamous;
+                kickOutTime = celebrate ? 1.4f : 0.7f;
+            }
             ridesDone++;
             if (ridesDone < wavesPerSession)
             {
@@ -897,9 +981,7 @@ namespace SurfPool
             // Main-pool surfers walking out (not carrying a rental board back) may stop at the snack bar.
             wantsSnack = !hasRentalBoard && pool == spawner.MainPool && SnackBar.Instance != null && SnackBar.Instance.WantsSnack(happiness);
             GameStats.SurfersServed++;
-            string line = happiness > 0.75f ? HappyShouts[Random.Range(0, HappyShouts.Length)]
-                : happiness > 0.5f ? "Pretty fun!"
-                : "Meh. Wrong waves for me.";
+            string line = SurferPersonalities.Line(archetype, happiness > 0.75f ? Moment.GoodEnd : happiness > 0.5f ? Moment.OkEnd : Moment.BadEnd);
             Shout(line + (tip > 0 ? $"  (tipped ${tip})" : ""), 5f);
             state = State.SwimmingToBeach;
         }

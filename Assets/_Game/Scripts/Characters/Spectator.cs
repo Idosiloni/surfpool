@@ -31,8 +31,27 @@ namespace SurfPool
                     s.cheerUntil = Time.time + Random.Range(0.1f, 0.5f) + seconds;
         }
 
-        void OnEnable() => All.Add(this);
-        void OnDisable() => All.Remove(this);
+        float lookUntil;
+
+        void OnEnable()
+        {
+            All.Add(this);
+            Highlights.Happened += LookAt;
+        }
+
+        void OnDisable()
+        {
+            All.Remove(this);
+            Highlights.Happened -= LookAt;
+        }
+
+        /// <summary>Everyone near a big moment turns to watch it.</summary>
+        void LookAt(Vector3 where, float strength)
+        {
+            if (rig == null || (where - transform.position).sqrMagnitude > 60f * 60f) return;
+            rig.LookTarget = where + Vector3.up;
+            lookUntil = Time.time + 3f;
+        }
 
         void Start()
         {
@@ -52,6 +71,11 @@ namespace SurfPool
                 nextCheer = Time.time + Random.Range(10f, 35f);
             }
             rig.CheerArms = Time.time < cheerUntil || Time.time < crowdCheerUntil;
+            if (lookUntil > 0f && Time.time >= lookUntil)
+            {
+                lookUntil = 0f;
+                rig.LookTarget = null;
+            }
         }
     }
 }
