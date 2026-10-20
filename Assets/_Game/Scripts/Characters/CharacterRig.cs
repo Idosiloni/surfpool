@@ -84,6 +84,16 @@ namespace SurfPool
         /// <summary>Tilt of the board (face slope, carve, spins). The body tilts with it around the board.</summary>
         public Quaternion BoardTilt { get; set; } = Quaternion.identity;
 
+        /// <summary>
+        /// Length of the board under this person (m). Surfers stand behind the middle (back foot over the fins),
+        /// lie with their feet near the tail and sit on the back third, so these spots follow the board's length.
+        /// </summary>
+        public float BoardLength { get; set; } = 2.1f;
+
+        float StandSpot => -0.17f * BoardLength;
+        float LieSpot => -0.5f * BoardLength + 0.15f;
+        float SitSpot => -0.2f * BoardLength;
+
         /// <summary>Where the board sits under the rider (rig space); the tilt pivots here.</summary>
         public static readonly Vector3 BoardPivot = new(0f, 0.05f, 0f);
 
@@ -313,7 +323,7 @@ namespace SurfPool
             // rotation goes hip -> up in the air -> past the head -> down in the water -> hip.)
             float stroke = phase * Mathf.Rad2Deg;
             float lookBack = sprint * Mathf.Clamp01(Mathf.Sin(Time.time * 2.4f) * 3f - 2f) * 70f;
-            return Pose(new Vector3(0, 0.22f, -0.35f), new Vector3(90f, 0, 0), hipsHeight, new Vector3(-10f, 0, Mathf.Sin(phase) * 3f),
+            return Pose(new Vector3(0, 0.22f, LieSpot), new Vector3(90f, 0, 0), hipsHeight, new Vector3(-10f, 0, Mathf.Sin(phase) * 3f),
                 new Vector3(-35f + lookBack * 0.2f, lookBack, 0),
                 new Vector3(stroke % 360f, 0, -PaddleArmOut),
                 new Vector3((stroke + 180f) % 360f, 0, PaddleArmOut),
@@ -351,7 +361,7 @@ namespace SurfPool
             if (kneeL != null)
             {
                 // Feet about shoulder width apart (beginners a bit wider); the knees fold to reach the deck.
-                splay = 13f + rookie * 4f;
+                splay = 20f + rookie * 4f;
                 float legDown = hipsY / Mathf.Cos(splay * Mathf.Deg2Rad) - FootHeight;
                 knees = Mathf.Acos(Mathf.Clamp(legDown / (Thigh + Shin), 0.2f, 1f)) * Mathf.Rad2Deg;
                 kneeBend = knees * 2f;
@@ -390,7 +400,7 @@ namespace SurfPool
             float torsoYaw = Mathf.Lerp(12f, 25f, Style) - Twist * 0.6f;
             float torsoPitch = (kneeL != null ? Mathf.Lerp(30f, 12f, Style) + crouch * 8f : Mathf.Lerp(35f, 18f, Style) + crouch * 15f)
                 + lean * 15f + pump * 3f;
-            var pose = Pose(new Vector3(0f, 0.08f, 0f), new Vector3(0f, 90f * side, wobble * 5f),
+            var pose = Pose(new Vector3(0f, 0.08f, StandSpot), new Vector3(0f, 90f * side, wobble * 5f),
                 hipsY,
                 new Vector3(torsoPitch, -torsoYaw * side, lean * -6f),
                 new Vector3(-8f - crouch * 12f + lookDown, -headYaw * side, 0f),
@@ -419,10 +429,10 @@ namespace SurfPool
         PoseData PopUp(in PoseData ride, float t)
         {
             float side = Goofy ? -1f : 1f;
-            var pushUp = Pose(new Vector3(0, 0.3f, -0.35f), new Vector3(62f, 0, 0), hipsHeight, new Vector3(-10f, 0, 0),
+            var pushUp = Pose(new Vector3(0, 0.3f, LieSpot), new Vector3(62f, 0, 0), hipsHeight, new Vector3(-10f, 0, 0),
                 new Vector3(-40f, 0, 0), new Vector3(-85f, 0, -12f), new Vector3(-85f, 0, 12f),
                 new Vector3(-10f, 0, -4f), new Vector3(-10f, 0, 4f)).Bend(10f, 10f, 15f, 15f);
-            var tuck = Pose(new Vector3(0, 0.08f, 0), new Vector3(0, 90f * side, 0), hipsHeight - 0.45f,
+            var tuck = Pose(new Vector3(0, 0.08f, StandSpot), new Vector3(0, 90f * side, 0), hipsHeight - 0.45f,
                 new Vector3(50f, -10f * side, 0), new Vector3(-30f, -50f * side, 0),
                 new Vector3(-60f, 0, -25f), new Vector3(-60f, 0, 25f),
                 kneeL != null ? new Vector3(-75f, 0, -28f) : new Vector3(-25f, 0, -45f),
@@ -467,7 +477,7 @@ namespace SurfPool
         {
             float t = Time.time;
             float kick = Mathf.Sin(t * 1.3f) * 8f;
-            return Pose(new Vector3(0f, 0.12f - hipsHeight, 0f), Vector3.zero, hipsHeight, new Vector3(-4f, 0, 0),
+            return Pose(new Vector3(0f, 0.12f - hipsHeight, SitSpot), Vector3.zero, hipsHeight, new Vector3(-4f, 0, 0),
                 new Vector3(Mathf.Sin(t * 0.5f) * 6f - 4f, Mathf.Sin(t * 0.35f) * 35f, 0),
                 new Vector3(-35f, 0, -12f), new Vector3(-35f, 0, 12f),
                 new Vector3(-35f + kick, 0, -32f), new Vector3(-35f - kick, 0, 32f))

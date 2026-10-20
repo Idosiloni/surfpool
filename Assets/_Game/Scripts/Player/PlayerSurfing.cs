@@ -1,6 +1,8 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace SurfPool
 {
@@ -15,6 +17,8 @@ namespace SurfPool
     /// trimming high and linking carves and drains in the flats; it raises carve speed and points, and airs need
     /// some. Carves, bottom turns and airs chain into a combo (x1 to x3) that is banked after a pause or at the end
     /// of the ride and lost in a wipeout. The ride ends with a score card. SurfHud shows all of this.
+    /// Barrels: high on the face just ahead of the break point of a barreling wave you're in the tube: the world
+    /// goes muffled and green-dark at the edges, tube time scores fast, and coming out is a combo trick.
     /// See docs/research/surf-feel.md.
     /// </summary>
     public class PlayerSurfing : MonoBehaviour
@@ -81,11 +85,17 @@ namespace SurfPool
         float flow, topSpeed, carveSign, carveSince, lowSince = -10f, sprayDropsAt;
         int comboCount, comboPoints, bestComboPoints;
         float comboUntil, bestMultiplier = 1f, hitPauseUntil = -1f;
+        float tube, tubeTime;
+        bool inTube;
         AudioSource wind;
         AudioLowPassFilter underwater;
+        Volume tubeVolume;
 
         public bool IsSurfing => state != State.Off;
         public bool IsRiding => state == State.Riding;
+
+        /// <summary>0..1 how deep in the tube you are right now.</summary>
+        public float Tube => tube;
 
         /// <summary>0..1 how much speed and style you've built up this ride.</summary>
         public float Flow => flow;
@@ -138,6 +148,21 @@ namespace SurfPool
             if (underwater == null) underwater = cameraPivot.gameObject.AddComponent<AudioLowPassFilter>();
             underwater.cutoffFrequency = 22000f;
             underwater.enabled = false;
+
+            // Inside the barrel: darker teal-green edges and a cooler, dimmer world (weight follows Tube).
+            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            var vignette = profile.Add<Vignette>(true);
+            vignette.intensity.Override(0.5f);
+            vignette.smoothness.Override(0.6f);
+            vignette.color.Override(new Color(0.02f, 0.2f, 0.22f));
+            var grade = profile.Add<ColorAdjustments>(true);
+            grade.colorFilter.Override(new Color(0.78f, 1f, 0.95f));
+            grade.postExposure.Override(-0.35f);
+            tubeVolume = cameraPivot.gameObject.AddComponent<Volume>();
+            tubeVolume.isGlobal = true;
+            tubeVolume.priority = 50f;
+            tubeVolume.sharedProfile = profile;
+            tubeVolume.weight = 0f;
         }
 
         /// <summary>Jump into the water of the given pool with your own board.</summary>
@@ -173,6 +198,8 @@ namespace SurfPool
             if (cam != null) cam.fieldOfView = baseFov;
             if (wind.isPlaying) wind.Stop();
             underwater.enabled = false;
+            tube = 0f;
+            tubeVolume.weight = 0f;
             body.enabled = true;
             walker.enabled = true;
         }
@@ -223,7 +250,7 @@ namespace SurfPool
             float targetEye = state switch
             {
                 // Pop-up: press up, then rise into a crouch; carving and landings drop you lower (down to about 0.9).
-                State.Riding => Mathf.Lerp(PaddleEye + 0.1f, StandEye - 0.45f * Mathf.Clamp01(Mathf.Abs(feel.Turn) * 0.6f + landSquash),
+                State.Riding => Mathf.Lerp(PaddleEye + 0.1f, StandEye - 0.45f * Mathf.Clamp01(Mathf.Abs(feel.Turn) * 0.6f + landSquash) - 0.3f * tube,
                     Mathf.SmoothStep(0f, 1f, (Time.time - popUpStart) / PopUpRise)),
                 State.Wipeout => WipeoutEye,
                 _ => PaddleEye + Mathf.Sin(Time.time * 4f) * 0.03f,
@@ -247,6 +274,19 @@ namespace SurfPool
 
             if (cam != null)
                 cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, baseFov + speedFovKick * speed, 1f - Mathf.Exp(-3f * dt));
+
+            // In the tube: muffled (unless a wipeout is already muffling), vignette by depth.
+            tubeVolume.weight = state == State.Riding ? tube : 0f;
+            if (state == State.Riding)
+            {
+                underwater.enabled = tube > 0.01f;
+                underwater.cutoffFrequency = Mathf.Lerp(22000f, 1600f, tube);
+            }
+            else if (state == State.Paddling)
+            {
+                tube = 0f;
+                underwater.enabled = false;
+            }
 
             if (wind.clip == null) wind.clip = Sfx.WindClip;
             if (wind.clip != null)
@@ -311,6 +351,8 @@ namespace SurfPool
                     wasAirborne = false;
                     landSquash = 0f;
                     comboCount = comboPoints = bestComboPoints = 0;
+                    tube = tubeTime = 0f;
+                    inTube = false;
                     bestMultiplier = 1f;
                     topSpeed = 0f;
                     carveSign = 0f;
@@ -478,8 +520,49 @@ namespace SurfPool
             wasAirborne = airborne;
             landSquash = Mathf.MoveTowards(landSquash, 0f, dt * 2.5f);
 
+            UpdateTube(water, dt);
+
             // Style: riding high on the face and carving fast both score, more with flow.
             score += Mathf.RoundToInt((Mathf.Abs(steer) * 20f + Mathf.Clamp(3f - rideOffset, 0f, 3f) * 10f) * dt * 10f * (1f + flow));
+        }
+
+        /// <summary>
+        /// Are you in the barrel? On a barreling wave, high on the face and just ahead of the break point, the lip is
+        /// curling over you (the lip mesh covers a few meters ahead of the break, see WaveWater.AddLipStrip).
+        /// </summary>
+        void UpdateTube(WaveWater water, float dt)
+        {
+            float target = 0f;
+            int side = rideVelocity >= 0f ? 1 : -1;
+            if (water.TryGetPocket(rideWave, side, out float pocketZ, out int direction, out _, out _, out bool barrel) && barrel)
+            {
+                float ahead = (rideZ - pocketZ) * direction; // meters in front of the break point, under the lip
+                if (ahead > 0f && ahead < 4.5f && rideOffset < 1.3f)
+                    target = Mathf.Clamp01(1.4f - ahead / 4.5f) * Mathf.Clamp01((1.3f - rideOffset) / 0.5f);
+            }
+            tube = Mathf.MoveTowards(tube, target, dt * 3f);
+
+            bool nowIn = tube > 0.5f;
+            if (nowIn)
+            {
+                tubeTime += dt;
+                score += Mathf.RoundToInt(120f * dt * (1f + flow));
+                if (!inTube) Called?.Invoke("GETTING BARRELED!", Notice.Reward);
+            }
+            else if (inTube)
+            {
+                // Coming out: spit in your face, and the tube counts as a trick if it lasted.
+                if (tubeTime >= 0.6f)
+                {
+                    GameStats.TubeRides++;
+                    Trick($"TUBE {tubeTime:0.0}s", Mathf.RoundToInt(150f + 150f * tubeTime), 0.3f);
+                    RideFeel.Splash(water, transform.position + transform.forward * 1.5f, 10, 2.2f);
+                    Sfx.Play(Sound.Splash, transform.position, 0.5f);
+                    Splashed?.Invoke(8);
+                }
+                tubeTime = 0f;
+            }
+            inTube = nowIn;
         }
 
         /// <summary>Eases the board under you to a tilt (you only turn on the y axis, so local = your heading frame).</summary>

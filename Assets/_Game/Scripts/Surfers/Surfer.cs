@@ -999,6 +999,7 @@ namespace SurfPool
             board.GetComponent<MeshFilter>().sharedMesh = source.sharedMesh;
             board.GetComponent<MeshRenderer>().sharedMaterials = source.GetComponent<MeshRenderer>().sharedMaterials;
             board.localScale = Vector3.one;
+            rig.BoardLength = source.sharedMesh.bounds.size.z;
         }
 
         /// <summary>Tints a part. Boards only get their deck tinted, so stripes, stringer and fins keep their colors.</summary>
