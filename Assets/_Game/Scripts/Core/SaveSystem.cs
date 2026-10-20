@@ -16,7 +16,7 @@ namespace SurfPool
         [Serializable]
         class SaveData
         {
-            public int version = 2;
+            public int version = 3;
             public int money;
             public int day;
             public List<string> upgrades = new();
@@ -27,6 +27,7 @@ namespace SurfPool
             public int served, lost;
             public int ticketsSold, wavesSent, surfersServed, boardsRented, tubeRides, tricksLanded, wipeouts, playerRides;
             public long totalEarned;
+            public int parkXp;
         }
 
         [SerializeField] UpgradeShop shop;
@@ -68,6 +69,7 @@ namespace SurfPool
                 wipeouts = GameStats.Wipeouts,
                 playerRides = GameStats.PlayerRides,
                 totalEarned = GameStats.TotalEarned,
+                parkXp = ParkLevel.Instance != null ? ParkLevel.Instance.Xp : 0,
             };
             File.WriteAllText(SavePath, JsonUtility.ToJson(data, true));
         }
@@ -86,6 +88,8 @@ namespace SurfPool
             }
             if (data == null) return;
 
+            // Saves from before park levels (v2) get XP for the surfers they already served.
+            if (ParkLevel.Instance != null) ParkLevel.Instance.Restore(data.version < 3 ? data.surfersServed * 15 : data.parkXp);
             // Upgrades rebuild the fair and rental prices (and pool sizes); only the player's base price is saved.
             shop.RestoreOwned(data.upgrades);
             pricing.RestorePrice(data.ticketPrice);

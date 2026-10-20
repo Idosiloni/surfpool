@@ -20,6 +20,7 @@ namespace SurfPool
         bool shown;
         int shownMoney = int.MinValue;
         int shownOwned = -1;
+        int shownLevel = -1;
 
         void OnEnable()
         {
@@ -52,10 +53,12 @@ namespace SurfPool
             if (!shown) return;
 
             int cash = Wallet.Instance != null ? Wallet.Instance.Money : 0;
-            if (cash != shownMoney || shop.OwnedCount != shownOwned)
+            int level = ParkLevel.Instance != null ? ParkLevel.Instance.Level : 1;
+            if (cash != shownMoney || shop.OwnedCount != shownOwned || level != shownLevel)
             {
                 shownMoney = cash;
                 shownOwned = shop.OwnedCount;
+                shownLevel = level;
                 money.text = MoneyText.Format(cash);
                 BuildCards();
             }
@@ -105,7 +108,14 @@ namespace SurfPool
                 description.AddToClassList("card-desc");
                 card.Add(description);
 
-                if (!unlocked)
+                bool levelOk = shop.LevelMet(upgrade);
+                if (!levelOk && !upgrade.owned)
+                {
+                    var requires = new Label($"Unlocks at park level {upgrade.level}");
+                    requires.AddToClassList("card-requires");
+                    card.Add(requires);
+                }
+                else if (!unlocked)
                 {
                     var requires = new Label("Needs " + shop.TitleOf(upgrade.requires));
                     requires.AddToClassList("card-requires");
@@ -121,6 +131,12 @@ namespace SurfPool
                     buy.AddToClassList("buy-button--owned");
                     buy.SetEnabled(false);
                 }
+                else if (!levelOk)
+                {
+                    buy.text = $"Park level {upgrade.level}";
+                    buy.AddToClassList("buy-button--blocked");
+                    buy.SetEnabled(false);
+                }
                 else if (!unlocked)
                 {
                     buy.text = "Locked";
@@ -129,7 +145,7 @@ namespace SurfPool
                 }
                 else if (cash < upgrade.cost)
                 {
-                    buy.text = $"Need ${upgrade.cost - cash} more";
+                    buy.text = $"Need {MoneyText.Format(upgrade.cost - cash)} more";
                     buy.AddToClassList("buy-button--blocked");
                     buy.SetEnabled(false);
                 }

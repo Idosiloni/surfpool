@@ -15,6 +15,8 @@ namespace SurfPool
         public string title;
         [TextArea] public string description;
         public int cost;
+        [Tooltip("Park level needed before it can be bought.")]
+        public int level = 1;
         [Tooltip("Id of an upgrade that must be bought first. Empty = none.")]
         public string requires;
         [NonSerialized] public bool owned;
@@ -31,77 +33,77 @@ namespace SurfPool
         [SerializeField] List<Upgrade> upgrades = new()
         {
             // Pools: the main pool grows first, then whole new pools.
-            new Upgrade { id = "pool_expand_1", category = UpgradeCategory.Pools, title = "Pool Expansion I", cost = 400,
+            new Upgrade { id = "pool_expand_1", category = UpgradeCategory.Pools, title = "Pool Expansion I", cost = 400, level = 3,
                 description = "Dig the main pool out to 50 x 19 m. Room for 2 more surfers, and big enough for Intermediate waves." },
-            new Upgrade { id = "pool_expand_2", category = UpgradeCategory.Pools, title = "Pool Expansion II", cost = 3000, requires = "intermediate_waves",
+            new Upgrade { id = "pool_expand_2", category = UpgradeCategory.Pools, title = "Pool Expansion II", cost = 3000, level = 10, requires = "intermediate_waves",
                 description = "The main pool's full size: 60 x 24 m. Room for 2 more surfers, and big enough for Pro waves." },
-            new Upgrade { id = "pool_reef", category = UpgradeCategory.Pools, title = "Build the Reef Pool", cost = 18000, requires = "pool_expand_2",
+            new Upgrade { id = "pool_reef", category = UpgradeCategory.Pools, title = "Build the Reef Pool", cost = 18000, level = 15, requires = "pool_expand_2",
                 description = "A second pool north of the main one. Longer peeling waves. Room for 4 more surfers, and every session there costs 2.5x." },
-            new Upgrade { id = "pool_lagoon", category = UpgradeCategory.Pools, title = "Build the Big Wave Lagoon", cost = 80000, requires = "pool_reef",
+            new Upgrade { id = "pool_lagoon", category = UpgradeCategory.Pools, title = "Build the Big Wave Lagoon", cost = 80000, level = 20, requires = "pool_reef",
                 description = "The biggest, deepest pool in the park. Huge waves. Room for 5 more surfers, and every session there costs 5x." },
 
             // Waves
-            new Upgrade { id = "faster_machine", category = UpgradeCategory.Waves, title = "Turbo Pump", cost = 75,
+            new Upgrade { id = "faster_machine", category = UpgradeCategory.Waves, title = "Turbo Pump", cost = 75, level = 1,
                 description = "The wave machine recharges twice as fast (4 s -> 2 s)." },
-            new Upgrade { id = "auto_waves", category = UpgradeCategory.Waves, title = "Auto Wave Timer", cost = 200,
+            new Upgrade { id = "auto_waves", category = UpgradeCategory.Waves, title = "Auto Wave Timer", cost = 200, level = 2,
                 description = "The machine sends the selected wave by itself every 12 seconds. A yellow light turns on." },
-            new Upgrade { id = "intermediate_waves", category = UpgradeCategory.Waves, title = "Intermediate Wave Program", cost = 600, requires = "pool_expand_1",
+            new Upgrade { id = "intermediate_waves", category = UpgradeCategory.Waves, title = "Intermediate Wave Program", cost = 600, level = 3, requires = "pool_expand_1",
                 description = "Unlocks bigger peeling Intermediate waves. Intermediate surfers start coming, and they pay 2.5x the base price." },
-            new Upgrade { id = "wave_sets", category = UpgradeCategory.Waves, title = "Wave Sets", cost = 900, requires = "faster_machine",
+            new Upgrade { id = "wave_sets", category = UpgradeCategory.Waves, title = "Wave Sets", cost = 900, level = 5, requires = "faster_machine",
                 description = "Each press sends a set of 2 waves, 2.5 s apart. More rides, less waiting." },
-            new Upgrade { id = "smart_auto", category = UpgradeCategory.Waves, title = "Smart Wave Timer", cost = 2000, requires = "auto_waves",
+            new Upgrade { id = "smart_auto", category = UpgradeCategory.Waves, title = "Smart Wave Timer", cost = 2000, level = 8, requires = "auto_waves",
                 description = "Auto waves pick the wave type most waiting surfers want." },
-            new Upgrade { id = "wave_shaper", category = UpgradeCategory.Waves, title = "Reef Shaper", cost = 2500, requires = "intermediate_waves",
+            new Upgrade { id = "wave_shaper", category = UpgradeCategory.Waves, title = "Reef Shaper", cost = 2500, level = 8, requires = "intermediate_waves",
                 description = "Unlocks Lefts and Rights. They peel longer than a peak (longer rides, more tricks), and surfers pay $5 more for them. Regular-foot surfers love rights, goofy-foot surfers love lefts." },
-            new Upgrade { id = "pro_waves", category = UpgradeCategory.Waves, title = "Pro Wave Program", cost = 4500, requires = "pool_expand_2",
+            new Upgrade { id = "pro_waves", category = UpgradeCategory.Waves, title = "Pro Wave Program", cost = 4500, level = 11, requires = "pool_expand_2",
                 description = "Unlocks steep, fast, barreling Pro waves. Pro surfers start coming: they pay 6x the base price and do tricks." },
-            new Upgrade { id = "turbo_2", category = UpgradeCategory.Waves, title = "Turbo Pump II", cost = 4000, requires = "faster_machine",
+            new Upgrade { id = "turbo_2", category = UpgradeCategory.Waves, title = "Turbo Pump II", cost = 4000, level = 12, requires = "faster_machine",
                 description = "Recharge time drops to 1 s. Auto waves every 8 s." },
 
             // Park
-            new Upgrade { id = "more_surfers", category = UpgradeCategory.Park, title = "Bigger Lineup", cost = 50,
+            new Upgrade { id = "more_surfers", category = UpgradeCategory.Park, title = "Bigger Lineup", cost = 50, level = 1,
                 description = "Two more surfers can be in the park at once. Adds a bench by the pool." },
-            new Upgrade { id = "billboard", category = UpgradeCategory.Park, title = "Roadside Billboard", cost = 150,
+            new Upgrade { id = "billboard", category = UpgradeCategory.Park, title = "Roadside Billboard", cost = 150, level = 2,
                 description = "Surfers arrive 30% more often." },
-            new Upgrade { id = "huge_lineup", category = UpgradeCategory.Park, title = "Huge Lineup", cost = 1200, requires = "more_surfers",
+            new Upgrade { id = "huge_lineup", category = UpgradeCategory.Park, title = "Huge Lineup", cost = 1200, level = 6, requires = "more_surfers",
                 description = "Three more surfers can be in the park at once." },
-            new Upgrade { id = "social_ads", category = UpgradeCategory.Park, title = "Social Media Ads", cost = 1500, requires = "billboard",
+            new Upgrade { id = "social_ads", category = UpgradeCategory.Park, title = "Social Media Ads", cost = 1500, level = 7, requires = "billboard",
                 description = "Surfers arrive 40% more often." },
-            new Upgrade { id = "tiki_garden", category = UpgradeCategory.Park, title = "Tiki Garden", cost = 2000,
+            new Upgrade { id = "tiki_garden", category = UpgradeCategory.Park, title = "Tiki Garden", cost = 2000, level = 8,
                 description = "Palms, tiki torches and flower beds all around the pools. A prettier park: surfers will pay $10 more." },
-            new Upgrade { id = "solar_panels", category = UpgradeCategory.Park, title = "Solar Panels", cost = 1500,
+            new Upgrade { id = "solar_panels", category = UpgradeCategory.Park, title = "Solar Panels", cost = 1500, level = 4,
                 description = "Solar panels on every wave machine roof. Waves use half the electricity." },
-            new Upgrade { id = "water_recycling", category = UpgradeCategory.Park, title = "Water Recycling", cost = 5000, requires = "solar_panels",
+            new Upgrade { id = "water_recycling", category = UpgradeCategory.Park, title = "Water Recycling", cost = 5000, level = 12, requires = "solar_panels",
                 description = "Filter tanks next to every wave machine clean and reuse the pool water. The daily water bill is halved." },
-            new Upgrade { id = "surf_shop", category = UpgradeCategory.Park, title = "Surf Shop", cost = 3500,
+            new Upgrade { id = "surf_shop", category = UpgradeCategory.Park, title = "Surf Shop", cost = 3500, level = 10,
                 description = "A merch kiosk by the entrance. Every happy surfer buys $15 of wax, stickers and tees on the way out." },
-            new Upgrade { id = "vip_sessions", category = UpgradeCategory.Park, title = "VIP Sessions", cost = 8000, requires = "intermediate_waves",
+            new Upgrade { id = "vip_sessions", category = UpgradeCategory.Park, title = "VIP Sessions", cost = 8000, level = 14, requires = "intermediate_waves",
                 description = "Fancy towels, smoothies, priority lineup. Surfers will pay $25 more (times their skill and pool)." },
-            new Upgrade { id = "grandstand", category = UpgradeCategory.Park, title = "Grandstand", cost = 22000, requires = "pro_waves",
+            new Upgrade { id = "grandstand", category = UpgradeCategory.Park, title = "Grandstand", cost = 22000, level = 17, requires = "pro_waves",
                 description = "Big bleachers by the main pool. Spectators pay $400 every minute to watch, and the buzz brings surfers 30% more often." },
-            new Upgrade { id = "season_passes", category = UpgradeCategory.Park, title = "Season Passes", cost = 35000, requires = "surf_shop",
+            new Upgrade { id = "season_passes", category = UpgradeCategory.Park, title = "Season Passes", cost = 35000, level = 18, requires = "surf_shop",
                 description = "Locals buy yearly passes: $1,000 every minute, even while you sleep." },
 
             // Rentals
-            new Upgrade { id = "rental_stand", category = UpgradeCategory.Rentals, title = "Board Rental Stand", cost = 100,
+            new Upgrade { id = "rental_stand", category = UpgradeCategory.Rentals, title = "Board Rental Stand", cost = 100, level = 1,
                 description = "Opens a rental counter. Surfers without boards start coming. Hand them a board from the rack ($10), then carry returned boards from the bin back to the rack." },
-            new Upgrade { id = "more_boards", category = UpgradeCategory.Rentals, title = "More Rental Boards", cost = 300, requires = "rental_stand",
+            new Upgrade { id = "more_boards", category = UpgradeCategory.Rentals, title = "More Rental Boards", cost = 300, level = 2, requires = "rental_stand",
                 description = "Four more boards and slots on the rental rack." },
-            new Upgrade { id = "premium_boards", category = UpgradeCategory.Rentals, title = "Premium Boards", cost = 400, requires = "rental_stand",
+            new Upgrade { id = "premium_boards", category = UpgradeCategory.Rentals, title = "Premium Boards", cost = 400, level = 4, requires = "rental_stand",
                 description = "Nicer boards: rentals cost $10 more." },
 
             // Staff
-            new Upgrade { id = "lifeguard", category = UpgradeCategory.Staff, title = "Hire Lifeguard", cost = 250,
+            new Upgrade { id = "lifeguard", category = UpgradeCategory.Staff, title = "Hire Lifeguard", cost = 250, level = 2,
                 description = "Wage $3/min. Surfers wait 50% longer for waves and wipeouts don't ruin their mood." },
-            new Upgrade { id = "desk_clerk", category = UpgradeCategory.Staff, title = "Hire Desk Clerk", cost = 500,
+            new Upgrade { id = "desk_clerk", category = UpgradeCategory.Staff, title = "Hire Desk Clerk", cost = 500, level = 3,
                 description = "Wage $6/min. Sells sessions at the desk for you (at your prices)." },
-            new Upgrade { id = "board_runner", category = UpgradeCategory.Staff, title = "Hire Board Runner", cost = 600, requires = "rental_stand",
+            new Upgrade { id = "board_runner", category = UpgradeCategory.Staff, title = "Hire Board Runner", cost = 600, level = 4, requires = "rental_stand",
                 description = "Wage $6/min. Carries returned boards from the bin back to the rack for you." },
-            new Upgrade { id = "rental_clerk", category = UpgradeCategory.Staff, title = "Hire Rental Clerk", cost = 700, requires = "rental_stand",
+            new Upgrade { id = "rental_clerk", category = UpgradeCategory.Staff, title = "Hire Rental Clerk", cost = 700, level = 5, requires = "rental_stand",
                 description = "Wage $8/min. Hands rental boards to renters for you." },
-            new Upgrade { id = "surf_coach", category = UpgradeCategory.Staff, title = "Hire Surf Coach", cost = 2500,
+            new Upgrade { id = "surf_coach", category = UpgradeCategory.Staff, title = "Hire Surf Coach", cost = 2500, level = 9,
                 description = "Wage $15/min. Gives beginners lessons: they wipe out far less, and each beginner session earns a $25 lesson fee." },
-            new Upgrade { id = "wave_operator", category = UpgradeCategory.Staff, title = "Hire Wave Operator", cost = 6000,
+            new Upgrade { id = "wave_operator", category = UpgradeCategory.Staff, title = "Hire Wave Operator", cost = 6000, level = 13,
                 description = "Wage $25/min. Watches every pool and sends exactly the wave the waiting surfers want. Full automation!" },
         };
 
@@ -181,6 +183,12 @@ namespace SurfPool
         {
             var upgrade = upgrades.Find(u => u.id == id);
             if (upgrade == null || upgrade.owned) return false;
+            if (!LevelMet(upgrade))
+            {
+                Message = $"Reach park level {upgrade.level} first.";
+                Sfx.Play(Sound.Error);
+                return false;
+            }
             if (!RequirementMet(upgrade))
             {
                 Message = $"Buy {TitleOf(upgrade.requires)} first.";
@@ -196,11 +204,17 @@ namespace SurfPool
             upgrade.owned = true;
             Apply(upgrade.id);
             Message = $"Bought {upgrade.title}!";
+            ParkLevel.Add(ParkLevel.XpUpgrade);
             Sfx.Play(upgrade.category == UpgradeCategory.Pools ? Sound.Mission : Sound.Buy);
             if (upgrade.category == UpgradeCategory.Pools) Sfx.Duck();
             Notifications.Post($"Bought {upgrade.title}!");
             return true;
         }
+
+        public bool LevelMet(Upgrade upgrade) => ParkLevel.Instance == null || ParkLevel.Instance.Level >= upgrade.level;
+
+        /// <summary>Upgrades that open up at exactly this park level (for the level-up banner).</summary>
+        public List<string> UnlockedAt(int level) => upgrades.FindAll(u => u.level == level).ConvertAll(u => u.title);
 
         public bool RequirementMet(Upgrade upgrade) => string.IsNullOrEmpty(upgrade.requires) || IsOwned(upgrade.requires);
 

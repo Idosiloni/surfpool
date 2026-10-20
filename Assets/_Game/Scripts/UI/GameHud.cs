@@ -43,8 +43,9 @@ namespace SurfPool
         readonly List<Surfer> staleBubbles = new();
         Wallet wallet;
         UpgradeShop shop;
-        VisualElement goalStrip, goalFill;
-        Label incomeRate, goalName, goalAmount;
+        VisualElement goalStrip, goalFill, xpFill;
+        Label incomeRate, goalName, goalAmount, levelLabel, xpLabel;
+        ParkLevel subscribedLevel;
         float shownMoney;
         readonly Queue<(float time, int amount)> recentIncome = new();
         int incomeLastMinute;
@@ -81,6 +82,9 @@ namespace SurfPool
             goalFill = root.Q("goalFill");
             goalName = root.Q<Label>("goalName");
             goalAmount = root.Q<Label>("goalAmount");
+            levelLabel = root.Q<Label>("levelLabel");
+            xpLabel = root.Q<Label>("xpLabel");
+            xpFill = root.Q("xpFill");
 
             missionCard = root.Q("missionCard");
             missionObjectives = root.Q("missionObjectives");
@@ -105,6 +109,8 @@ namespace SurfPool
             wallet = null;
             if (subscribedMissions != null) subscribedMissions.Completed -= ShowMissionBanner;
             subscribedMissions = null;
+            if (subscribedLevel != null) subscribedLevel.LeveledUp -= ShowLevelUp;
+            subscribedLevel = null;
             bubbles.Clear();
         }
 
@@ -119,6 +125,7 @@ namespace SurfPool
             }
 
             UpdateMoneyAndRating();
+            UpdateLevel();
             UpdateGoal();
             UpdateWavePanel();
             UpdateStats();
@@ -136,6 +143,31 @@ namespace SurfPool
                 SetText(hint, "WASD move   ·   Shift sprint   ·   Space jump   ·   E use   ·   Esc free mouse");
                 hint.EnableInClassList("hint--hidden", Time.timeSinceLevelLoad > hintSeconds);
             }
+        }
+
+        void UpdateLevel()
+        {
+            var park = ParkLevel.Instance;
+            if (park == null) return;
+            if (subscribedLevel != park)
+            {
+                if (subscribedLevel != null) subscribedLevel.LeveledUp -= ShowLevelUp;
+                park.LeveledUp += ShowLevelUp;
+                subscribedLevel = park;
+            }
+            SetText(levelLabel, park.Level.ToString());
+            SetText(xpLabel, $"{park.XpToNext:#,0} XP to level {park.Level + 1}");
+            xpFill.style.width = Length.Percent(park.Progress * 100f);
+        }
+
+        void ShowLevelUp(int level)
+        {
+            if (shop == null) shop = FindAnyObjectByType<UpgradeShop>();
+            var unlocked = shop != null ? shop.UnlockedAt(level) : new List<string>();
+            ShowBanner($"PARK LEVEL {level}!" + (unlocked.Count > 0 ? "\nNew: " + string.Join(", ", unlocked) : ""));
+            Notifications.Post(unlocked.Count > 0 ? $"Park level {level}: unlocked {string.Join(", ", unlocked)}" : $"Park level {level}!");
+            Sfx.Play(Sound.Mission);
+            Sfx.Duck();
         }
 
         /// <summary>Earnings from the park itself (not one-off mission rewards) feed the "+$/min" readout.</summary>
@@ -156,7 +188,7 @@ namespace SurfPool
             if (shop == null || wallet == null) return;
             Upgrade next = null;
             foreach (var upgrade in shop.Upgrades)
-                if (!upgrade.owned && shop.RequirementMet(upgrade) && (next == null || upgrade.cost < next.cost))
+                if (!upgrade.owned && shop.RequirementMet(upgrade) && shop.LevelMet(upgrade) && (next == null || upgrade.cost < next.cost))
                     next = upgrade;
             goalStrip.EnableInClassList("hidden", next == null || shop.IsOpen);
             if (next == null) return;
@@ -383,9 +415,12 @@ namespace SurfPool
             }
         }
 
-        void ShowMissionBanner(Mission mission)
+        void ShowMissionBanner(Mission mission) =>
+            ShowBanner("MISSION COMPLETE!\n" + mission.title + (mission.reward > 0 ? "   +" + MoneyText.Format(mission.reward) : ""));
+
+        void ShowBanner(string text)
         {
-            missionBanner.text = "MISSION COMPLETE!\n" + mission.title + (mission.reward > 0 ? "   +" + MoneyText.Format(mission.reward) : "");
+            missionBanner.text = text;
             missionBanner.RemoveFromClassList("mission-banner--leaving");
             missionBanner.RemoveFromClassList("hidden");
             missionBanner.schedule.Execute(() => missionBanner.AddToClassList("mission-banner--leaving")).StartingIn(2500);

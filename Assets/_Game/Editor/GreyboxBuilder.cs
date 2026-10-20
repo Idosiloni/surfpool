@@ -341,6 +341,7 @@ namespace SurfPool.EditorTools
             operatorGuy.SetActive(false);
             game.AddComponent<PassiveIncome>();
             game.AddComponent<OperatingCosts>();
+            game.AddComponent<ParkLevel>();
 
             Set(shop, "lifeguard", tower.gameObject);
             Set(shop, "boardRunner", runner);

@@ -216,6 +216,7 @@ namespace SurfPool
             Wallet.Instance.Add(bonus, "sponsor bonus");
             if (ParkReputation.Instance != null) ParkReputation.Instance.Record(1f);
             GameStats.PlayerRides++;
+            ParkLevel.Add(ParkLevel.XpPlayerRide);
             Sfx.Play(Sound.Cheer, transform.position);
             Notifications.Post($"Great ride! Score {score} ({tricks} airs). Sponsors paid ${bonus}.");
         }

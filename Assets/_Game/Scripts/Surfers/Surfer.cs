@@ -592,6 +592,7 @@ namespace SurfPool
             if (Skill == WaveLevel.Beginner && ParkEffects.LessonFee > 0) Wallet.Instance.Add(ParkEffects.LessonFee, "surf lessons");
             if (happiness > 0.5f && ParkEffects.MerchPerHappySurfer > 0) Wallet.Instance.Add(ParkEffects.MerchPerHappySurfer, "surf shop");
             spawner.ReportServed(happiness);
+            if (happiness > 0.5f) ParkLevel.Add(ParkLevel.XpForSurfer(Skill));
             GameStats.SurfersServed++;
             string line = happiness > 0.75f ? HappyShouts[Random.Range(0, HappyShouts.Length)]
                 : happiness > 0.5f ? "Pretty fun!"
