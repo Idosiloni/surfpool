@@ -9,7 +9,8 @@ namespace SurfPool
     /// The party for big moments: a park level-up, or a pool opening or growing. Fireworks over the pool, confetti in
     /// front of you, the whole crowd cheering, a fanfare, and a big banner on the HUD (<see cref="Shown"/>).
     /// Only real moments celebrate: loading a save sets the level and upgrades without firing these events.
-    /// Several moments at once (a purchase that also levels you up) queue up one after another.
+    /// Several moments at once (a purchase that also levels you up) queue up one after another, and they wait while a
+    /// menu is open (buying a pool happens at the upgrade computer).
     /// </summary>
     public class Celebration : MonoBehaviour
     {
@@ -97,7 +98,10 @@ namespace SurfPool
                 });
                 pendingLevel = 0;
             }
-            if (queue.Count > 0 && Time.unscaledTime >= busyUntil)
+            // Wait until the player is back in the world: a purchase at the upgrade computer (or a level-up while any
+            // menu is open) celebrates the moment the menu closes, not hidden behind it.
+            bool menuOpen = InputBlocker.Blocked || Time.timeScale == 0f;
+            if (queue.Count > 0 && Time.unscaledTime >= busyUntil && !menuOpen)
             {
                 var moment = queue.Dequeue();
                 busyUntil = Time.unscaledTime + bannerTime;
