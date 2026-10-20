@@ -22,10 +22,11 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
 - [ ] **Step 4 — Grow:** side businesses and depth, one at a time (order chosen 2026-10-20):
   - [x] Board rentals (rental stand upgrade, rack → renter, return bin → rack restock chore)
   - [x] **More waves:** wave menu (Beginner / Intermediate / Pro), surfer skill levels, wipeouts, wave upgrades
-  - [ ] **More upgrades:** upgrade tree, bigger pool, more lineup spots, staff that automate chores
+  - [x] **More upgrades:** upgrade tree with tabs, staff that automate chores (with wages), park rating, more capacity
   - [ ] **Better UI:** real HUD, upgrade computer screen with tabs/icons, wave control panel (UI Toolkit)
   - [ ] **Better world:** low-poly models (Blender + CC0 packs), stylized water with foam, lighting, sky
-  - [ ] Later: snack bar, surf shop, lessons, cleaning, day/night, reputation
+  - [ ] **Player surfing:** grab a board, paddle out and ride waves yourself in first person (after Better world)
+  - [ ] Later: snack bar, surf shop, lessons, cleaning, day/night, bigger pool
 
 ## Ideas parking lot
 - Surfer wipeouts (funny ragdolls)

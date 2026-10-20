@@ -38,13 +38,28 @@ namespace SurfPool
             if (carry == null) return;
             if (carry.HasBoard)
             {
-                if (Count < capacity && carry.HandOverBoard()) Count++;
+                if (Count < capacity && carry.HandOverBoard()) TryPutBoard();
             }
             else if (Count > 0 && carry.PickUpBoard())
             {
-                Count--;
+                TryTakeBoard();
             }
+        }
+
+        public bool TryTakeBoard()
+        {
+            if (Count == 0) return false;
+            Count--;
             Refresh();
+            return true;
+        }
+
+        public bool TryPutBoard()
+        {
+            if (Count >= capacity) return false;
+            Count++;
+            Refresh();
+            return true;
         }
 
         /// <summary>Upgrade: more slots, filled with new boards.</summary>

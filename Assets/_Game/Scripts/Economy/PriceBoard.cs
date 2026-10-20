@@ -19,7 +19,11 @@ namespace SurfPool
         [SerializeField] int rentalPrice = 10;
 
         public int Price => price;
-        public int RentalPrice => rentalPrice;
+        public int RentalPrice
+        {
+            get => rentalPrice;
+            set => rentalPrice = Mathf.Max(0, value);
+        }
 
         public int FairPrice
         {

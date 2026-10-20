@@ -157,6 +157,8 @@ namespace SurfPool.EditorTools
             var game = new GameObject("Game");
             game.AddComponent<Wallet>();
             var pricing = game.AddComponent<PriceBoard>();
+            game.AddComponent<ParkReputation>();
+            var payroll = game.AddComponent<StaffPayroll>();
 
             // Ticket desk on the south deck. The player stands on the pool side, customers on the far side.
             var desk = new GameObject("Ticket Desk").transform;
@@ -270,13 +272,69 @@ namespace SurfPool.EditorTools
             Set(register, "spawner", spawner);
 
             Set(shop, "machine", machine);
-            Set(shop, "water", water);
             Set(shop, "spawner", spawner);
             Set(shop, "pricing", pricing);
             Set(shop, "autoWaveLight", autoLight);
             Set(shop, "extraBench", bench);
             Set(shop, "rentalStand", stand.gameObject);
             Set(shop, "rentalRack", rack);
+
+            // Staff, hidden until hired on the upgrade computer.
+            var staffMat = Mat("StaffShirt", new Color(0.2f, 0.65f, 0.4f), 0.3f);
+            var lifeguardMat = Mat("LifeguardShirt", new Color(0.95f, 0.15f, 0.15f), 0.3f);
+            var skinMat = Mat("Skin", new Color(0.85f, 0.65f, 0.5f), 0.3f);
+
+            var deskClerk = Person("Desk Clerk", new Vector3(21.6f, 0, -21.4f), 180f, staffMat, skinMat);
+            var deskClerkJob = deskClerk.AddComponent<DeskClerk>();
+            Set(deskClerkJob, "spawner", spawner);
+            Set(deskClerkJob, "register", register);
+            Staff(deskClerk, "Desk Clerk", 6);
+
+            var rentalClerk = Person("Rental Clerk", new Vector3(29.2f, 0, -21.4f), 180f, staffMat, skinMat);
+            var rentalClerkJob = rentalClerk.AddComponent<RentalClerk>();
+            Set(rentalClerkJob, "spawner", spawner);
+            Set(rentalClerkJob, "rack", rack);
+            Staff(rentalClerk, "Rental Clerk", 5);
+
+            var runnerRoute = new GameObject("Board Runner Route").transform;
+            var runnerPoints = new Object[]
+            {
+                Point("Rack Side", runnerRoute, new Vector3(31.9f, 0, -21.0f)),
+                Point("South Of Rack", runnerRoute, new Vector3(32.0f, 0, -22.3f)),
+                Point("East Corner", runnerRoute, new Vector3(33.8f, 0, -22.3f)),
+                Point("Bin Side", runnerRoute, new Vector3(34.5f, 0, -23.7f)),
+            };
+            var runner = Person("Board Runner", new Vector3(31.9f, 0, -21.0f), 90f, staffMat, skinMat);
+            var carried = Box("Carried Board", runner.transform, runner.transform.position + new Vector3(0, 0.9f, 0.4f), new Vector3(0.06f, 0.45f, 1.8f), rentalBoardMat);
+            Object.DestroyImmediate(carried.GetComponent<Collider>());
+            carried.transform.localPosition = new Vector3(0.35f, 0.9f, 0);
+            carried.transform.localRotation = Quaternion.identity;
+            var runnerJob = runner.AddComponent<BoardRunner>();
+            Set(runnerJob, "rack", rack);
+            Set(runnerJob, "bin", bin);
+            SetArray(runnerJob, "rackToBin", runnerPoints);
+            Set(runnerJob, "carriedBoard", carried);
+            Staff(runner, "Board Runner", 4);
+
+            var tower = new GameObject("Lifeguard Tower").transform;
+            tower.position = new Vector3(30, 0, halfW + 1.8f);
+            for (int i = 0; i < 4; i++)
+            {
+                var leg = new Vector3(i % 2 == 0 ? -0.5f : 0.5f, 0.9f, i < 2 ? -0.5f : 0.5f);
+                Box($"Leg {i + 1}", tower, tower.position + leg, new Vector3(0.1f, 1.8f, 0.1f), deskMat);
+            }
+            Box("Platform", tower, tower.position + new Vector3(0, 1.85f, 0), new Vector3(1.3f, 0.1f, 1.3f), deskMat);
+            var guard = Person("Lifeguard", tower.position + new Vector3(0, 1.9f, 0), 180f, lifeguardMat, skinMat);
+            guard.transform.SetParent(tower, true);
+            tower.gameObject.AddComponent<Lifeguard>();
+            Staff(tower.gameObject, "Lifeguard", 3);
+
+            Set(shop, "lifeguard", tower.gameObject);
+            Set(shop, "boardRunner", runner);
+            Set(shop, "rentalClerk", rentalClerk);
+            Set(shop, "deskClerk", deskClerk);
+            Set(hud, "payroll", payroll);
+            foreach (var hidden in new[] { deskClerk, rentalClerk, runner, tower.gameObject }) hidden.SetActive(false);
 
             Set(hud, "pricing", pricing);
             Set(hud, "spawner", spawner);
@@ -357,6 +415,37 @@ namespace SurfPool.EditorTools
             prop.arraySize = values.Length;
             for (int i = 0; i < values.Length; i++)
                 prop.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>Placeholder staff character: capsule body in a shirt color and a sphere head, no colliders.</summary>
+        static GameObject Person(string name, Vector3 position, float yaw, Material shirt, Material skin)
+        {
+            var root = new GameObject(name);
+            root.transform.SetPositionAndRotation(position, Quaternion.Euler(0, yaw, 0));
+            var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            body.name = "Body";
+            Object.DestroyImmediate(body.GetComponent<Collider>());
+            body.transform.SetParent(root.transform, false);
+            body.transform.localPosition = new Vector3(0, 0.8f, 0);
+            body.transform.localScale = new Vector3(0.5f, 0.8f, 0.5f);
+            body.GetComponent<MeshRenderer>().sharedMaterial = shirt;
+            var head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            head.name = "Head";
+            Object.DestroyImmediate(head.GetComponent<Collider>());
+            head.transform.SetParent(root.transform, false);
+            head.transform.localPosition = new Vector3(0, 1.75f, 0);
+            head.transform.localScale = Vector3.one * 0.3f;
+            head.GetComponent<MeshRenderer>().sharedMaterial = skin;
+            return root;
+        }
+
+        static void Staff(GameObject go, string title, int wage)
+        {
+            var staff = go.AddComponent<StaffMember>();
+            var so = new SerializedObject(staff);
+            so.FindProperty("jobTitle").stringValue = title;
+            so.FindProperty("wagePerMinute").intValue = wage;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

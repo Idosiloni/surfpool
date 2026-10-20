@@ -144,6 +144,13 @@ namespace SurfPool
         {
             var carry = PlayerCarry.Instance;
             if (!WaitingForBoard || carry == null || !carry.HandOverBoard()) return;
+            GiveBoard();
+        }
+
+        /// <summary>This renter gets a board (from the player or the rental clerk) and pays for it.</summary>
+        public void GiveBoard()
+        {
+            if (!WaitingForBoard) return;
             Wallet.Instance.Add(spawner.Pricing.RentalPrice, "board rental");
             RecordMood(patience);
             hasRentalBoard = true;
@@ -223,7 +230,7 @@ namespace SurfPool
                 case State.WaitingForWave:
                     SetPose(Pose.Paddle);
                     Float(transform.position, Vector3.right);
-                    if (DrainPatience(wavePatience)) LeaveAngry("Where are the waves?!");
+                    if (DrainPatience(wavePatience * ParkEffects.WavePatienceMultiplier)) LeaveAngry("Where are the waves?!");
                     else TryCatchWave();
                     break;
                 case State.Riding:
@@ -419,7 +426,7 @@ namespace SurfPool
             state = State.Wipeout;
             wipeoutStart = Time.time;
             tumbleAxis = Random.onUnitSphere;
-            RecordMood(0.3f);
+            RecordMood(ParkEffects.WipeoutMood);
             Shout("WIPEOUT!", 2.5f);
         }
 
@@ -454,7 +461,7 @@ namespace SurfPool
             float happiness = moodSamples == 0 ? 1f : moodTotal / moodSamples;
             int tip = happiness > 0.5f ? Mathf.RoundToInt(paidPrice * maxTipShare * happiness) + tricksLanded * tipPerTrick : 0;
             if (tip > 0) Wallet.Instance.Add(tip, "tip");
-            spawner.ReportServed();
+            spawner.ReportServed(happiness);
             string line = happiness > 0.75f ? HappyShouts[Random.Range(0, HappyShouts.Length)]
                 : happiness > 0.5f ? "Pretty fun!"
                 : "Meh. Wrong waves for me.";

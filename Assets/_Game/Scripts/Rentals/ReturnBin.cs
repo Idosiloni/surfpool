@@ -27,11 +27,15 @@ namespace SurfPool
         public void Interact()
         {
             var carry = PlayerCarry.Instance;
-            if (Count > 0 && carry != null && carry.PickUpBoard())
-            {
-                Count--;
-                Refresh();
-            }
+            if (Count > 0 && carry != null && carry.PickUpBoard()) TryTakeBoard();
+        }
+
+        public bool TryTakeBoard()
+        {
+            if (Count == 0) return false;
+            Count--;
+            Refresh();
+            return true;
         }
 
         /// <summary>A renter drops a board in.</summary>

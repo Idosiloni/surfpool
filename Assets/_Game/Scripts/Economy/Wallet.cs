@@ -44,6 +44,14 @@ namespace SurfPool
             return true;
         }
 
+        /// <summary>Takes money even if it goes below zero (bills like staff wages).</summary>
+        public void Charge(int amount, string reason = null)
+        {
+            if (amount <= 0) return;
+            Money -= amount;
+            Changed?.Invoke(-amount, reason);
+        }
+
         /// <summary>Two quick high notes, generated in code until we have real sound effects.</summary>
         static AudioClip BuildChime()
         {

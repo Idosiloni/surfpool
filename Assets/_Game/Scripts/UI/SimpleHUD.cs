@@ -13,6 +13,7 @@ namespace SurfPool
         [SerializeField] PriceBoard pricing;
         [SerializeField] SurferSpawner spawner;
         [SerializeField] WaveMachine machine;
+        [SerializeField] StaffPayroll payroll;
         [SerializeField] float labelDistance = 40f;
 
         static readonly Color Green = new(0.3f, 1f, 0.4f);
@@ -62,6 +63,7 @@ namespace SurfPool
 
             if (Wallet.Instance != null)
             {
+                moneyStyle.normal.textColor = Wallet.Instance.Money < 0 ? Red : Green;
                 GUI.Label(new Rect(20, 16, 300, 40), "$ " + Wallet.Instance.Money, moneyStyle);
                 float age = Time.time - popupTime;
                 if (age < 1.5f)
@@ -79,7 +81,12 @@ namespace SurfPool
             if (pricing != null) stats += $"Ticket price: ${pricing.Price}";
             if (pricing != null && spawner != null && spawner.RenterChance > 0f) stats += $"     Board rental: ${pricing.RentalPrice}";
             if (spawner != null) stats += $"     Happy surfers: {spawner.Served}     Lost customers: {spawner.Lost}";
-            GUI.Label(new Rect(20, 84, 700, 26), stats, statsStyle);
+            GUI.Label(new Rect(20, 84, 900, 26), stats, statsStyle);
+
+            string park = "";
+            if (ParkReputation.Instance != null) park += $"Park rating: {ParkReputation.Instance.Stars:0.0} / 5";
+            if (payroll != null && payroll.WagesPerMinute > 0) park += $"     Staff wages: ${payroll.WagesPerMinute}/min";
+            GUI.Label(new Rect(20, 108, 900, 26), park, statsStyle);
 
             string hint = player != null && !player.CursorLocked
                 ? "Click to play"

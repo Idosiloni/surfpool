@@ -84,6 +84,22 @@ namespace SurfPool
             set => renterChance = Mathf.Clamp01(value);
         }
 
+        /// <summary>Multiplies the time between arrivals. Marketing upgrades lower it.</summary>
+        public float SpawnDelayMultiplier { get; set; } = 1f;
+
+        /// <summary>Seconds between arrivals right now: shorter with a better park rating and marketing.</summary>
+        public float CurrentSpawnDelay
+        {
+            get
+            {
+                float rating = ParkReputation.Instance != null ? ParkReputation.Instance.Score : 0.6f;
+                return spawnDelay * Mathf.Lerp(1.8f, 0.6f, rating) * SpawnDelayMultiplier;
+            }
+        }
+
+        /// <summary>The renter at the front of the rental line, if they're waiting for a board.</summary>
+        public Surfer NextRenter => rentalLine.Count > 0 && rentalLine[0].WaitingForBoard ? rentalLine[0] : null;
+
         /// <summary>The surfer at the front of the desk line, if they're ready to pay.</summary>
         public Surfer NextCustomer => deskLine.Count > 0 && deskLine[0].WaitingToPay ? deskLine[0] : null;
 
@@ -97,7 +113,7 @@ namespace SurfPool
             if (Surfer.All.Count >= maxSurfers || Time.time < nextSpawnTime) return;
             var surfer = Instantiate(surferPrefab, pathIn[0].position, pathIn[0].rotation);
             surfer.Init(this, Random.value < renterChance);
-            nextSpawnTime = Time.time + spawnDelay;
+            nextSpawnTime = Time.time + CurrentSpawnDelay;
         }
 
         public void JoinLine(Surfer surfer, bool rental)
@@ -124,8 +140,17 @@ namespace SurfPool
             return (spot.position + back * (queueSpacing * index), index == 0, -back);
         }
 
-        public void ReportServed() => Served++;
-        public void ReportLost() => Lost++;
+        public void ReportServed(float happiness)
+        {
+            Served++;
+            if (ParkReputation.Instance != null) ParkReputation.Instance.Record(happiness);
+        }
+
+        public void ReportLost()
+        {
+            Lost++;
+            if (ParkReputation.Instance != null) ParkReputation.Instance.Record(0f);
+        }
 
         static Vector3[] Points(Transform[] transforms) => transforms.Select(t => t.position).ToArray();
     }

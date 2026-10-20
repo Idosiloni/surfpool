@@ -5,10 +5,13 @@ using UnityEngine.InputSystem;
 
 namespace SurfPool
 {
+    public enum UpgradeCategory { Waves, Park, Rentals, Staff }
+
     [Serializable]
     public class Upgrade
     {
         public string id;
+        public UpgradeCategory category;
         public string title;
         [TextArea] public string description;
         public int cost;
@@ -18,34 +21,58 @@ namespace SurfPool
     }
 
     /// <summary>
-    /// The computer on the ticket desk. Press E to open the upgrades menu, buy with the mouse, Esc or E to close.
-    /// Each upgrade's effect is applied in <see cref="Apply"/> by its id.
+    /// The computer on the ticket desk. Press E to open the upgrades menu, pick a tab, buy with the mouse,
+    /// Esc or E to close. Each upgrade's effect is applied in <see cref="Apply"/> by its id.
     /// </summary>
     public class UpgradeShop : MonoBehaviour, IInteractable
     {
         [SerializeField] List<Upgrade> upgrades = new()
         {
-            new Upgrade { id = "more_surfers", title = "Bigger Lineup", cost = 60,
-                description = "Two more surfers can be in the park at once. Adds a bench by the pool." },
-            new Upgrade { id = "rental_stand", title = "Board Rental Stand", cost = 80,
-                description = "Opens a rental counter. Surfers without boards start coming. Hand them a board from the rack ($10), then carry returned boards from the bin back to the rack." },
-            new Upgrade { id = "faster_machine", title = "Turbo Pump", cost = 100,
-                description = "The wave machine recharges twice as fast (4s -> 2s)." },
-            new Upgrade { id = "more_boards", title = "More Rental Boards", cost = 120, requires = "rental_stand",
-                description = "Four more boards and slots on the rental rack." },
-            new Upgrade { id = "auto_waves", title = "Auto Wave Timer", cost = 150,
-                description = "The machine sends a wave by itself every 12 seconds. A yellow light turns on." },
-            new Upgrade { id = "wave_sets", title = "Wave Sets", cost = 180,
+            // Waves
+            new Upgrade { id = "faster_machine", category = UpgradeCategory.Waves, title = "Turbo Pump", cost = 100,
+                description = "The wave machine recharges twice as fast (4 s -> 2 s)." },
+            new Upgrade { id = "auto_waves", category = UpgradeCategory.Waves, title = "Auto Wave Timer", cost = 150,
+                description = "The machine sends the selected wave by itself every 12 seconds. A yellow light turns on." },
+            new Upgrade { id = "wave_sets", category = UpgradeCategory.Waves, title = "Wave Sets", cost = 180, requires = "faster_machine",
                 description = "Each press sends a set of 2 waves, 2.5 s apart. More rides, less waiting." },
-            new Upgrade { id = "pro_waves", title = "Pro Wave Program", cost = 200,
+            new Upgrade { id = "pro_waves", category = UpgradeCategory.Waves, title = "Pro Wave Program", cost = 200,
                 description = "Unlocks steep, fast Pro waves (select them on the wave console). Pro surfers pay the most and do tricks." },
-            new Upgrade { id = "smart_auto", title = "Smart Wave Timer", cost = 220, requires = "auto_waves",
+            new Upgrade { id = "smart_auto", category = UpgradeCategory.Waves, title = "Smart Wave Timer", cost = 220, requires = "auto_waves",
                 description = "Auto waves pick the wave type most waiting surfers want." },
+            new Upgrade { id = "turbo_2", category = UpgradeCategory.Waves, title = "Turbo Pump II", cost = 350, requires = "faster_machine",
+                description = "Recharge time drops to 1 s. Auto waves every 8 s." },
+
+            // Park
+            new Upgrade { id = "more_surfers", category = UpgradeCategory.Park, title = "Bigger Lineup", cost = 60,
+                description = "Two more surfers can be in the park at once. Adds a bench by the pool." },
+            new Upgrade { id = "billboard", category = UpgradeCategory.Park, title = "Roadside Billboard", cost = 120,
+                description = "Surfers arrive 30% more often." },
+            new Upgrade { id = "huge_lineup", category = UpgradeCategory.Park, title = "Huge Lineup", cost = 250, requires = "more_surfers",
+                description = "Three more surfers can be in the park at once." },
+            new Upgrade { id = "social_ads", category = UpgradeCategory.Park, title = "Social Media Ads", cost = 300, requires = "billboard",
+                description = "Surfers arrive 30% more often again." },
+
+            // Rentals
+            new Upgrade { id = "rental_stand", category = UpgradeCategory.Rentals, title = "Board Rental Stand", cost = 80,
+                description = "Opens a rental counter. Surfers without boards start coming. Hand them a board from the rack ($10), then carry returned boards from the bin back to the rack." },
+            new Upgrade { id = "more_boards", category = UpgradeCategory.Rentals, title = "More Rental Boards", cost = 120, requires = "rental_stand",
+                description = "Four more boards and slots on the rental rack." },
+            new Upgrade { id = "premium_boards", category = UpgradeCategory.Rentals, title = "Premium Boards", cost = 200, requires = "rental_stand",
+                description = "Nicer boards: rentals cost $5 more." },
+
+            // Staff
+            new Upgrade { id = "lifeguard", category = UpgradeCategory.Staff, title = "Hire Lifeguard", cost = 150,
+                description = "Wage $3/min. Surfers wait 50% longer for waves and wipeouts don't ruin their mood." },
+            new Upgrade { id = "board_runner", category = UpgradeCategory.Staff, title = "Hire Board Runner", cost = 200, requires = "rental_stand",
+                description = "Wage $4/min. Carries returned boards from the bin back to the rack for you." },
+            new Upgrade { id = "rental_clerk", category = UpgradeCategory.Staff, title = "Hire Rental Clerk", cost = 250, requires = "rental_stand",
+                description = "Wage $5/min. Hands rental boards to renters for you." },
+            new Upgrade { id = "desk_clerk", category = UpgradeCategory.Staff, title = "Hire Desk Clerk", cost = 300,
+                description = "Wage $6/min. Sells tickets at the desk for you (at your price)." },
         };
 
         [Header("Things upgrades change")]
         [SerializeField] WaveMachine machine;
-        [SerializeField] WaveWater water;
         [SerializeField] SurferSpawner spawner;
         [SerializeField] PriceBoard pricing;
         [SerializeField] GameObject autoWaveLight;
@@ -53,10 +80,18 @@ namespace SurfPool
         [SerializeField] GameObject rentalStand;
         [SerializeField] RentalRack rentalRack;
 
+        [Header("Staff (hidden until hired)")]
+        [SerializeField] GameObject lifeguard;
+        [SerializeField] GameObject boardRunner;
+        [SerializeField] GameObject rentalClerk;
+        [SerializeField] GameObject deskClerk;
+
         bool open;
         int openedFrame;
         string message;
-        GUIStyle titleStyle, textStyle, buttonStyle;
+        UpgradeCategory tab;
+        Vector2 scroll;
+        GUIStyle titleStyle, textStyle, boldStyle, buttonStyle, tabStyle;
 
         public string Prompt => "Use computer (upgrades)";
 
@@ -83,6 +118,8 @@ namespace SurfPool
             if (keyboard != null && (keyboard.escapeKey.wasPressedThisFrame || keyboard.eKey.wasPressedThisFrame)) Close();
         }
 
+        public bool IsOwned(string id) => upgrades.Exists(u => u.id == id && u.owned);
+
         public bool Buy(string id)
         {
             var upgrade = upgrades.Find(u => u.id == id);
@@ -103,8 +140,7 @@ namespace SurfPool
             return true;
         }
 
-        bool RequirementMet(Upgrade upgrade) =>
-            string.IsNullOrEmpty(upgrade.requires) || upgrades.Exists(u => u.id == upgrade.requires && u.owned);
+        bool RequirementMet(Upgrade upgrade) => string.IsNullOrEmpty(upgrade.requires) || IsOwned(upgrade.requires);
 
         string TitleOf(string id) => upgrades.Find(u => u.id == id)?.title ?? id;
 
@@ -112,23 +148,11 @@ namespace SurfPool
         {
             switch (id)
             {
-                case "more_surfers":
-                    spawner.MaxSurfers += 2;
-                    if (extraBench != null) extraBench.SetActive(true);
-                    break;
-                case "rental_stand":
-                    rentalStand.SetActive(true);
-                    spawner.RenterChance = 0.5f;
-                    spawner.MaxSurfers += 1;
-                    break;
-                case "more_boards":
-                    rentalRack.AddBoards(4);
-                    break;
                 case "faster_machine":
                     machine.Cooldown = 2f;
                     break;
                 case "auto_waves":
-                    machine.AutoInterval = 12f;
+                    machine.AutoInterval = IsOwned("turbo_2") ? 8f : 12f;
                     if (autoWaveLight != null) autoWaveLight.SetActive(true);
                     break;
                 case "wave_sets":
@@ -141,50 +165,99 @@ namespace SurfPool
                 case "smart_auto":
                     machine.SmartAuto = true;
                     break;
+                case "turbo_2":
+                    machine.Cooldown = 1f;
+                    if (IsOwned("auto_waves")) machine.AutoInterval = 8f;
+                    break;
+                case "more_surfers":
+                    spawner.MaxSurfers += 2;
+                    if (extraBench != null) extraBench.SetActive(true);
+                    break;
+                case "huge_lineup":
+                    spawner.MaxSurfers += 3;
+                    break;
+                case "billboard":
+                case "social_ads":
+                    spawner.SpawnDelayMultiplier *= 0.7f;
+                    break;
+                case "rental_stand":
+                    rentalStand.SetActive(true);
+                    spawner.RenterChance = 0.5f;
+                    spawner.MaxSurfers += 1;
+                    break;
+                case "more_boards":
+                    rentalRack.AddBoards(4);
+                    break;
+                case "premium_boards":
+                    pricing.RentalPrice += 5;
+                    break;
+                case "lifeguard":
+                    lifeguard.SetActive(true);
+                    break;
+                case "board_runner":
+                    boardRunner.SetActive(true);
+                    break;
+                case "rental_clerk":
+                    rentalClerk.SetActive(true);
+                    break;
+                case "desk_clerk":
+                    deskClerk.SetActive(true);
+                    break;
             }
         }
 
         void OnGUI()
         {
             if (!open) return;
-            if (titleStyle == null)
-            {
-                titleStyle = new GUIStyle(GUI.skin.label) { fontSize = 26, fontStyle = FontStyle.Bold };
-                textStyle = new GUIStyle(GUI.skin.label) { fontSize = 16, wordWrap = true };
-                buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = 16 };
-            }
+            CreateStyles();
 
-            float w = Mathf.Min(640, Screen.width - 40), h = Mathf.Min(150 + upgrades.Count * 80, Screen.height - 40);
+            float w = Mathf.Min(680, Screen.width - 40), h = Mathf.Min(620, Screen.height - 40);
             var area = new Rect((Screen.width - w) / 2, (Screen.height - h) / 2, w, h);
-            GUI.color = new Color(0.08f, 0.1f, 0.14f, 0.96f);
+            GUI.color = new Color(0.08f, 0.1f, 0.14f, 0.97f);
             GUI.DrawTexture(area, Texture2D.whiteTexture);
             GUI.color = Color.white;
+
             GUILayout.BeginArea(new Rect(area.x + 20, area.y + 15, area.width - 40, area.height - 30));
             GUILayout.Label("Wave Pool Upgrades", titleStyle);
             GUILayout.Label($"Money: ${Wallet.Instance.Money}", textStyle);
+            GUILayout.Space(6);
+
+            var names = Enum.GetNames(typeof(UpgradeCategory));
+            tab = (UpgradeCategory)GUILayout.Toolbar((int)tab, names, tabStyle, GUILayout.Height(34));
             GUILayout.Space(8);
 
+            scroll = GUILayout.BeginScrollView(scroll);
             foreach (var upgrade in upgrades)
             {
+                if (upgrade.category != tab) continue;
+                bool unlocked = RequirementMet(upgrade);
                 GUILayout.BeginHorizontal();
                 GUILayout.BeginVertical();
-                GUILayout.Label($"<b>{upgrade.title}</b>  —  ${upgrade.cost}", new GUIStyle(textStyle) { richText = true });
-                GUILayout.Label(upgrade.description, textStyle);
+                GUILayout.Label($"{upgrade.title}  —  ${upgrade.cost}", boldStyle);
+                GUILayout.Label(upgrade.description + (unlocked ? "" : $"  (needs {TitleOf(upgrade.requires)})"), textStyle);
                 GUILayout.EndVertical();
-                bool unlocked = RequirementMet(upgrade);
                 GUI.enabled = !upgrade.owned && unlocked && Wallet.Instance.Money >= upgrade.cost;
                 string label = upgrade.owned ? "Owned" : unlocked ? "Buy" : "Locked";
-                if (GUILayout.Button(label, buttonStyle, GUILayout.Width(100), GUILayout.Height(40)))
-                    Buy(upgrade.id);
+                if (GUILayout.Button(label, buttonStyle, GUILayout.Width(100), GUILayout.Height(40))) Buy(upgrade.id);
                 GUI.enabled = true;
                 GUILayout.EndHorizontal();
                 GUILayout.Space(10);
             }
+            GUILayout.EndScrollView();
 
-            GUILayout.FlexibleSpace();
             if (!string.IsNullOrEmpty(message)) GUILayout.Label(message, textStyle);
             if (GUILayout.Button("Close (Esc)", buttonStyle, GUILayout.Height(34))) Close();
             GUILayout.EndArea();
+        }
+
+        void CreateStyles()
+        {
+            if (titleStyle != null) return;
+            titleStyle = new GUIStyle(GUI.skin.label) { fontSize = 26, fontStyle = FontStyle.Bold };
+            textStyle = new GUIStyle(GUI.skin.label) { fontSize = 16, wordWrap = true };
+            boldStyle = new GUIStyle(textStyle) { fontStyle = FontStyle.Bold };
+            buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = 16 };
+            tabStyle = new GUIStyle(GUI.skin.button) { fontSize = 17, fontStyle = FontStyle.Bold };
         }
     }
 }
