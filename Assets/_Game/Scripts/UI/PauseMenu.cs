@@ -87,6 +87,7 @@ namespace SurfPool
             AddStat("Boards rented", GameStats.BoardsRented.ToString());
             if (GameStats.SnacksSold > 0) AddStat("Snacks sold", GameStats.SnacksSold.ToString());
             if (GameStats.BeachGuests > 0) AddStat("Beach guests", GameStats.BeachGuests.ToString());
+            AddStat("Treasures found", $"{Treasure.Found} / {Treasure.Total}");
             AddStat("Park beauty", $"{Decoration.Beauty}  (+{MoneyText.Format(Decoration.FairBonus)} fair price)");
             AddStat("Tricks / tube rides", $"{GameStats.TricksLanded} / {GameStats.TubeRides}");
             AddStat("Your own rides", GameStats.PlayerRides.ToString());

@@ -541,6 +541,7 @@ namespace SurfPool.EditorTools
             eventSystem.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
 
             WorldArt.BuildEnvironment(sandMat, waterMat);
+            TreasureBuilder.Build();
             WorldArt.Lighting(GameObject.Find("Directional Light").GetComponent<Light>(), cam);
 
             EditorSceneManager.SaveScene(scene, ScenePath);

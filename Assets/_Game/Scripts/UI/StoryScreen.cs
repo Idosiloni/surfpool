@@ -18,7 +18,8 @@ namespace SurfPool
             "but the magic is still there.\n\n" +
             "Start small: sell sessions at the ticket desk and send waves for the beginners. Save every dollar, " +
             "fix the place up, and one day this could be the best surf park in the world.\n\n" +
-            "I left you some notes along the way. Follow them.";
+            "I left you some notes along the way. Follow them.\n\n" +
+            "P.S. Over the years I lost 12 of my treasures around the island. Look for the glowing lights on the sand!";
 
         VisualElement root;
         bool open;
