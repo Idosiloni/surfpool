@@ -53,6 +53,7 @@ namespace SurfPool
 
         void Move(Keyboard keyboard)
         {
+            if (!controller.enabled) return; // e.g. while something else is moving the player
             var input = Vector2.zero;
             if (keyboard.wKey.isPressed) input.y += 1;
             if (keyboard.sKey.isPressed) input.y -= 1;
