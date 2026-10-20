@@ -194,7 +194,7 @@ namespace SurfPool
             foreach (var upgrade in shop.Upgrades)
                 if (!upgrade.owned && shop.RequirementMet(upgrade) && shop.LevelMet(upgrade) && (next == null || upgrade.cost < next.cost))
                     next = upgrade;
-            goalStrip.EnableInClassList("hidden", next == null || shop.IsOpen || BuildMode.Active);
+            goalStrip.EnableInClassList("hidden", next == null || shop.IsOpen || BuildMode.Active || FishingSpot.Fishing);
             if (next == null) return;
             bool ready = wallet.Money >= next.cost;
             SetText(goalName, next.title);

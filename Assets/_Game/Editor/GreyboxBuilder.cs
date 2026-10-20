@@ -542,6 +542,8 @@ namespace SurfPool.EditorTools
 
             WorldArt.BuildEnvironment(sandMat, waterMat);
             TreasureBuilder.Build();
+            Set(shop, "fishingPier", ParkExtras.FishingPier(panelSettings));
+            ParkExtras.ParkingLot();
             WorldArt.Lighting(GameObject.Find("Directional Light").GetComponent<Light>(), cam);
 
             EditorSceneManager.SaveScene(scene, ScenePath);

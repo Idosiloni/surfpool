@@ -29,6 +29,12 @@ namespace SurfPool
         /// <summary>Multiplies the daily water bill. Water Recycling lowers it.</summary>
         public static float WaterCostMultiplier = 1f;
 
+        /// <summary>Multiplies how fast fishing line tension builds (Pro Fishing Rod lowers it).</summary>
+        public static float FishingTensionMultiplier = 1f;
+
+        /// <summary>Multiplies the chance of big fish (Pro Fishing Rod raises it).</summary>
+        public static float FishingRareMultiplier = 1f;
+
         /// <summary>Beach guests come to relax on placed loungers and benches (Beach Passes).</summary>
         public static bool BeachPassesOpen;
 
@@ -56,6 +62,8 @@ namespace SurfPool
             SnackPriceBonus = 0;
             FamousWavesUnlocked = false;
             BeachPassesOpen = false;
+            FishingTensionMultiplier = 1f;
+            FishingRareMultiplier = 1f;
         }
     }
 }

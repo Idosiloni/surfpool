@@ -31,6 +31,7 @@ namespace SurfPool
             public int snacksSold;
             public List<BuildMode.Placed> decorations = new();
             public List<int> treasuresFound = new();
+            public int fishCaught, beachGuests;
             public List<NamedValue> staffExperience = new();
             public List<MachineState> machines = new();
         }
@@ -93,6 +94,8 @@ namespace SurfPool
                 snacksSold = GameStats.SnacksSold,
                 decorations = BuildMode.Instance != null ? BuildMode.Instance.Export() : new List<BuildMode.Placed>(),
                 treasuresFound = Treasure.FoundIndices(Treasure.Total),
+                fishCaught = GameStats.FishCaught,
+                beachGuests = GameStats.BeachGuests,
             };
             foreach (var id in data.upgrades)
             {
@@ -152,6 +155,8 @@ namespace SurfPool
             GameStats.SnacksSold = data.snacksSold;
             if (BuildMode.Instance != null) BuildMode.Instance.Restore(data.decorations);
             Treasure.Restore(data.treasuresFound);
+            GameStats.FishCaught = data.fishCaught;
+            GameStats.BeachGuests = data.beachGuests;
             Notifications.Post($"Welcome back! Day {data.day}, {MoneyText.Format(data.money)} in the bank.");
         }
 

@@ -77,6 +77,10 @@ namespace SurfPool
                 description = "Palms, tiki torches and flower beds all around the pools. A prettier park: surfers will pay $10 more." },
             new Upgrade { id = "beach_passes", category = UpgradeCategory.Park, title = "Beach Passes", cost = 500, level = 3,
                 description = "Open the beach to guests who don't surf: they pay for a pass to relax on your loungers and benches (prettier park = pricier passes). Place seats with build mode (B)!" },
+            new Upgrade { id = "fishing_pier", category = UpgradeCategory.Park, title = "Fishing Pier", cost = 700, level = 4,
+                description = "A wooden pier out into the ocean on the west beach. Go fishing yourself: hook, reel, sell the catch (more if the snack bar can cook it)." },
+            new Upgrade { id = "pro_rod", category = UpgradeCategory.Park, title = "Pro Fishing Rod", cost = 2000, level = 8, requires = "fishing_pier",
+                description = "A stronger line (tension builds 30% slower) and better bait: big fish bite twice as often." },
             new Upgrade { id = "trash_cans", category = UpgradeCategory.Park, title = "Trash Cans", cost = 300, level = 3,
                 description = "Bins all around the decks. Surfers drop 60% less litter (trash on the ground makes them less happy)." },
             new Upgrade { id = "solar_panels", category = UpgradeCategory.Park, title = "Solar Panels", cost = 1500, level = 4,
@@ -144,6 +148,7 @@ namespace SurfPool
         [SerializeField] GameObject janitor;
         [SerializeField] GameObject snackBar;
         [SerializeField] GameObject snackCook;
+        [SerializeField] GameObject fishingPier;
         [SerializeField] GameObject trashCans;
 
         [Header("Park decoration (hidden until bought)")]
@@ -308,6 +313,13 @@ namespace SurfPool
                     break;
                 case "mechanic":
                     if (mechanic != null) mechanic.SetActive(true);
+                    break;
+                case "fishing_pier":
+                    if (fishingPier != null) fishingPier.SetActive(true);
+                    break;
+                case "pro_rod":
+                    ParkEffects.FishingTensionMultiplier = 0.7f;
+                    ParkEffects.FishingRareMultiplier = 2f;
                     break;
                 case "beach_passes":
                     ParkEffects.BeachPassesOpen = true;

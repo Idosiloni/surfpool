@@ -1325,3 +1325,47 @@
     font-size: 13px;
     color: #C9824F;
 }
+
+/* ---------- Fishing ---------- */
+
+.fish-root {
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Fredoka.ttf");
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 120px;
+    align-items: center;
+}
+
+.fish-panel {
+    width: 560px;
+    padding: 14px 22px 16px 22px;
+}
+
+.fish-status {
+    font-size: 26px;
+    -unity-font-style: bold;
+    color: #0B2E3A;
+    white-space: normal;
+}
+
+.fish-bar {
+    height: 16px;
+    border-radius: 8px;
+    margin: 4px 0 8px 0;
+}
+
+.fish-tension {
+    background-color: #FFC857;
+}
+
+.fish-tension--danger {
+    background-color: #FF6B57;
+}
+
+.fish-hint {
+    font-size: 16px;
+    color: #5B6B73;
+    white-space: normal;
+    margin-top: 4px;
+}

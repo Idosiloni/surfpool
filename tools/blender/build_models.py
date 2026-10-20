@@ -42,6 +42,10 @@ PALETTE = {
     "Screen": (0.10, 0.35, 0.45),
     "BoardDeck": (0.97, 0.97, 0.95),   # tinted per surfer in Unity
     "Stringer": (0.55, 0.38, 0.22),
+    "CarPaint": (0.95, 0.95, 0.95),    # tinted per car in Unity
+    "Tire": (0.12, 0.12, 0.13),
+    "Headlight": (1.0, 0.95, 0.7),
+    "Taillight": (0.85, 0.12, 0.1),
 }
 
 
@@ -493,6 +497,36 @@ def price_stand(name="PriceStand"):
     return join(name, parts)
 
 
+def car(name="Car"):
+    """A small beach car with a surfboard on the roof. 4 m long along Y, nose toward -Y (Unity forward)."""
+    parts = [
+        box("Body", (1.8, 4.0, 0.62), (0, 0, 0.62), "CarPaint"),
+        box("Hood Slope", (1.76, 0.9, 0.2), (0, -1.5, 0.98), "CarPaint", rotation=(math.radians(-8), 0, 0)),
+        box("Cabin", (1.62, 2.0, 0.62), (0, 0.35, 1.22), "Glass"),
+        box("Roof", (1.66, 1.9, 0.08), (0, 0.35, 1.56), "CarPaint"),
+        box("Bumper Front", (1.84, 0.15, 0.22), (0, -2.05, 0.42), "Charcoal"),
+        box("Bumper Back", (1.84, 0.15, 0.22), (0, 2.05, 0.42), "Charcoal"),
+        box("Headlight L", (0.36, 0.05, 0.14), (-0.6, -2.02, 0.72), "Headlight"),
+        box("Headlight R", (0.36, 0.05, 0.14), (0.6, -2.02, 0.72), "Headlight"),
+        box("Taillight L", (0.32, 0.05, 0.14), (-0.65, 2.02, 0.75), "Taillight"),
+        box("Taillight R", (0.32, 0.05, 0.14), (0.65, 2.02, 0.75), "Taillight"),
+        box("Rack L", (0.06, 1.7, 0.06), (-0.55, 0.35, 1.64), "Steel"),
+        box("Rack R", (0.06, 1.7, 0.06), (0.55, 0.35, 1.64), "Steel"),
+    ]
+    for x in (-0.86, 0.86):
+        for y in (-1.3, 1.3):
+            parts.append(cylinder("Wheel", 0.36, 0.26, (x, y, 0.36), "Tire", vertices=10, rotation=(0, math.radians(90), 0)))
+            parts.append(cylinder("Hub", 0.16, 0.28, (x, y, 0.36), "Steel", vertices=8, rotation=(0, math.radians(90), 0)))
+    roof_board = board("CarBoard", 2.3, 0.27, 0.07, True, 0.6, False, "Coral", "Navy")
+    roof_board.location = (0, 0.25, 1.68)
+    bpy.context.view_layer.objects.active = roof_board
+    bpy.ops.object.select_all(action="DESELECT")
+    roof_board.select_set(True)
+    bpy.ops.object.transform_apply(location=True, rotation=False, scale=False)
+    parts.append(roof_board)
+    return join(name, parts)
+
+
 def lifeguard_tower(name="LifeguardTower"):
     """Stilts, platform with railing, ladder, and a red-and-white roof. Faces -Y (toward the pool when rotated)."""
     parts = []
@@ -630,7 +664,7 @@ def build_all():
         lounge_chair,
         lambda: rock("Rock", 3),
         board_foamie, board_fun, board_short,
-        cash_register, computer, wave_console, price_stand,
+        cash_register, computer, wave_console, price_stand, car,
         char_torso, char_shorts, char_head, char_hair_short, char_hair_long, char_arm, char_leg,
     ):
         obj = factory()
