@@ -388,6 +388,7 @@ namespace SurfPool
 
                 // Too-big waves often end in a wipeout; everyone wipes out sometimes.
                 float wipeoutChance = diff > 0 ? 0.6f : Skill switch { WaveLevel.Beginner => 0.2f, WaveLevel.Intermediate => 0.1f, _ => 0.05f };
+                if (Skill == WaveLevel.Beginner) wipeoutChance *= ParkEffects.BeginnerWipeoutMultiplier;
                 wipeoutAt = Random.value < wipeoutChance ? Time.time + Random.Range(0.8f, 2.5f) : -1f;
 
                 state = State.Riding;
@@ -518,6 +519,8 @@ namespace SurfPool
             float happiness = moodSamples == 0 ? 1f : moodTotal / moodSamples;
             int tip = happiness > 0.5f ? Mathf.RoundToInt(paidPrice * maxTipShare * happiness) + tricksLanded * tipPerTrick : 0;
             if (tip > 0) Wallet.Instance.Add(tip, "tip");
+            if (Skill == WaveLevel.Beginner && ParkEffects.LessonFee > 0) Wallet.Instance.Add(ParkEffects.LessonFee, "surf lessons");
+            if (happiness > 0.5f && ParkEffects.MerchPerHappySurfer > 0) Wallet.Instance.Add(ParkEffects.MerchPerHappySurfer, "surf shop");
             spawner.ReportServed(happiness);
             GameStats.SurfersServed++;
             string line = happiness > 0.75f ? HappyShouts[Random.Range(0, HappyShouts.Length)]

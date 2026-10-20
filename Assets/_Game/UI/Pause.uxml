@@ -1,0 +1,24 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="Game.uss" />
+    <ui:VisualElement name="pauseRoot" class="screen-overlay hidden">
+        <ui:VisualElement class="screen-window report-window">
+            <ui:Label text="Paused" class="screen-title" />
+            <ui:Label name="pauseSubtitle" class="screen-subtitle" />
+            <ui:VisualElement class="report-columns section-gap">
+                <ui:VisualElement class="report-column">
+                    <ui:Label text="CONTROLS" class="section-title" />
+                    <ui:Label name="pauseControls" class="pause-text" />
+                </ui:VisualElement>
+                <ui:VisualElement class="report-column report-column--last">
+                    <ui:Label text="YOUR PARK" class="section-title" />
+                    <ui:VisualElement name="pauseStats" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="screen-footer section-gap">
+                <ui:Button name="pauseResume" text="Resume (Tab)" class="send-button" />
+                <ui:Button name="pauseSave" text="Save game" class="close-button pause-button" />
+                <ui:Button name="pauseNew" text="New game" class="close-button pause-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

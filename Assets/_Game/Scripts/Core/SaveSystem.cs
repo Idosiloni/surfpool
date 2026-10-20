@@ -41,7 +41,10 @@ namespace SurfPool
             if (HasSave) Load();
         }
 
-        void OnApplicationQuit() => Save();
+        void OnApplicationQuit()
+        {
+            if (enabled) Save();
+        }
 
         public void Save()
         {

@@ -289,6 +289,33 @@ namespace SurfPool.EditorTools
             tower.gameObject.AddComponent<Lifeguard>();
             Staff(tower.gameObject, "Lifeguard", 3);
 
+            // Surf coach at the shallow end of the main pool, wave operator at the main console.
+            var coachMat = Mat("CoachShirt", new Color(1f, 0.78f, 0.25f), 0.3f);
+            var coach = Person("Surf Coach", new Vector3(40, 0, -halfW - 1.2f), 0f, coachMat, skinMat);
+            coach.AddComponent<SurfCoach>();
+            Staff(coach, "Surf Coach", 6);
+            var operatorGuy = Person("Wave Operator", new Vector3(3.6f, 0, -halfW - 2.4f), 30f, staffMat, skinMat);
+            operatorGuy.AddComponent<WaveOperator>();
+            Staff(operatorGuy, "Wave Operator", 8);
+
+            // Surf shop kiosk near the entrance, hidden until bought.
+            var surfShop = new GameObject("Surf Shop").transform;
+            surfShop.position = new Vector3(40, 0, -33);
+            WorldArt.Model("KioskTeal", surfShop, surfShop.position, 90f);
+            Box("Shop Counter", surfShop, surfShop.position + new Vector3(0, 0.55f, 0), new Vector3(1, 1.1f, 3), deskMat);
+            for (int i = 0; i < 4; i++)
+                Board($"Display Board {i + 1}", surfShop, surfShop.position + new Vector3(1.6f, 1.0f, -1.2f + i * 0.8f), Quaternion.Euler(-80, 90, 0), 0.9f, i % 2 == 0 ? rentalBoardMat : mats.sign);
+            var clerkShop = Person("Shop Clerk", surfShop.position + new Vector3(-1.0f, 0, 0), 90f, coachMat, skinMat);
+            clerkShop.transform.SetParent(surfShop, true);
+            surfShop.gameObject.SetActive(false);
+
+            Set(shop, "surfCoach", coach);
+            Set(shop, "waveOperator", operatorGuy);
+            Set(shop, "surfShop", surfShop.gameObject);
+            coach.SetActive(false);
+            operatorGuy.SetActive(false);
+            game.AddComponent<PassiveIncome>();
+
             Set(shop, "lifeguard", tower.gameObject);
             Set(shop, "boardRunner", runner);
             Set(shop, "rentalClerk", rentalClerk);
@@ -356,6 +383,15 @@ namespace SurfPool.EditorTools
             reportDoc.visualTreeAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.VisualTreeAsset>("Assets/_Game/UI/DayReport.uxml");
             reportDoc.sortingOrder = 15;
             Set(reportGo.AddComponent<DayReportScreen>(), "saveSystem", saveSystem);
+
+            var pauseGo = new GameObject("Pause Menu");
+            var pauseDoc = pauseGo.AddComponent<UnityEngine.UIElements.UIDocument>();
+            pauseDoc.panelSettings = panelSettings;
+            pauseDoc.visualTreeAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.VisualTreeAsset>("Assets/_Game/UI/Pause.uxml");
+            pauseDoc.sortingOrder = 30;
+            var pause = pauseGo.AddComponent<PauseMenu>();
+            Set(pause, "saveSystem", saveSystem);
+            Set(pause, "spawner", spawner);
 
             var eventSystem = new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem));
             eventSystem.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();

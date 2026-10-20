@@ -96,6 +96,17 @@ namespace SurfPool
             if (TrySendSet(level, direction)) nextAutoWave = Time.time + autoInterval;
         }
 
+        /// <summary>For the wave operator: send the wave most of this pool's waiting surfers want, if any are waiting.</summary>
+        public bool SendForWaiting()
+        {
+            bool anyoneWaiting = false;
+            foreach (var surfer in Surfer.All)
+                if (surfer.WaitingForWave && IsMine(surfer)) anyoneWaiting = true;
+            if (!anyoneWaiting) return false;
+            var level = MostWantedLevel();
+            return TrySendSet(level, MostWantedDirection(level));
+        }
+
         /// <summary>Sends the selected wave type and direction (a whole set if upgraded).</summary>
         public bool TryTriggerWave() => TrySendSet(Selected, SelectedDirection);
 

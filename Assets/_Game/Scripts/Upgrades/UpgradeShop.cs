@@ -61,6 +61,12 @@ namespace SurfPool
                 description = "Three more surfers can be in the park at once." },
             new Upgrade { id = "social_ads", category = UpgradeCategory.Park, title = "Social Media Ads", cost = 300, requires = "billboard",
                 description = "Surfers arrive 30% more often again." },
+            new Upgrade { id = "surf_shop", category = UpgradeCategory.Park, title = "Surf Shop", cost = 600,
+                description = "A merch kiosk by the entrance. Every happy surfer buys $4 of wax, stickers and tees on the way out." },
+            new Upgrade { id = "vip_sessions", category = UpgradeCategory.Park, title = "VIP Sessions", cost = 800, requires = "intermediate_waves",
+                description = "Fancy towels, smoothies, priority lineup. Surfers will pay about $15 more per session." },
+            new Upgrade { id = "season_passes", category = UpgradeCategory.Park, title = "Season Passes", cost = 2500, requires = "surf_shop",
+                description = "Locals buy yearly passes: $40 every minute, even while you sleep." },
 
             // Rentals
             new Upgrade { id = "rental_stand", category = UpgradeCategory.Rentals, title = "Board Rental Stand", cost = 80,
@@ -79,6 +85,10 @@ namespace SurfPool
                 description = "Wage $5/min. Hands rental boards to renters for you." },
             new Upgrade { id = "desk_clerk", category = UpgradeCategory.Staff, title = "Hire Desk Clerk", cost = 300,
                 description = "Wage $6/min. Sells tickets at the desk for you (at your price)." },
+            new Upgrade { id = "surf_coach", category = UpgradeCategory.Staff, title = "Hire Surf Coach", cost = 350,
+                description = "Wage $6/min. Gives beginners lessons: they wipe out far less, and each beginner session earns a $10 lesson fee." },
+            new Upgrade { id = "wave_operator", category = UpgradeCategory.Staff, title = "Hire Wave Operator", cost = 400,
+                description = "Wage $8/min. Watches every pool and sends exactly the wave the waiting surfers want. Full automation!" },
         };
 
         [Header("Things upgrades change")]
@@ -93,6 +103,9 @@ namespace SurfPool
         [SerializeField] GameObject boardRunner;
         [SerializeField] GameObject rentalClerk;
         [SerializeField] GameObject deskClerk;
+        [SerializeField] GameObject surfCoach;
+        [SerializeField] GameObject waveOperator;
+        [SerializeField] GameObject surfShop;
 
         bool open;
         int openedFrame;
@@ -225,6 +238,22 @@ namespace SurfPool
                     break;
                 case "desk_clerk":
                     deskClerk.SetActive(true);
+                    break;
+                case "surf_coach":
+                    surfCoach.SetActive(true);
+                    break;
+                case "wave_operator":
+                    waveOperator.SetActive(true);
+                    break;
+                case "surf_shop":
+                    surfShop.SetActive(true);
+                    ParkEffects.MerchPerHappySurfer = 4;
+                    break;
+                case "vip_sessions":
+                    pricing.FairPrice += 15;
+                    break;
+                case "season_passes":
+                    ParkEffects.PassiveIncomePerMinute += 40;
                     break;
             }
         }

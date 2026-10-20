@@ -23,20 +23,29 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
 - The wave is faked (animated mesh + shader), not simulated water.
 
 ## Roadmap (each step ends playable)
-- [x] **Step 1 — Wave:** walk around a pool in first person, press a button on the wave machine, a wave rolls.
-- [x] **Step 2 — First surfer:** one NPC walks in, pays at the desk, rides the wave, leaves.
-- [x] **Step 3 — Money loop:** ticket prices, cash register, money HUD, buy an upgrade.
-- [ ] **Step 4 — Grow:** side businesses and depth, one at a time (order chosen 2026-10-20):
-  - [x] Board rentals (rental stand upgrade, rack → renter, return bin → rack restock chore)
-  - [x] **More waves:** wave menu (Beginner / Intermediate / Pro), surfer skill levels, wipeouts, wave upgrades
-  - [x] **More upgrades:** upgrade tree with tabs, staff that automate chores (with wages), park rating, more capacity
-  - [x] **Better UI:** real HUD, upgrade computer screen with tabs/icons, wave control panel (UI Toolkit)
-  - [x] **Better world:** low-poly models (Blender + CC0 packs), stylized water with foam, lighting, sky
-  - [ ] **Player surfing:** grab a board, paddle out and ride waves yourself in first person (after Better world)
-  - [ ] **Different pools + scaling:** unlockable pool types/tiers (real surf-park layouts), each earning more;
-        economy rebalanced for the incremental curve (big numbers, automation, offline-style growth feel)
-  - [x] **Premium UI restyle:** beach-surf vibe pass on HUD, bubbles and SurfOS (with the world art)
-  - [ ] Later: snack bar, surf shop, lessons, cleaning, day/night
+- [x] **Step 1 — Wave:** first-person pool, wave console, a wave rolls.
+- [x] **Step 2 — First surfer:** NPC pays at the desk, rides, leaves.
+- [x] **Step 3 — Money loop:** ticket price, patience, 3-wave sessions, tips, upgrade computer.
+- [x] **Step 4 — Grow:**
+  - [x] Board rentals (rack → renter, return bin → rack chore)
+  - [x] More waves: Beginner / Intermediate / Pro, skills, tricks, wipeouts; start with beginners only
+  - [x] More upgrades: tabbed upgrade tree, staff with wages, park rating, marketing
+  - [x] Better UI: UI Toolkit HUD, speech bubbles, SurfOS, Wave Control panel
+  - [x] Better world: Blender low-poly models, stylized water + foam, peeling breaks, barrels, lefts/rights, sky, post
+  - [x] Premium UI restyle (Fredoka, cream/teal/coral)
+  - [x] Story + missions + tutorial (Uncle Kai's letter, 15 missions in 4 chapters, marker, banner)
+  - [x] Multiple pools: Main, Reef Pool ($3k), Big Wave Lagoon ($12k)
+  - [x] Characters: low-poly people with code animation (walk, paddle, surf stance, sit)
+  - [x] Player surfing (peg by every console)
+  - [x] Day cycle + end-of-day report, save/load, pause menu
+  - [x] More staff + income: Wave Operator, Surf Coach, Surf Shop, VIP Sessions, Season Passes
+- [ ] **Step 5 — Polish & depth (next ideas):**
+  - [ ] Sound: waves, crowd, music, UI clicks
+  - [ ] Balance pass on prices, wages and pool costs (incremental curve to big numbers)
+  - [ ] Snack bar, lessons area, more decoration you can place
+  - [ ] Wave presets inspired by famous waves; pool-specific wave menus
+  - [ ] Characters: real rigs/animations (Quaternius / Mixamo, needs download OK)
+  - [ ] Main menu, settings (mouse sensitivity, volume), Steam build
 
 ## Ideas parking lot
 - Surfer wipeouts (funny ragdolls)
