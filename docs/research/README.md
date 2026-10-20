@@ -11,3 +11,5 @@ Date: 2026-10-20
 - [surf-park-design.md](surf-park-design.md): real park layouts by tech (Cove, Ranch, PerfectSwell, Surf Lakes, sheet waves), bathymetry/reefs/channels, park buildings and guest flow, build/run costs, 7 example parks, pool-type ideas.
 - [wave-types-real.md](wave-types-real.md): beach vs reef vs point breaks, famous waves table, wave quality words, how pools imitate them, named wave presets.
 - [surfing-basics.md](surfing-basics.md): skill levels, boards, gear, etiquette, wipeouts, lessons, surf culture for NPCs.
+- [sound-design.md](sound-design.md): sim game sound feel, real wave pool/surf park sounds, layering/mixing/falloff/ducking numbers, chill beach music, Python synthesis recipes (waves, coin, gull, whistle, UI, arpeggio, Karplus-Strong track).
+- [incremental-economy.md](incremental-economy.md): cost growth ratios, payback and purchase-pace targets, wage ratios, number formatting, 40-day income/price curve for our 4 chapters, money sinks.

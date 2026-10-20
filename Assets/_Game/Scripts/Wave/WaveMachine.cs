@@ -116,6 +116,7 @@ namespace SurfPool
             for (int i = 0; i < wavesPerSet; i++)
                 pending.Add((Time.time + i * setSpacing, level, direction));
             GameStats.WavesSent += wavesPerSet;
+            Sfx.Play(Sound.WaveMachine, transform.position);
             chargeDuration = cooldown + (wavesPerSet - 1) * setSpacing;
             readyAt = Time.time + chargeDuration;
             return true;

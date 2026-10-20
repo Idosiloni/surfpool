@@ -472,6 +472,7 @@ namespace SurfPool
                 GameStats.TubeRides++;
             }
             GameStats.TricksLanded++;
+            if (inBarrel || Skill == WaveLevel.Pro || Random.value < 0.3f) Sfx.Play(Sound.Cheer, transform.position, inBarrel ? 1f : 0.7f);
             if (trick == "AIR!") airStart = Time.time;
             tricksLanded++;
             Shout(trick, 1.3f);
@@ -485,6 +486,8 @@ namespace SurfPool
             tumbleAxis = Random.onUnitSphere;
             RecordMood(ParkEffects.WipeoutMood);
             GameStats.Wipeouts++;
+            Sfx.Play(Sound.Splash, transform.position);
+            Lifeguard.Whistle();
             Shout("WIPEOUT!", 2.5f);
         }
 

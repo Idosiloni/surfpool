@@ -393,6 +393,11 @@ namespace SurfPool.EditorTools
             Set(pause, "saveSystem", saveSystem);
             Set(pause, "spawner", spawner);
 
+            // Sound: beach ambience, music and every effect (clips made by tools/audio/make_sounds.py).
+            var sfx = new GameObject("Audio").AddComponent<Sfx>();
+            Set(sfx, "bank", AudioSetup.Bank());
+            Set(sfx, "pricing", pricing);
+
             var eventSystem = new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem));
             eventSystem.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
 

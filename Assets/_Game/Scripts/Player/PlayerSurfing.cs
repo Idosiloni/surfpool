@@ -188,6 +188,7 @@ namespace SurfPool
                 tricks++;
                 score += 150;
                 GameStats.TricksLanded++;
+                Sfx.Play(Sound.Cheer, transform.position);
                 Notifications.Post("AIR! +150");
             }
 
@@ -215,6 +216,7 @@ namespace SurfPool
             Wallet.Instance.Add(bonus, "sponsor bonus");
             if (ParkReputation.Instance != null) ParkReputation.Instance.Record(1f);
             GameStats.PlayerRides++;
+            Sfx.Play(Sound.Cheer, transform.position);
             Notifications.Post($"Great ride! Score {score} ({tricks} airs). Sponsors paid ${bonus}.");
         }
 
@@ -223,6 +225,7 @@ namespace SurfPool
             state = State.Wipeout;
             wipeoutUntil = Time.time + 1.5f;
             GameStats.Wipeouts++;
+            Sfx.Play(Sound.SplashBig);
             Notifications.Post("WIPEOUT! You fell off the back of the wave.", true);
         }
 

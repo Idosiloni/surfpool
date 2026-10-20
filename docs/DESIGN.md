@@ -40,7 +40,7 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
   - [x] Day cycle + end-of-day report, save/load, pause menu
   - [x] More staff + income: Wave Operator, Surf Coach, Surf Shop, VIP Sessions, Season Passes
 - [ ] **Step 5 — Polish & depth (next ideas):**
-  - [ ] Sound: waves, crowd, music, UI clicks
+  - [x] Sound: waves, crowd, music, UI clicks (synthesized by `tools/audio/make_sounds.py`)
   - [ ] Balance pass on prices, wages and pool costs (incremental curve to big numbers)
   - [ ] Snack bar, lessons area, more decoration you can place
   - [ ] Wave presets inspired by famous waves; pool-specific wave menus

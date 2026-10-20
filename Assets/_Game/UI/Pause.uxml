@@ -14,6 +14,12 @@
                     <ui:VisualElement name="pauseStats" />
                 </ui:VisualElement>
             </ui:VisualElement>
+            <ui:VisualElement class="volume-row section-gap">
+                <ui:Label text="SOUND" class="section-title volume-title" />
+                <ui:Slider name="volMusic" label="Music" low-value="0" high-value="1" class="volume-slider" />
+                <ui:Slider name="volEffects" label="Effects" low-value="0" high-value="1" class="volume-slider" />
+                <ui:Slider name="volAmbience" label="Beach" low-value="0" high-value="1" class="volume-slider" />
+            </ui:VisualElement>
             <ui:VisualElement class="screen-footer section-gap">
                 <ui:Button name="pauseResume" text="Resume (Tab)" class="send-button" />
                 <ui:Button name="pauseSave" text="Save game" class="close-button pause-button" />

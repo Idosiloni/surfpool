@@ -165,16 +165,20 @@ namespace SurfPool
             if (!RequirementMet(upgrade))
             {
                 Message = $"Buy {TitleOf(upgrade.requires)} first.";
+                Sfx.Play(Sound.Error);
                 return false;
             }
             if (!Wallet.Instance.Spend(upgrade.cost, upgrade.title))
             {
                 Message = $"Not enough money for {upgrade.title}.";
+                Sfx.Play(Sound.Error);
                 return false;
             }
             upgrade.owned = true;
             Apply(upgrade.id);
             Message = $"Bought {upgrade.title}!";
+            Sfx.Play(upgrade.category == UpgradeCategory.Pools ? Sound.Mission : Sound.Buy);
+            if (upgrade.category == UpgradeCategory.Pools) Sfx.Duck();
             Notifications.Post($"Bought {upgrade.title}!");
             return true;
         }

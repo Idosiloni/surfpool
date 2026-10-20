@@ -1,0 +1,170 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 233399f78ecac4f528e253511502aa71, type: 3}
+  m_Name: SoundBank
+  m_EditorClassIdentifier: Assembly-CSharp::SurfPool.SoundBank
+  entries:
+  - id: 0
+    clips:
+    - {fileID: 8300000, guid: 538c620c10930412ca1f5873f9c90eef, type: 3}
+    volume: 0.35
+    spatial: 0
+    minDistance: 5
+    maxDistance: 60
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 1
+    clips:
+    - {fileID: 8300000, guid: 494e533a737e74469ab4bdecd1401115, type: 3}
+    volume: 0.5
+    spatial: 0
+    minDistance: 5
+    maxDistance: 60
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 2
+    clips:
+    - {fileID: 8300000, guid: c82b18dac907e4024b055bcf52432652, type: 3}
+    volume: 0.7
+    spatial: 0
+    minDistance: 5
+    maxDistance: 60
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 3
+    clips:
+    - {fileID: 8300000, guid: da523332ea719429c96de076773bfc16, type: 3}
+    - {fileID: 8300000, guid: b9ecd96ad92c74fdbbe1c28120aa40da, type: 3}
+    - {fileID: 8300000, guid: d234aa47b1cf248a682daa479b03cbe6, type: 3}
+    volume: 0.45
+    spatial: 0
+    minDistance: 5
+    maxDistance: 60
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 4
+    clips:
+    - {fileID: 8300000, guid: bb77ccbdb7de7424e8f72328e9bd73af, type: 3}
+    volume: 0.6
+    spatial: 0
+    minDistance: 5
+    maxDistance: 60
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 5
+    clips:
+    - {fileID: 8300000, guid: 12b1d16396e5443969d824815c1fa2af, type: 3}
+    volume: 0.8
+    spatial: 0
+    minDistance: 5
+    maxDistance: 60
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 6
+    clips:
+    - {fileID: 8300000, guid: 22cb558c980c846e3981b6ac55bf2744, type: 3}
+    volume: 0.7
+    spatial: 0
+    minDistance: 5
+    maxDistance: 60
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 7
+    clips:
+    - {fileID: 8300000, guid: 6a092f57a232248c2abc6f5e8d7cb421, type: 3}
+    volume: 0.8
+    spatial: 1
+    minDistance: 6
+    maxDistance: 45
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 8
+    clips:
+    - {fileID: 8300000, guid: 6207a929b3aba45ab8e31bd4004eb634, type: 3}
+    volume: 0.75
+    spatial: 1
+    minDistance: 8
+    maxDistance: 55
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 9
+    clips:
+    - {fileID: 8300000, guid: 0fa15d0221c164add8fc894e7107eabc, type: 3}
+    volume: 0.85
+    spatial: 1
+    minDistance: 10
+    maxDistance: 65
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 10
+    clips:
+    - {fileID: 8300000, guid: 0418edcb7ca744abf93d013c984eca57, type: 3}
+    volume: 1
+    spatial: 1
+    minDistance: 12
+    maxDistance: 80
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 11
+    clips:
+    - {fileID: 8300000, guid: 7c67a7fd4ccad42988eaca22f72f1b97, type: 3}
+    - {fileID: 8300000, guid: 1822a0cd9999d4e88968dea676a26351, type: 3}
+    volume: 0.6
+    spatial: 1
+    minDistance: 4
+    maxDistance: 30
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 12
+    clips:
+    - {fileID: 8300000, guid: f5677288cad324342b92fd5654aeb819, type: 3}
+    volume: 0.7
+    spatial: 0
+    minDistance: 5
+    maxDistance: 60
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 13
+    clips:
+    - {fileID: 8300000, guid: 63997bb4327334f7084546e474734163, type: 3}
+    - {fileID: 8300000, guid: 0a25007376c6141bf8d2b57a0ca7af8a, type: 3}
+    volume: 0.45
+    spatial: 1
+    minDistance: 8
+    maxDistance: 50
+    pitchJitter: 0.06
+    minGap: 1.5
+  - id: 14
+    clips:
+    - {fileID: 8300000, guid: 5e69b63d2eba548b3a87008a86c9559a, type: 3}
+    volume: 0.5
+    spatial: 1
+    minDistance: 6
+    maxDistance: 50
+    pitchJitter: 0.06
+    minGap: 3
+  - id: 15
+    clips:
+    - {fileID: 8300000, guid: ffe63c98e0db7426e92c18f3bdb93cdb, type: 3}
+    - {fileID: 8300000, guid: d758a0bbeaf32495e9fdbcc212d8c59e, type: 3}
+    - {fileID: 8300000, guid: 5ac0f9263ee2e40a0971e27b883be7da, type: 3}
+    volume: 0.3
+    spatial: 1
+    minDistance: 10
+    maxDistance: 60
+    pitchJitter: 0.06
+    minGap: 2
+  surfLoop: {fileID: 8300000, guid: e5c8464ac255e4245b322d510a71562a, type: 3}
+  crowdLoop: {fileID: 8300000, guid: fab8e188244f540feba0dc6d1916069e, type: 3}
+  music:
+  - {fileID: 8300000, guid: a44eb205c61024999bd45aa05a36d768, type: 3}
+  - {fileID: 8300000, guid: 04c7854807c604e46bd2b814c7dd46d8, type: 3}

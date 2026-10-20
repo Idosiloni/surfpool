@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 namespace SurfPool
 {
     /// <summary>
-    /// Pause menu (Tab): controls cheat sheet, park stats, and Resume / Save / New game.
+    /// Pause menu (Tab): controls cheat sheet, park stats, sound volumes, and Resume / Save / New game.
     /// New game deletes the save and reloads the scene. (UI: Assets/_Game/UI/Pause.uxml)
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
@@ -41,6 +41,17 @@ namespace SurfPool
                 Notifications.Post("Game saved.");
             };
             doc.Q<Button>("pauseNew").clicked += NewGame;
+
+            var music = doc.Q<Slider>("volMusic");
+            var effects = doc.Q<Slider>("volEffects");
+            var ambience = doc.Q<Slider>("volAmbience");
+            music.SetValueWithoutNotify(Sfx.MusicVolume);
+            effects.SetValueWithoutNotify(Sfx.EffectsVolume);
+            ambience.SetValueWithoutNotify(Sfx.AmbienceVolume);
+            EventCallback<ChangeEvent<float>> changed = _ => Sfx.SetVolumes(music.value, effects.value, ambience.value);
+            music.RegisterValueChangedCallback(changed);
+            effects.RegisterValueChangedCallback(changed);
+            ambience.RegisterValueChangedCallback(changed);
         }
 
         void Update()

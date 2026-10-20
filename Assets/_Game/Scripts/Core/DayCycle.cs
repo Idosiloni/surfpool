@@ -116,6 +116,8 @@ namespace SurfPool
                 today.served = spawner.Served - servedAtStart;
                 today.lost = spawner.Lost - lostAtStart;
             }
+            Sfx.Play(Sound.DayEnd);
+            Lifeguard.Whistle();
             DayEnded?.Invoke(today);
         }
 

@@ -76,6 +76,7 @@ namespace SurfPool
 
         readonly List<ActiveWave> waves = new();
         readonly List<WaveState> states = new();
+        readonly HashSet<float> crashed = new();
         Mesh mesh;
         Mesh lip;
         Vector3[] baseVertices;
@@ -216,6 +217,7 @@ namespace SurfPool
 
                 float breakTime = wave.start + (type.breakAt * length + type.backWidth) / type.speed;
                 bool breaking = t >= breakTime;
+                if (breaking && crashed.Add(wave.start)) PlayCrash(type, center, wave.direction);
                 states.Add(new WaveState
                 {
                     id = wave.start,
@@ -230,6 +232,19 @@ namespace SurfPool
                     closeoutAmount = type.closeout && breaking ? Mathf.Clamp01((t - breakTime) / 0.6f) : 0f,
                 });
             }
+        }
+
+        void PlayCrash(WaveType type, float center, WaveDirection direction)
+        {
+            var sound = type.level switch
+            {
+                WaveLevel.Beginner => Sound.CrashSmall,
+                WaveLevel.Intermediate => Sound.CrashMedium,
+                _ => Sound.CrashBig,
+            };
+            float z = direction switch { WaveDirection.Left => -HalfWidth * 0.5f, WaveDirection.Right => HalfWidth * 0.5f, _ => 0f };
+            Sfx.Play(sound, transform.TransformPoint(new Vector3(center, 0f, z)), Mathf.Clamp(type.height / 1.5f, 0.6f, 1f));
+            if (crashed.Count > 64) crashed.Clear();
         }
 
         /// <summary>Where the break point is on the side a surfer rides toward (-1 = toward -z, +1 = toward +z).</summary>

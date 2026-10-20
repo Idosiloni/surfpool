@@ -85,6 +85,8 @@ namespace SurfPool
             if (mission == null || !mission.Done) return;
             if (mission.reward > 0) Wallet.Instance.Add(mission.reward, "mission reward");
             Notifications.Post($"Mission complete: {mission.title}!");
+            Sfx.Play(Sound.Mission);
+            Sfx.Duck();
             Completed?.Invoke(mission);
             current++;
         }
