@@ -41,7 +41,9 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
   - [x] More staff + income: Wave Operator, Surf Coach, Surf Shop, VIP Sessions, Season Passes
 - [ ] **Step 5 — Polish & depth (next ideas):**
   - [x] Sound: waves, crowd, music, UI clicks (synthesized by `tools/audio/make_sounds.py`)
-  - [ ] Balance pass on prices, wages and pool costs (incremental curve to big numbers)
+  - [x] Balance pass on prices, wages and pool costs (incremental curve to big numbers, see `docs/BALANCE.md`)
+  - [x] Map-changing upgrades: main pool grows (Starter -> Expanded -> Full-Size), Tiki Garden, Grandstand
+  - [x] NPC polish: board carried beside the arm, crawl-stroke paddling, surfers keep their distance
   - [ ] Snack bar, lessons area, more decoration you can place
   - [ ] Wave presets inspired by famous waves; pool-specific wave menus
   - [ ] Characters: real rigs/animations (Quaternius / Mixamo, needs download OK)

@@ -126,7 +126,7 @@ namespace SurfPool
         {
             if (wallet != null)
             {
-                SetText(money, "$ " + wallet.Money);
+                SetText(money, MoneyText.Format(wallet.Money));
                 money.EnableInClassList("money-label--negative", wallet.Money < 0);
             }
             if (DayCycle.Instance != null) SetText(dayLabel, $"Day {DayCycle.Instance.Day}  ·  {DayCycle.Instance.Clock}");
@@ -184,8 +184,8 @@ namespace SurfPool
         {
             if (pricing != null)
             {
-                SetText(ticketValue, "$" + pricing.Price);
-                SetText(rentalValue, "$" + pricing.RentalPrice);
+                SetText(ticketValue, SessionPrices());
+                SetText(rentalValue, MoneyText.Format(pricing.RentalPrice));
             }
             if (spawner != null)
             {
@@ -198,8 +198,18 @@ namespace SurfPool
             {
                 int wages = payroll.WagesPerMinute;
                 wagesRow.EnableInClassList("hidden", wages <= 0);
-                SetText(wagesValue, $"${wages}/min");
+                SetText(wagesValue, MoneyText.Format(wages) + "/min");
             }
+        }
+
+        /// <summary>"$20" at first; "$20 · $50 · $120" once better surfers come (beginner · intermediate · pro).</summary>
+        string SessionPrices()
+        {
+            var best = spawner != null ? spawner.BestSkillComing : WaveLevel.Beginner;
+            string text = MoneyText.Format(pricing.Price);
+            for (var level = WaveLevel.Intermediate; level <= best; level++)
+                text += "  ·  " + MoneyText.Format(pricing.PriceFor(level, null));
+            return text;
         }
 
         void UpdatePrompt()
@@ -320,7 +330,7 @@ namespace SurfPool
 
         void ShowMissionBanner(Mission mission)
         {
-            missionBanner.text = "MISSION COMPLETE!\n" + mission.title + (mission.reward > 0 ? $"   +${mission.reward}" : "");
+            missionBanner.text = "MISSION COMPLETE!\n" + mission.title + (mission.reward > 0 ? "   +" + MoneyText.Format(mission.reward) : "");
             missionBanner.RemoveFromClassList("mission-banner--leaving");
             missionBanner.RemoveFromClassList("hidden");
             missionBanner.schedule.Execute(() => missionBanner.AddToClassList("mission-banner--leaving")).StartingIn(2500);
@@ -360,7 +370,7 @@ namespace SurfPool
 
         void ShowPopup(int amount, string reason)
         {
-            var label = new Label((amount >= 0 ? "+$" : "-$") + Mathf.Abs(amount) + (string.IsNullOrEmpty(reason) ? "" : "  " + reason))
+            var label = new Label((amount >= 0 ? "+" : "") + MoneyText.Short(amount) + (string.IsNullOrEmpty(reason) ? "" : "  " + reason))
             {
                 pickingMode = PickingMode.Ignore,
             };

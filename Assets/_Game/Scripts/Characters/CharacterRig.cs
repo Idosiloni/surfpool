@@ -34,6 +34,12 @@ namespace SurfPool
 
         public Mode CurrentMode { get; set; } = Mode.Locomotion;
 
+        /// <summary>Walking with a board under the right arm: that arm stays still, hugging the board.</summary>
+        public bool CarryingBoard { get; set; }
+
+        /// <summary>While sitting: throw both arms up and wave (grandstand cheering).</summary>
+        public bool CheerArms { get; set; }
+
         float phase;
         float blend; // 0 = idle, 1 = walking
         Vector3 lastPosition;
@@ -107,8 +113,16 @@ namespace SurfPool
             hipL.localEulerAngles = new Vector3(swing * 32f * blend, 0, 0);
             hipR.localEulerAngles = new Vector3(-swing * 32f * blend, 0, 0);
             shoulderL.localEulerAngles = new Vector3(-swing * 28f * blend, 0, 6f + Mathf.Sin(phase) * 2f * (1 - blend));
-            shoulderR.localEulerAngles = new Vector3(swing * 28f * blend, 0, -6f - Mathf.Sin(phase) * 2f * (1 - blend));
+            shoulderR.localEulerAngles = CarryingBoard
+                ? new Vector3(-6f, 0, CarryArmAngle)
+                : new Vector3(swing * 28f * blend, 0, -6f - Mathf.Sin(phase) * 2f * (1 - blend));
         }
+
+        /// <summary>Right-arm roll that holds the arm out against a carried board.</summary>
+        const float CarryArmAngle = 16f;
+
+        /// <summary>How far the paddling arms angle out, so they pull through the water beside the board, not through it.</summary>
+        const float PaddleArmOut = 22f;
 
         void Paddle(float dt)
         {
@@ -118,8 +132,10 @@ namespace SurfPool
             hips.localPosition = new Vector3(0, hipsHeight, 0);
             torso.localEulerAngles = Vector3.zero;
             head.localEulerAngles = new Vector3(-35f, 0, 0);
-            shoulderL.localEulerAngles = new Vector3(-180f + Mathf.Sin(phase) * 70f, 0, 10f);
-            shoulderR.localEulerAngles = new Vector3(-180f + Mathf.Sin(phase + Mathf.PI) * 70f, 0, -10f);
+            // Alternating crawl strokes: each arm reaches forward, pulls back beside the board, then swings over.
+            float stroke = phase * Mathf.Rad2Deg;
+            shoulderL.localEulerAngles = new Vector3(-stroke % 360f, 0, -PaddleArmOut);
+            shoulderR.localEulerAngles = new Vector3(-(stroke + 180f) % 360f, 0, PaddleArmOut);
             hipL.localEulerAngles = new Vector3(Mathf.Sin(phase * 2f) * 8f, 0, 4f);
             hipR.localEulerAngles = new Vector3(-Mathf.Sin(phase * 2f) * 8f, 0, -4f);
         }
@@ -146,6 +162,13 @@ namespace SurfPool
             head.localEulerAngles = new Vector3(0, Mathf.Sin(Time.time * 0.4f) * 25f, 0);
             hipL.localEulerAngles = new Vector3(-85f, 0, 4f);
             hipR.localEulerAngles = new Vector3(-85f, 0, -4f);
+            if (CheerArms)
+            {
+                float wave = Mathf.Sin(Time.time * 9f) * 15f;
+                shoulderL.localEulerAngles = new Vector3(0, 0, 150f + wave);
+                shoulderR.localEulerAngles = new Vector3(0, 0, -150f - wave);
+                return;
+            }
             shoulderL.localEulerAngles = new Vector3(-20f, 0, 8f);
             shoulderR.localEulerAngles = new Vector3(-20f, 0, -8f);
         }

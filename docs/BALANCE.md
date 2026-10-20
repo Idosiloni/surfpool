@@ -1,0 +1,47 @@
+# Money balance (2026-10-20)
+
+Goal: the incremental feeling. You start at about **$30 a minute** with a tiny pool. You end at about **$8,000 a minute** with three pools, and the Big Wave Lagoon is the last big goal (around day 25, about 2.5 hours).
+
+## How money works now
+- **Session price = base price × skill × pool.** You set the base price (a beginner session in the main pool) with the +/- buttons at the desk.
+  - Skill: Beginner ×1, Intermediate ×2.5, Pro ×6.
+  - Pool: Main ×1, Reef ×2.5, Lagoon ×5.
+  - So a Pro in the Lagoon pays 30× the base price ($600 at a $20 base).
+- **Each surfer will pay up to 80–150% of the "fair" price**, times the same multipliers. The fair price starts at $25. Tiki Garden (+$10), Reef Shaper (+$5) and VIP (+$25) raise it. If your base price is above what a surfer will pay, they leave.
+- **Surfers arrive about every 20 s at first.** A better rating, the Billboard, Social Ads and the Grandstand make them come faster.
+- **How many surfers can be in the park at once** is the other limit. It grows with Bigger Lineup, the rental stand, Huge Lineup, the pool expansions and new pools.
+- **One surfer's visit takes about 2 minutes** (walk in, pay, 3 waves, walk out). Measured in-game: with 2 surfers allowed, the park serves about 1 surfer a minute.
+
+## The curve (from the model in this file's numbers)
+| When | Buy | Income after |
+|---|---|---|
+| Day 1 | Bigger Lineup $50, Turbo Pump $75, Rental Stand $100 | ~$95/min |
+| Day 2–3 | Billboard $150, Auto Waves $200, Lifeguard $250 | ~$95/min |
+| Day 3–5 | **Pool Expansion I $400**, **Intermediate waves $600**, Desk Clerk $500 | ~$210/min |
+| Day 5–10 | Rental staff, Wave Sets, Huge Lineup $1.2k, Social Ads $1.5k, Tiki Garden $2k | ~$430/min |
+| Day 11–15 | **Pool Expansion II $3k**, **Pro waves $4.5k**, Coach, Surf Shop | ~$880/min |
+| Day 16–21 | Turbo II, Wave Operator $6k, VIP $8k, **Reef Pool $18k** | ~$2,700/min |
+| Day 22–27 | Grandstand $22k, Season Passes $35k, **Big Wave Lagoon $80k** | ~$8,200/min |
+
+Mission rewards (about $60k in total, $50k of it for finishing chapter 4) speed this up a bit.
+
+## Measured in the game (4x speed, staff doing the chores, base price left at $20)
+| Park | Model | Measured |
+|---|---|---|
+| Starter pool, 2 surfers | ~$30/min | $32/min (1 surfer/min, 0 lost) |
+| Expanded pool, Intermediate waves, 7 surfers | ~$210/min | $202/min |
+| Full pool, Pro waves, VIP, 12 surfers | ~$1,300/min with the price raised | $584/min at a $20 base price |
+
+The last row shows why the price buttons matter: the upgrades raise what surfers will pay (fair price $65 by then),
+but you only earn it if you raise your base price. The price buttons now say what surfers expect.
+
+## Rules of thumb used
+- Early buys take 1–3 minutes of income, mid-game buys a few days, and each new pool about 4–5 days.
+- Each wave tier needs the bigger pool first (Expansion I → Intermediate, Expansion II → Pro). That's the "bigger waves need a bigger pool" step.
+- Staff wages stay under about 10% of what they help earn ($3–$25 a minute).
+- Money shows as `$12,450`; pop-ups shorten big amounts (`+$48.2k`).
+
+## Things to tune after Ido plays
+- If day 2–3 feels slow (several buys that don't raise income), make Billboard/Lifeguard cheaper or give the "Fix up the place" mission a reward.
+- If the end feels too fast or slow, change the pool costs (`UpgradeShop.cs`) and the pool multipliers (`price` in `GreyboxBuilder` pool specs).
+- All numbers live in `UpgradeShop.cs` (costs, effects), `PriceBoard.cs` (skill multipliers), `GreyboxBuilder.cs` (wages, pool price multipliers) and `MissionManager.cs` (rewards).

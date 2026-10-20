@@ -12,7 +12,7 @@ namespace SurfPool
         public long target = 1;
 
         public bool Done => current() >= target;
-        public string Progress => target <= 1 ? "" : $" ({Math.Min(current(), target)}/{target})";
+        public string Progress => target <= 1 ? "" : $" ({Math.Min(current(), target):#,0}/{target:#,0})";
     }
 
     /// <summary>A story step: what Uncle Kai's notebook says, what to do, a hint, where to go, and a cash reward.</summary>
@@ -140,7 +140,7 @@ namespace SurfPool
             missions.Add(new Mission
             {
                 chapter = ch1, title = "Back in business", reward = 50,
-                story = "Sell sessions, send waves, keep everyone happy. Happy surfers tip, and a good rating brings more of them.",
+                story = "Sell sessions, send waves, keep everyone happy. Happy surfers tip, and a good rating brings more of them. The +/- buttons at the desk set your price: when the park gets nicer, surfers will pay more, so raise it!",
                 hint = "Keep serving surfers. Tips count too!",
                 objectives = { Count("Earn $150", () => GameStats.TotalEarned, 150) },
             });
@@ -163,15 +163,19 @@ namespace SurfPool
             });
             missions.Add(new Mission
             {
-                chapter = ch2, title = "Bigger waves", reward = 100,
-                story = "Beginners are great, but intermediate surfers pay more. Time to teach the machine some proper peeling waves.",
-                hint = "Buy the Intermediate Wave Program (Waves tab).",
+                chapter = ch2, title = "Bigger waves", reward = 300,
+                story = "Beginners are great, but intermediate surfers pay two and a half times as much. Bigger waves need a bigger pool, so dig it out first, then teach the machine some proper peeling waves.",
+                hint = "Buy Pool Expansion I (Pools tab), then the Intermediate Wave Program (Waves tab).",
                 marker = () => upgradeComputer,
-                objectives = { Owns("Unlock Intermediate waves", "intermediate_waves") },
+                objectives =
+                {
+                    Owns("Expand the main pool", "pool_expand_1"),
+                    Owns("Unlock Intermediate waves", "intermediate_waves"),
+                },
             });
             missions.Add(new Mission
             {
-                chapter = ch2, title = "Regulars", reward = 150,
+                chapter = ch2, title = "Regulars", reward = 300,
                 story = "Word is spreading. Keep the line moving and the lineup happy.",
                 hint = "Serve surfers and keep your park rating high.",
                 objectives =
@@ -182,7 +186,7 @@ namespace SurfPool
             });
             missions.Add(new Mission
             {
-                chapter = ch2, title = "Board rentals", reward = 150,
+                chapter = ch2, title = "Board rentals", reward = 300,
                 story = "Lots of people show up without a board. Open the rental stand and hand them one from the rack.",
                 hint = "Buy the Board Rental Stand (Rentals tab), then rent boards.",
                 marker = () => shop.IsOwned("rental_stand") ? rentalRack : upgradeComputer,
@@ -194,7 +198,7 @@ namespace SurfPool
             });
             missions.Add(new Mission
             {
-                chapter = ch2, title = "Hire some help", reward = 200,
+                chapter = ch2, title = "Hire some help", reward = 400,
                 story = "You can't do everything yourself. Hire your first staff member and let them handle a job.",
                 hint = "Hire anyone from the Staff tab.",
                 marker = () => upgradeComputer,
@@ -203,15 +207,19 @@ namespace SurfPool
 
             missions.Add(new Mission
             {
-                chapter = ch3, title = "Go pro", reward = 300,
-                story = "The pros are calling. Steep, fast, barreling waves. This is what I always dreamed of.",
-                hint = "Buy the Pro Wave Program.",
+                chapter = ch3, title = "Go pro", reward = 1500,
+                story = "The pros are calling. Steep, fast, barreling waves, and they pay six times the base price. This is what I always dreamed of. Pro waves need the pool at full size.",
+                hint = "Buy Pool Expansion II (Pools tab), then the Pro Wave Program (Waves tab).",
                 marker = () => upgradeComputer,
-                objectives = { Owns("Unlock Pro waves", "pro_waves") },
+                objectives =
+                {
+                    Owns("Expand the pool to full size", "pool_expand_2"),
+                    Owns("Unlock Pro waves", "pro_waves"),
+                },
             });
             missions.Add(new Mission
             {
-                chapter = ch3, title = "Get barreled", reward = 400,
+                chapter = ch3, title = "Get barreled", reward = 2000,
                 story = "Nothing beats watching a pro disappear into the tube. Send them Pro waves!",
                 hint = "Pro surfers ride inside the barrel on Pro waves.",
                 marker = () => waveConsole,
@@ -219,28 +227,28 @@ namespace SurfPool
             });
             missions.Add(new Mission
             {
-                chapter = ch3, title = "Second pool", reward = 1000,
+                chapter = ch3, title = "Second pool", reward = 5000,
                 story = "One pool isn't enough anymore. Build a second pool and double the surf!",
                 hint = "Buy a new pool in the Pools tab.",
                 marker = () => upgradeComputer,
                 objectives =
                 {
-                    Count("Earn $5,000 in total", () => GameStats.TotalEarned, 5000),
+                    Count("Earn $40,000 in total", () => GameStats.TotalEarned, 40000),
                     Flag("Build a second pool", () => PoolRegistry.OpenPools >= 2),
                 },
             });
 
             missions.Add(new Mission
             {
-                chapter = ch4, title = "World-class", reward = 5000,
+                chapter = ch4, title = "World-class", reward = 50000,
                 story = "Look at this place! Let's make it the best surf park in the world.",
                 hint = "Serve lots of surfers, keep 5 stars, and build every pool.",
                 objectives =
                 {
-                    Count("Give 100 full sessions", () => GameStats.SurfersServed, 100),
+                    Count("Give 300 full sessions", () => GameStats.SurfersServed, 300),
                     Flag("Reach a 5-star rating", () => ParkReputation.Instance != null && ParkReputation.Instance.Stars >= 5f),
                     Flag("Open all pools", () => PoolRegistry.OpenPools >= PoolRegistry.TotalPools && PoolRegistry.TotalPools > 1),
-                    Count("Earn $50,000 in total", () => GameStats.TotalEarned, 50000),
+                    Count("Earn $500,000 in total", () => GameStats.TotalEarned, 500000),
                 },
             });
         }

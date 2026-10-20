@@ -9,7 +9,8 @@ namespace SurfPool
         [Tooltip("+1 raises the price, -1 lowers it.")]
         [SerializeField] int direction = 1;
 
-        public string Prompt => (direction > 0 ? "Raise" : "Lower") + $" ticket price (now ${pricing.Price})";
+        public string Prompt => (direction > 0 ? "Raise" : "Lower") +
+            $" base session price (now {MoneyText.Format(pricing.Price)}, surfers expect about {MoneyText.Format(pricing.FairPrice)})";
 
         public void Interact() => pricing.Change(direction);
     }

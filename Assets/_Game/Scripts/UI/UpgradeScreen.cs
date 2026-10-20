@@ -56,7 +56,7 @@ namespace SurfPool
             {
                 shownMoney = cash;
                 shownOwned = shop.OwnedCount;
-                money.text = "$ " + cash;
+                money.text = MoneyText.Format(cash);
                 BuildCards();
             }
             message.text = shop.Message ?? "";
@@ -95,7 +95,7 @@ namespace SurfPool
                 top.AddToClassList("card-top");
                 var title = new Label(upgrade.title);
                 title.AddToClassList("card-title");
-                var cost = new Label("$" + upgrade.cost);
+                var cost = new Label(MoneyText.Format(upgrade.cost));
                 cost.AddToClassList("cost-chip");
                 top.Add(title);
                 top.Add(cost);

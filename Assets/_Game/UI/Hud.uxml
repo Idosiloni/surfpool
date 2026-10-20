@@ -26,7 +26,7 @@
             <ui:VisualElement class="divider" picking-mode="Ignore" />
             <ui:Label text="PARK" class="section-title" picking-mode="Ignore" />
             <ui:VisualElement class="stat-row" picking-mode="Ignore">
-                <ui:Label text="Ticket price" class="stat-name" picking-mode="Ignore" />
+                <ui:Label text="Session prices" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="ticketValue" text="$20" class="stat-value" picking-mode="Ignore" />
             </ui:VisualElement>
             <ui:VisualElement name="rentalRow" class="stat-row" picking-mode="Ignore">

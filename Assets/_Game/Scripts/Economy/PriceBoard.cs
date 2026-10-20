@@ -3,17 +3,20 @@ using UnityEngine;
 namespace SurfPool
 {
     /// <summary>
-    /// The ticket price the player sets, and the "fair" price surfers expect.
-    /// Each surfer will pay up to somewhere between 80% and 150% of the fair price.
+    /// Session prices. The player sets the base price (a beginner session in the main pool). Better surfers and
+    /// fancier pools pay a multiple of it: Intermediate x2.5, Pro x6, and each pool has its own multiplier
+    /// (Reef x2.5, Lagoon x5). The "fair" price is what an average surfer expects for a base session; each surfer
+    /// will pay up to 80%-150% of fair (times the same multipliers). Upgrades raise the fair price.
     /// </summary>
     public class PriceBoard : MonoBehaviour
     {
+        [Tooltip("Base price: a beginner session in the main pool.")]
         [SerializeField] int price = 20;
-        [Tooltip("What an average surfer thinks a session is worth. Upgrades raise it.")]
+        [Tooltip("What an average surfer thinks a base session is worth. Upgrades raise it.")]
         [SerializeField] int fairPrice = 25;
         [SerializeField] int step = 5;
         [SerializeField] int minPrice = 5;
-        [SerializeField] int maxPrice = 150;
+        [SerializeField] int maxPrice = 200;
 
         [Header("Board rental")]
         [SerializeField] int rentalPrice = 10;
@@ -31,11 +34,26 @@ namespace SurfPool
             set => fairPrice = Mathf.Max(1, value);
         }
 
-        public void Restore(int ticket, int rental, int fair)
+        public static float SkillMultiplier(WaveLevel skill) => skill switch
         {
-            if (ticket > 0) price = ticket;
-            if (rental > 0) rentalPrice = rental;
-            if (fair > 0) fairPrice = fair;
+            WaveLevel.Beginner => 1f,
+            WaveLevel.Intermediate => 2.5f,
+            _ => 6f,
+        };
+
+        static float PoolMultiplier(PoolArea pool) => pool != null ? pool.PriceMultiplier : 1f;
+
+        /// <summary>What this surfer is charged at the desk.</summary>
+        public int PriceFor(WaveLevel skill, PoolArea pool) =>
+            Mathf.RoundToInt(price * SkillMultiplier(skill) * PoolMultiplier(pool));
+
+        /// <summary>The most a surfer of this skill, going to this pool, expects to pay (before their own mood roll).</summary>
+        public float FairFor(WaveLevel skill, PoolArea pool) => fairPrice * SkillMultiplier(skill) * PoolMultiplier(pool);
+
+        /// <summary>Restores the player's base price from a save. Fair and rental prices come from owned upgrades.</summary>
+        public void RestorePrice(int ticket)
+        {
+            if (ticket > 0) price = Mathf.Clamp(ticket, minPrice, maxPrice);
         }
 
         public void Change(int direction)

@@ -40,7 +40,7 @@ namespace SurfPool
         [Tooltip("Most surfers in the park at once.")]
         [SerializeField] int maxSurfers = 2;
         [Tooltip("Seconds between new surfers arriving.")]
-        [SerializeField] float spawnDelay = 6f;
+        [SerializeField] float spawnDelay = 20f;
         [Tooltip("Share of new surfers who come without a board and need to rent one (0 until the rental stand is bought).")]
         [Range(0f, 1f)] [SerializeField] float renterChance;
 

@@ -8,22 +8,29 @@ namespace SurfPool
         [SerializeField] SurferSpawner spawner;
         [SerializeField] PriceBoard pricing;
 
-        public string Prompt => spawner.NextCustomer != null
-            ? $"Sell surf session (${pricing.Price})"
-            : "Register (no customer waiting)";
+        public string Prompt
+        {
+            get
+            {
+                var customer = spawner.NextCustomer;
+                if (customer == null) return "Register (no customer waiting)";
+                return $"Sell {customer.Skill} session at {customer.Pool.DisplayName} ({MoneyText.Format(pricing.PriceFor(customer.Skill, customer.Pool))})";
+            }
+        }
 
         public void Interact()
         {
             var customer = spawner.NextCustomer;
             if (customer == null) return;
-            if (pricing.Price > customer.MaxPrice)
+            int price = pricing.PriceFor(customer.Skill, customer.Pool);
+            if (price > customer.MaxPrice)
             {
                 customer.RefusePrice();
                 return;
             }
-            Wallet.Instance.Add(pricing.Price, "ticket");
+            Wallet.Instance.Add(price, "tickets");
             GameStats.TicketsSold++;
-            customer.Pay(pricing.Price);
+            customer.Pay(price);
         }
     }
 }

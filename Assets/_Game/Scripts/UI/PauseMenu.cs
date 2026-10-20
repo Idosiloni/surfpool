@@ -75,7 +75,7 @@ namespace SurfPool
             InputBlocker.Block();
             FirstPersonController.LockCursor(false);
             int day = DayCycle.Instance != null ? DayCycle.Instance.Day : 1;
-            subtitle.text = $"Day {day}  ·  ${Wallet.Instance.Money} in the bank  ·  {PoolRegistry.OpenPools} of {PoolRegistry.TotalPools} pools open";
+            subtitle.text = $"Day {day}  ·  {MoneyText.Format(Wallet.Instance.Money)} in the bank  ·  {PoolRegistry.OpenPools} of {PoolRegistry.TotalPools} pools open";
             stats.Clear();
             AddStat("Happy surfers (all time)", GameStats.SurfersServed.ToString());
             AddStat("Lost customers", spawner.Lost.ToString());
@@ -84,7 +84,7 @@ namespace SurfPool
             AddStat("Boards rented", GameStats.BoardsRented.ToString());
             AddStat("Tricks / tube rides", $"{GameStats.TricksLanded} / {GameStats.TubeRides}");
             AddStat("Your own rides", GameStats.PlayerRides.ToString());
-            AddStat("Total earned", "$" + GameStats.TotalEarned);
+            AddStat("Total earned", MoneyText.Format(GameStats.TotalEarned));
             root.RemoveFromClassList("hidden");
         }
 

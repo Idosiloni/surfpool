@@ -16,11 +16,11 @@ namespace SurfPool
         [Serializable]
         class SaveData
         {
-            public int version = 1;
+            public int version = 2;
             public int money;
             public int day;
             public List<string> upgrades = new();
-            public int ticketPrice, rentalPrice, fairPrice;
+            public int ticketPrice;
             public float rating;
             public int missionIndex;
             public bool missionStarted;
@@ -54,8 +54,6 @@ namespace SurfPool
                 day = DayCycle.Instance != null ? DayCycle.Instance.Day : 1,
                 upgrades = shop.OwnedIds(),
                 ticketPrice = pricing.Price,
-                rentalPrice = pricing.RentalPrice,
-                fairPrice = pricing.FairPrice,
                 rating = ParkReputation.Instance != null ? ParkReputation.Instance.Score : 0.6f,
                 missionIndex = MissionManager.Instance != null ? MissionManager.Instance.Index : 0,
                 missionStarted = MissionManager.Instance != null && MissionManager.Instance.Started,
@@ -88,9 +86,9 @@ namespace SurfPool
             }
             if (data == null) return;
 
-            // Upgrades first: they change prices, so prices are restored after.
+            // Upgrades rebuild the fair and rental prices (and pool sizes); only the player's base price is saved.
             shop.RestoreOwned(data.upgrades);
-            pricing.Restore(data.ticketPrice, data.rentalPrice, data.fairPrice);
+            pricing.RestorePrice(data.ticketPrice);
             Wallet.Instance.Restore(data.money);
             if (ParkReputation.Instance != null) ParkReputation.Instance.Restore(data.rating);
             if (DayCycle.Instance != null) DayCycle.Instance.Restore(data.day);
@@ -105,7 +103,7 @@ namespace SurfPool
             GameStats.Wipeouts = data.wipeouts;
             GameStats.PlayerRides = data.playerRides;
             GameStats.TotalEarned = data.totalEarned;
-            Notifications.Post($"Welcome back! Day {data.day}, ${data.money} in the bank.");
+            Notifications.Post($"Welcome back! Day {data.day}, {MoneyText.Format(data.money)} in the bank.");
         }
 
         /// <summary>Deletes the save so the next start is a brand-new game.</summary>

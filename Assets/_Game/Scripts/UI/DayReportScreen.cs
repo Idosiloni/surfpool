@@ -52,7 +52,7 @@ namespace SurfPool
             Fill(incomeRows, report.income, "+");
             Fill(expenseRows, report.expenses, "-");
             int profit = report.TotalIncome - report.TotalExpenses;
-            totals.text = $"Income ${report.TotalIncome}   ·   Spent ${report.TotalExpenses}   ·   Profit {(profit >= 0 ? "+" : "-")}${Mathf.Abs(profit)}";
+            totals.text = $"Income {MoneyText.Format(report.TotalIncome)}   ·   Spent {MoneyText.Format(report.TotalExpenses)}   ·   Profit {(profit >= 0 ? "+" : "")}{MoneyText.Format(profit)}";
             next.text = $"Save & start day {report.day + 1}";
             root.RemoveFromClassList("hidden");
         }
@@ -73,7 +73,7 @@ namespace SurfPool
                 row.AddToClassList("stat-row");
                 var name = new Label(char.ToUpperInvariant(pair.Key[0]) + pair.Key.Substring(1));
                 name.AddToClassList("report-name");
-                var value = new Label($"{sign}${pair.Value}");
+                var value = new Label(sign + MoneyText.Format(pair.Value));
                 value.AddToClassList("report-value");
                 row.Add(name);
                 row.Add(value);

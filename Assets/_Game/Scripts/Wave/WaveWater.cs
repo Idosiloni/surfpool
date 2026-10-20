@@ -170,6 +170,17 @@ namespace SurfPool
             }
         }
 
+        /// <summary>Changes the pool's size (the main pool grows with Pool Expansion upgrades) and rebuilds the mesh.</summary>
+        public void Resize(float newLength, float newWidth)
+        {
+            if (Mathf.Approximately(newLength, length) && Mathf.Approximately(newWidth, width) && mesh != null) return;
+            length = newLength;
+            width = newWidth;
+            if (mesh == null) return;
+            Destroy(mesh);
+            BuildMesh();
+        }
+
         public void SpawnWave(WaveLevel level, WaveDirection direction = WaveDirection.Peak)
         {
             waves.Add(new ActiveWave { start = Time.time, type = Scaled(TypeOf(level)), direction = direction });

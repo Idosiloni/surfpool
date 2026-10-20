@@ -200,7 +200,7 @@ namespace SurfPool
         {
             if (pendingMoney <= 0f) return;
             int basePrice = pricing != null ? pricing.Price : 20;
-            Play(pendingMoney >= basePrice * 4 ? Sound.CashBig : Sound.Coin);
+            Play(pendingMoney >= basePrice * 8 ? Sound.CashBig : Sound.Coin);
             pendingMoney = 0f;
         }
     }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -67,6 +68,9 @@ namespace SurfPool.EditorTools
             {
                 name = "Main Pool", display = "Main Pool", z = 0, open = true, depth = PoolDepth, waterLevel = WaterLevel,
                 size = 1f, peel = 1f, mainDeck = true,
+                // Starts small; Pool Expansion I and II grow it (bigger waves need a bigger pool).
+                stages = new[] { new Vector2(40, 14), new Vector2(50, 19), new Vector2(PoolLength, PoolWidth) },
+                stageNames = new[] { "Starter Pool", "Expanded Pool", "Full-Size Pool" },
                 pathToPool = new[] { new Vector3(24, 0, -14), new Vector3(14, 0, -halfW - 0.6f) },
                 pathOut = new[] { new Vector3(PoolLength + 3, 0, -6), new Vector3(PoolLength + 6, 0, -30), new Vector3(45, 0, -40) },
             });
@@ -212,14 +216,14 @@ namespace SurfPool.EditorTools
             var reef = BuildPool(new PoolSpec
             {
                 name = "Reef Pool", display = "Reef Pool", upgradeId = "pool_reef", z = 64, open = false, depth = PoolDepth,
-                waterLevel = WaterLevel, size = 1.08f, peel = 0.8f,
+                waterLevel = WaterLevel, size = 1.08f, peel = 0.8f, price = 2.5f,
                 pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-2, 0, 46), new Vector3(14, 0, 64 - halfW - 0.6f) },
                 pathOut = new[] { new Vector3(PoolLength + 3, 0, 58), new Vector3(PoolLength + 40, 0, 58) },
             });
             var lagoon = BuildPool(new PoolSpec
             {
                 name = "Big Wave Lagoon", display = "Big Wave Lagoon", upgradeId = "pool_lagoon", z = 116, open = false,
-                depth = PoolDepth + 1f, waterLevel = WaterLevel - 0.8f, size = 1.25f, peel = 0.9f,
+                depth = PoolDepth + 1f, waterLevel = WaterLevel - 0.8f, size = 1.25f, peel = 0.9f, price = 5f,
                 pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-2, 0, 98), new Vector3(14, 0, 116 - halfW - 0.6f) },
                 pathOut = new[] { new Vector3(PoolLength + 3, 0, 110), new Vector3(PoolLength + 40, 0, 110) },
             });
@@ -260,7 +264,7 @@ namespace SurfPool.EditorTools
             var rentalClerkJob = rentalClerk.AddComponent<RentalClerk>();
             Set(rentalClerkJob, "spawner", spawner);
             Set(rentalClerkJob, "rack", rack);
-            Staff(rentalClerk, "Rental Clerk", 5);
+            Staff(rentalClerk, "Rental Clerk", 8);
 
             var runnerRoute = new GameObject("Board Runner Route").transform;
             var runnerPoints = new Object[]
@@ -279,7 +283,7 @@ namespace SurfPool.EditorTools
             Set(runnerJob, "bin", bin);
             SetArray(runnerJob, "rackToBin", runnerPoints);
             Set(runnerJob, "carriedBoard", carried);
-            Staff(runner, "Board Runner", 4);
+            Staff(runner, "Board Runner", 6);
 
             var tower = new GameObject("Lifeguard Tower").transform;
             tower.position = new Vector3(30, 0, halfW + 1.8f);
@@ -293,10 +297,10 @@ namespace SurfPool.EditorTools
             var coachMat = Mat("CoachShirt", new Color(1f, 0.78f, 0.25f), 0.3f);
             var coach = Person("Surf Coach", new Vector3(40, 0, -halfW - 1.2f), 0f, coachMat, skinMat);
             coach.AddComponent<SurfCoach>();
-            Staff(coach, "Surf Coach", 6);
+            Staff(coach, "Surf Coach", 15);
             var operatorGuy = Person("Wave Operator", new Vector3(3.6f, 0, -halfW - 2.4f), 30f, staffMat, skinMat);
             operatorGuy.AddComponent<WaveOperator>();
-            Staff(operatorGuy, "Wave Operator", 8);
+            Staff(operatorGuy, "Wave Operator", 25);
 
             // Surf shop kiosk near the entrance, hidden until bought.
             var surfShop = new GameObject("Surf Shop").transform;
@@ -312,6 +316,20 @@ namespace SurfPool.EditorTools
             Set(shop, "surfCoach", coach);
             Set(shop, "waveOperator", operatorGuy);
             Set(shop, "surfShop", surfShop.gameObject);
+
+            // The other pools' north decks get umbrellas and loungers when they're built.
+            PoolDeckDressing(reef.built, 64f);
+            PoolDeckDressing(lagoon.built, 116f);
+
+            // Tiki Garden (Park upgrade): torches and flower beds along every pool, hidden until bought.
+            var gardens = new Object[] { TikiGarden(null, 0f, true), TikiGarden(reef.built, 64f, false), TikiGarden(lagoon.built, 116f, false) };
+            foreach (GameObject garden in gardens) garden.SetActive(false);
+            SetArray(shop, "tikiGarden", gardens);
+
+            // Grandstand (Park upgrade): bleachers full of spectators on the main pool's north deck.
+            var grandstand = Grandstand();
+            grandstand.SetActive(false);
+            Set(shop, "grandstand", grandstand);
             coach.SetActive(false);
             operatorGuy.SetActive(false);
             game.AddComponent<PassiveIncome>();
@@ -417,7 +435,9 @@ namespace SurfPool.EditorTools
         class PoolSpec
         {
             public string name, display, upgradeId;
-            public float z, depth, waterLevel, size, peel;
+            public float z, depth, waterLevel, size, peel, price = 1f;
+            public Vector2[] stages; // (length, width) from smallest to full size; null = always full size
+            public string[] stageNames;
             public bool open, mainDeck;
             public Vector3[] pathToPool, pathOut;
         }
@@ -425,6 +445,7 @@ namespace SurfPool.EditorTools
         class PoolBuild
         {
             public PoolArea area;
+            public Transform built;
             public WaveWater water;
             public WaveMachine machine;
             public WaveControlPanel panel;
@@ -452,27 +473,21 @@ namespace SurfPool.EditorTools
             Box("Deck West", built, new Vector3(-10, -thickness / 2, zc), new Vector3(20, thickness, PoolWidth), mats.deck);
             Box("Deck East", built, new Vector3(PoolLength + 10, -thickness / 2, zc), new Vector3(20, thickness, PoolWidth), mats.deck);
 
-            float wallY = -depth / 2f;
-            Box("Wall North", built, new Vector3(PoolLength / 2, wallY, zc + halfW - 0.05f), new Vector3(PoolLength, depth, 0.1f), mats.tile);
-            Box("Wall South", built, new Vector3(PoolLength / 2, wallY, zc - halfW + 0.05f), new Vector3(PoolLength, depth, 0.1f), mats.tile);
-            Box("Wall Machine", built, new Vector3(0.05f, wallY, zc), new Vector3(0.1f, depth, PoolWidth), mats.tile);
-            Box("Floor", built, new Vector3(PoolLength / 2, -depth - 0.5f, zc), new Vector3(PoolLength, 1, PoolWidth), mats.tile);
-
-            const float rampStart = 45f;
-            float run = PoolLength - rampStart;
-            float rampLength = Mathf.Sqrt(run * run + depth * depth);
-            float rampAngle = Mathf.Atan2(depth, run) * Mathf.Rad2Deg;
-            var ramp = Box("Beach", built, new Vector3(rampStart + run / 2, -depth / 2 - 0.15f, zc), new Vector3(rampLength, 0.3f, PoolWidth), mats.sand);
-            ramp.transform.rotation = Quaternion.Euler(0, 0, rampAngle);
-
-            Box("Coping North", built, new Vector3(PoolLength / 2, 0.06f, zc + halfW + 0.25f), new Vector3(PoolLength + 1f, 0.12f, 0.5f), mats.coping);
-            Box("Coping South", built, new Vector3(PoolLength / 2, 0.06f, zc - halfW - 0.25f), new Vector3(PoolLength + 1f, 0.12f, 0.5f), mats.coping);
-            Box("Coping Machine", built, new Vector3(-0.25f, 0.06f, zc), new Vector3(0.5f, 0.12f, PoolWidth), mats.coping);
-
-            Blocker("Blocker North", built, new Vector3(PoolLength / 2, 0.75f, zc + halfW + 0.1f), new Vector3(PoolLength, 1.5f, 0.2f));
-            Blocker("Blocker South", built, new Vector3(PoolLength / 2, 0.75f, zc - halfW - 0.1f), new Vector3(PoolLength, 1.5f, 0.2f));
-            Blocker("Blocker Machine", built, new Vector3(-0.1f, 0.75f, zc), new Vector3(0.2f, 1.5f, PoolWidth));
-            Blocker("Blocker Beach", built, new Vector3(PoolLength + 0.1f, 0.75f, zc), new Vector3(0.2f, 1.5f, PoolWidth));
+            // The basin (walls, floor, beach, coping, edge blockers). A pool with size stages gets one basin per stage;
+            // smaller stages fill the not-yet-dug part with deck and an "expansion site" sign.
+            float southZ = zc - halfW;
+            var stageObjects = new List<GameObject>();
+            if (spec.stages == null)
+                BuildBasin(built, southZ, PoolLength, PoolWidth, depth, thickness);
+            else
+                for (int i = 0; i < spec.stages.Length; i++)
+                {
+                    var stage = new GameObject($"Size {i + 1} ({spec.stages[i].x:0}x{spec.stages[i].y:0})");
+                    stage.transform.SetParent(built, false);
+                    BuildBasin(stage.transform, southZ, spec.stages[i].x, spec.stages[i].y, depth, thickness);
+                    stage.SetActive(i == 0);
+                    stageObjects.Add(stage);
+                }
 
             var waterGo = new GameObject("Water", typeof(MeshFilter), typeof(MeshRenderer));
             waterGo.transform.SetParent(built, false);
@@ -554,11 +569,28 @@ namespace SurfPool.EditorTools
             var outPoints = new Object[spec.pathOut.Length];
             for (int i = 0; i < outPoints.Length; i++) outPoints[i] = Point($"Out {i + 1}", route, spec.pathOut[i]);
             var lineup = Point("Lineup", route, new Vector3(12, spec.waterLevel, zc - 4));
-            const float landingX = 57f;
-            var landing = Point("Beach Landing", route, new Vector3(landingX, -depth + depth * (landingX - rampStart) / run, zc));
+            // On the beach slope, 95% of the way down the pool (PoolArea moves it when the pool changes size).
+            var landing = Point("Beach Landing", route, new Vector3(PoolLength * 0.95f, -depth * 0.2f, zc));
 
             var area = root.gameObject.AddComponent<PoolArea>();
             SetString(area, "displayName", spec.display);
+            SetFloat(area, "priceMultiplier", spec.price);
+            SetFloat(area, "southEdge", southZ);
+            if (spec.stages != null)
+            {
+                var so = new SerializedObject(area);
+                var stagesProp = so.FindProperty("stages");
+                stagesProp.arraySize = spec.stages.Length;
+                for (int i = 0; i < spec.stages.Length; i++)
+                {
+                    var element = stagesProp.GetArrayElementAtIndex(i);
+                    element.FindPropertyRelative("name").stringValue = spec.stageNames[i];
+                    element.FindPropertyRelative("length").floatValue = spec.stages[i].x;
+                    element.FindPropertyRelative("width").floatValue = spec.stages[i].y;
+                    element.FindPropertyRelative("visuals").objectReferenceValue = stageObjects[i];
+                }
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
             SetString(area, "upgradeId", spec.upgradeId ?? "");
             SetBool(area, "openAtStart", spec.open);
             Set(area, "water", water);
@@ -574,7 +606,161 @@ namespace SurfPool.EditorTools
             Set(surfPeg, "pool", area);
             if (!spec.open) built.gameObject.SetActive(false);
 
-            return new PoolBuild { area = area, water = water, machine = machine, panel = panel, peg = peg };
+            return new PoolBuild { area = area, built = built, water = water, machine = machine, panel = panel, peg = peg };
+        }
+
+        static void PoolDeckDressing(Transform parent, float zc)
+        {
+            var dressing = new GameObject("Deck Dressing").transform;
+            dressing.SetParent(parent, false);
+            float z = zc + PoolWidth / 2f + 7f;
+            for (int i = 0; i < 6; i++)
+            {
+                float x = 6 + i * 9f;
+                WorldArt.Model(i % 2 == 0 ? "BeachUmbrellaCoral" : "BeachUmbrellaTeal", dressing, new Vector3(x, 0, z + 0.8f), i * 47f);
+                WorldArt.Model("LoungeChair", dressing, new Vector3(x - 0.8f, 0, z), 180f);
+                WorldArt.Model("LoungeChair", dressing, new Vector3(x + 0.8f, 0, z), 180f);
+            }
+            for (int i = 0; i < 4; i++)
+                WorldArt.Model(i % 2 == 0 ? "PalmTreeTall" : "PalmTree", dressing, new Vector3(2 + i * 17f, 0, z + 5f), i * 83f);
+        }
+
+        /// <summary>Tiki torches along the pool's north edge and flower beds behind them (the main pool also gets the east edge).</summary>
+        static GameObject TikiGarden(Transform parent, float zc, bool mainPool)
+        {
+            var garden = new GameObject("Tiki Garden");
+            if (parent != null) garden.transform.SetParent(parent, false);
+            var pole = Mat("TikiPole", new Color(0.45f, 0.3f, 0.18f));
+            var flame = Mat("TikiFlame", new Color(1f, 0.55f, 0.1f), 0.2f, new Color(3f, 1.4f, 0.2f));
+            var planter = Mat("Planter", new Color(0.55f, 0.38f, 0.24f));
+            var leaf = Mat("Leaf", new Color(0.25f, 0.62f, 0.3f));
+            Material[] flowers =
+            {
+                Mat("FlowerPink", new Color(1f, 0.45f, 0.65f)), Mat("FlowerYellow", new Color(1f, 0.85f, 0.25f)),
+                Mat("FlowerOrange", new Color(1f, 0.55f, 0.2f)),
+            };
+
+            void Torch(Vector3 at)
+            {
+                var t = Box("Tiki Torch", garden.transform, at + new Vector3(0, 0.9f, 0), new Vector3(0.14f, 1.8f, 0.14f), pole);
+                Object.DestroyImmediate(t.GetComponent<Collider>());
+                var f = Box("Flame", t.transform.parent, at + new Vector3(0, 1.95f, 0), new Vector3(0.22f, 0.32f, 0.22f), flame);
+                Object.DestroyImmediate(f.GetComponent<Collider>());
+            }
+            void Bed(Vector3 at, int seed)
+            {
+                Box("Flower Bed", garden.transform, at + new Vector3(0, 0.2f, 0), new Vector3(2.4f, 0.4f, 0.9f), planter);
+                for (int i = 0; i < 5; i++)
+                {
+                    var bloom = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    bloom.name = "Bloom";
+                    Object.DestroyImmediate(bloom.GetComponent<Collider>());
+                    bloom.transform.SetParent(garden.transform, false);
+                    bloom.transform.position = at + new Vector3(-0.9f + i * 0.45f, 0.55f + (i % 2) * 0.08f, ((i + seed) % 3 - 1) * 0.18f);
+                    bloom.transform.localScale = Vector3.one * (i % 2 == 0 ? 0.42f : 0.34f);
+                    bloom.GetComponent<MeshRenderer>().sharedMaterial = i % 2 == 0 ? leaf : flowers[(i + seed) % flowers.Length];
+                }
+            }
+
+            float edge = zc + PoolWidth / 2f + 1.4f;
+            for (int i = 0; i < 8; i++) Torch(new Vector3(3 + i * 8f, 0, edge));
+            for (int i = 0; i < 7; i++) Bed(new Vector3(7 + i * 8f, 0, edge + 1.6f), i);
+            if (mainPool)
+                for (int i = 0; i < 4; i++)
+                {
+                    Torch(new Vector3(PoolLength + 1.6f, 0, -8 + i * 6f));
+                    if (i < 3) Bed(new Vector3(PoolLength + 4f, 0, -5 + i * 6f), i + 3);
+                }
+            return garden;
+        }
+
+        /// <summary>Three rows of bleachers with a shade roof and seated spectators, facing the main pool.</summary>
+        static GameObject Grandstand()
+        {
+            var stand = new GameObject("Grandstand");
+            var seatTeal = Mat("SeatTeal", new Color(0.1f, 0.68f, 0.62f), 0.35f);
+            var roof = Mat("RoofSail", new Color(1f, 0.96f, 0.88f), 0.2f);
+            const float x0 = 10f, length = 36f, z0 = 24.5f, row = 1.4f, rise = 0.7f;
+            for (int i = 0; i < 3; i++)
+            {
+                float top = (i + 1) * rise;
+                Box($"Row {i + 1}", stand.transform, new Vector3(x0 + length / 2, top / 2, z0 + i * row), new Vector3(length, top, row), i % 2 == 0 ? seatTeal : mats.sign);
+            }
+            float back = z0 + 3 * row - row / 2;
+            Box("Back Rail", stand.transform, new Vector3(x0 + length / 2, 3 * rise + 0.5f, back), new Vector3(length, 0.12f, 0.12f), mats.coping);
+            for (int i = 0; i <= 4; i++)
+            {
+                float x = x0 + i * length / 4;
+                Box("Roof Post", stand.transform, new Vector3(x, 2.4f, back + 0.2f), new Vector3(0.2f, 4.8f, 0.2f), mats.coping);
+            }
+            var sail = Box("Shade Roof", stand.transform, new Vector3(x0 + length / 2, 4.6f, z0 + row), new Vector3(length + 1f, 0.1f, 4.4f), roof);
+            sail.transform.rotation = Quaternion.Euler(-10f, 0, 0);
+
+            var random = new System.Random(7);
+            for (int r = 0; r < 3; r++)
+            for (int i = 0; i < 9; i++)
+            {
+                if (random.NextDouble() < 0.25) continue; // a few empty seats
+                var fan = new GameObject("Spectator");
+                fan.transform.SetParent(stand.transform, false);
+                float seatTop = (r + 1) * rise;
+                fan.transform.SetPositionAndRotation(new Vector3(x0 + 2 + i * 4f + (float)random.NextDouble(), seatTop - 0.5f, z0 + r * row + 0.1f),
+                    Quaternion.Euler(0, 180f, 0));
+                BuildCharacter(fan.transform);
+                fan.AddComponent<Spectator>();
+            }
+            return stand;
+        }
+
+        /// <summary>
+        /// Walls, floor, sloped beach, coping and blockers for a pool of the given size, from x = 0 (machine end) and
+        /// z = southZ northward. Anything smaller than full size gets deck over the rest of the full footprint.
+        /// </summary>
+        static void BuildBasin(Transform parent, float southZ, float length, float width, float depth, float thickness)
+        {
+            float halfW = width / 2f, zc = southZ + halfW, wallY = -depth / 2f;
+            Box("Wall North", parent, new Vector3(length / 2, wallY, zc + halfW - 0.05f), new Vector3(length, depth, 0.1f), mats.tile);
+            Box("Wall South", parent, new Vector3(length / 2, wallY, zc - halfW + 0.05f), new Vector3(length, depth, 0.1f), mats.tile);
+            Box("Wall Machine", parent, new Vector3(0.05f, wallY, zc), new Vector3(0.1f, depth, width), mats.tile);
+            Box("Floor", parent, new Vector3(length / 2, -depth - 0.5f, zc), new Vector3(length, 1, width), mats.tile);
+
+            float rampStart = length * 0.75f;
+            float run = length - rampStart;
+            float rampLength = Mathf.Sqrt(run * run + depth * depth);
+            float rampAngle = Mathf.Atan2(depth, run) * Mathf.Rad2Deg;
+            var ramp = Box("Beach", parent, new Vector3(rampStart + run / 2, -depth / 2 - 0.15f, zc), new Vector3(rampLength, 0.3f, width), mats.sand);
+            ramp.transform.rotation = Quaternion.Euler(0, 0, rampAngle);
+
+            Box("Coping North", parent, new Vector3(length / 2, 0.06f, zc + halfW + 0.25f), new Vector3(length + 1f, 0.12f, 0.5f), mats.coping);
+            Box("Coping South", parent, new Vector3(length / 2, 0.06f, zc - halfW - 0.25f), new Vector3(length + 1f, 0.12f, 0.5f), mats.coping);
+            Box("Coping Machine", parent, new Vector3(-0.25f, 0.06f, zc), new Vector3(0.5f, 0.12f, width), mats.coping);
+
+            Blocker("Blocker North", parent, new Vector3(length / 2, 0.75f, zc + halfW + 0.1f), new Vector3(length, 1.5f, 0.2f));
+            Blocker("Blocker South", parent, new Vector3(length / 2, 0.75f, zc - halfW - 0.1f), new Vector3(length, 1.5f, 0.2f));
+            Blocker("Blocker Machine", parent, new Vector3(-0.1f, 0.75f, zc), new Vector3(0.2f, 1.5f, width));
+            Blocker("Blocker Beach", parent, new Vector3(length + 0.1f, 0.75f, zc), new Vector3(0.2f, 1.5f, width));
+
+            // Deck over the part of the full-size footprint that isn't dug yet, with an expansion-site sign.
+            float fullNorth = southZ + PoolWidth;
+            if (length < PoolLength - 0.01f)
+                Box("Fill Deck East", parent, new Vector3((length + PoolLength) / 2, -thickness / 2, southZ + PoolWidth / 2),
+                    new Vector3(PoolLength - length, thickness, PoolWidth), mats.deck);
+            if (width < PoolWidth - 0.01f)
+                Box("Fill Deck North", parent, new Vector3(length / 2, -thickness / 2, (southZ + width + fullNorth) / 2),
+                    new Vector3(length, thickness, PoolWidth - width), mats.deck);
+            if (length < PoolLength - 0.01f || width < PoolWidth - 0.01f)
+            {
+                var sign = new Vector3(length * 0.5f, 0, southZ + width + 2.2f);
+                if (width >= PoolWidth - 0.01f) sign = new Vector3((length + PoolLength) / 2, 0, southZ + PoolWidth / 2);
+                Box("Expansion Sign Post L", parent, sign + new Vector3(-2.2f, 1.2f, 0), new Vector3(0.18f, 2.4f, 0.18f), mats.coping);
+                Box("Expansion Sign Post R", parent, sign + new Vector3(2.2f, 1.2f, 0), new Vector3(0.18f, 2.4f, 0.18f), mats.coping);
+                Box("Expansion Sign", parent, sign + new Vector3(0, 2.1f, 0), new Vector3(5f, 1.2f, 0.12f), mats.sign);
+                for (int i = 0; i < 6; i++)
+                {
+                    var cone = Box("Cone", parent, sign + new Vector3(-6f + i * 2.4f, 0.3f, -1.4f), new Vector3(0.35f, 0.6f, 0.35f), mats.sign);
+                    Object.DestroyImmediate(cone.GetComponent<Collider>());
+                }
+            }
         }
 
         static void SetFloat(Object target, string field, float value)

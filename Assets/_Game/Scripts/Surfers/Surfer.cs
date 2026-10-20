@@ -71,6 +71,11 @@ namespace SurfPool
         readonly Queue<Vector3> path = new();
         State stateAfterPath;
         Vector3 lineupTarget;
+        float lane;            // sideways offset from the path (m), so surfers don't walk in single file on top of each other
+        Vector3 segmentStart;  // where the current path segment began (lane direction)
+
+        const float WalkSpace = 0.8f;   // personal space on foot (m)
+        const float WaterSpace = 1.8f;  // personal space on a board (boards are 2 m long)
         float rideWave;
         float rideStartTime;
         float rideLaneZ;
@@ -128,8 +133,8 @@ namespace SurfPool
                 if (Time.time < shoutUntil) return shout;
                 return state switch
                 {
-                    State.InDeskLine when atFront => spawner.Pricing.Price > MaxPrice
-                        ? $"${spawner.Pricing.Price}?! That's a lot..."
+                    State.InDeskLine when atFront => spawner.Pricing.PriceFor(Skill, pool) > MaxPrice
+                        ? $"{MoneyText.Format(spawner.Pricing.PriceFor(Skill, pool))}?! That's a lot..."
                         : $"{Skill} surfer - wants a session" + (isRenter ? " + board" : ""),
                     State.InRentalLine when atFront => "Needs a rental board",
                     State.WaitingForWave => $"Wants {WantedWave} ({ridesDone + 1}/{wavesPerSession})",
@@ -183,8 +188,7 @@ namespace SurfPool
             water = pool.Water;
             Skill = owner.RollSkill();
             PreferredDirection = Random.value < 0.6f ? WaveDirection.Right : WaveDirection.Left;
-            float skillPay = Skill switch { WaveLevel.Beginner => 0.85f, WaveLevel.Pro => 1.4f, _ => 1f };
-            MaxPrice = owner.Pricing.FairPrice * Random.Range(0.8f, 1.5f) * skillPay;
+            MaxPrice = owner.Pricing.FairFor(Skill, pool) * Random.Range(0.8f, 1.5f);
             // Beginners ride big foam boards, pros ride short narrow ones.
             board.localScale = Skill switch
             {
@@ -197,6 +201,7 @@ namespace SurfPool
             rig.Paint(skin, Random.ColorHSV(0f, 1f, 0.5f, 0.9f, 0.6f, 1f), Random.ColorHSV(0f, 1f, 0.4f, 0.8f, 0.3f, 0.8f), hair, Random.Range(0, 2));
             Paint(board, Random.ColorHSV(0f, 1f, 0.6f, 1f, 0.8f, 1f));
             isRenter = renter;
+            lane = Random.Range(-0.6f, 0.6f);
             board.gameObject.SetActive(!renter);
             Walk(State.WalkingIn, owner.PathIn, State.InDeskLine);
         }
@@ -208,7 +213,7 @@ namespace SurfPool
             paidPrice = price;
             RecordMood(patience);
             spawner.LeaveLines(this);
-            lineupTarget = pool.Lineup.position + new Vector3(0f, 0f, Random.Range(-4f, 4f));
+            lineupTarget = FreeLineupSpot();
             if (isRenter)
             {
                 patience = 1f;
@@ -246,7 +251,7 @@ namespace SurfPool
                     break;
                 case State.WaitingForWave:
                     SetPose(Pose.Paddle);
-                    Float(transform.position, Vector3.right);
+                    Float(transform.position + Separation(WaterSpace) * Time.deltaTime, Vector3.right);
                     if (DrainPatience(wavePatience * ParkEffects.WavePatienceMultiplier)) LeaveAngry("Where are the waves?!");
                     else TryCatchWave();
                     break;
@@ -271,6 +276,57 @@ namespace SurfPool
             foreach (var p in points) path.Enqueue(p);
             state = walking;
             stateAfterPath = whenDone;
+            segmentStart = transform.position;
+        }
+
+        /// <summary>A spot in the lineup away from where the other surfers in this pool are sitting.</summary>
+        Vector3 FreeLineupSpot()
+        {
+            Vector3 best = pool.Lineup.position;
+            float bestGap = -1f;
+            float halfWidth = Mathf.Max(1f, water.Width * 0.5f - 2f);
+            for (int i = 0; i < 8; i++)
+            {
+                var spot = pool.Lineup.position + new Vector3(Random.Range(-2f, 2f), 0f, 0f);
+                spot.z = water.transform.position.z + Random.Range(-halfWidth, halfWidth);
+                float gap = float.MaxValue;
+                foreach (var other in All)
+                    if (other != this && other.pool == pool)
+                        gap = Mathf.Min(gap, (other.lineupTarget - spot).sqrMagnitude);
+                if (gap > bestGap)
+                {
+                    bestGap = gap;
+                    best = spot;
+                }
+            }
+            return best;
+        }
+
+        /// <summary>The path point shifted sideways into this surfer's lane.</summary>
+        Vector3 InLane(Vector3 point)
+        {
+            Vector3 direction = point - segmentStart;
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.01f) return point;
+            direction.Normalize();
+            return point + new Vector3(-direction.z, 0f, direction.x) * lane;
+        }
+
+        /// <summary>A gentle push away from surfers that are too close (horizontal only).</summary>
+        Vector3 Separation(float space)
+        {
+            Vector3 push = Vector3.zero;
+            foreach (var other in All)
+            {
+                if (other == this || other.state is State.Riding or State.Wipeout) continue;
+                Vector3 away = transform.position - other.transform.position;
+                away.y = 0f;
+                float distance = away.magnitude;
+                if (distance >= space) continue;
+                if (distance < 0.001f) away = new Vector3(Random.value - 0.5f, 0f, Random.value - 0.5f);
+                push += away.normalized * (space - distance);
+            }
+            return push * 2.5f;
         }
 
         void FollowPath()
@@ -291,9 +347,13 @@ namespace SurfPool
                 return;
             }
             Vector3 target = path.Peek();
-            StepTowards(target);
-            if ((target - transform.position).sqrMagnitude >= 0.0004f) return;
+            Vector3 goal = InLane(target);
+            StepTowards(goal, true);
+            Vector3 left = goal - transform.position;
+            left.y = 0f;
+            if (left.sqrMagnitude >= 0.04f) return;
             path.Dequeue();
+            segmentStart = target;
             if (hasRentalBoard && (target - spawner.ReturnBinSpot).sqrMagnitude < 0.01f) ReturnBoard();
         }
 
@@ -315,10 +375,12 @@ namespace SurfPool
             atFront = front;
         }
 
-        void StepTowards(Vector3 target)
+        void StepTowards(Vector3 target, bool makeSpace = false)
         {
             Vector3 next = Vector3.MoveTowards(transform.position, target, walkSpeed * Time.deltaTime);
-            Face(next - transform.position);
+            Vector3 heading = next - transform.position;
+            if (makeSpace) next += Separation(WalkSpace) * Time.deltaTime;
+            Face(heading);
             transform.position = next;
         }
 
@@ -327,8 +389,9 @@ namespace SurfPool
             Vector3 toTarget = target - transform.position;
             toTarget.y = 0f;
             Vector3 step = Vector3.ClampMagnitude(toTarget, speed * Time.deltaTime);
-            Float(transform.position + step, step);
-            if (toTarget.magnitude > 0.1f) return;
+            Float(transform.position + step + Separation(WaterSpace) * Time.deltaTime, step);
+            // Arriving at the lineup: close is good enough (someone may be sitting right next to the spot).
+            if (toTarget.magnitude > (whenArrived == State.WaitingForWave ? 0.7f : 0.1f)) return;
 
             if (whenArrived == State.WalkingOut)
             {
@@ -587,16 +650,19 @@ namespace SurfPool
         {
             switch (pose)
             {
-                case Pose.Walk: // walking or standing, board carried on its edge under the arm
+                case Pose.Walk: // walking or standing, board carried on its edge under the right arm
                     rig.CurrentMode = CharacterRig.Mode.Locomotion;
-                    Place(board, new Vector3(0.42f, 0.95f, 0.05f), new Vector3(0f, 0f, 90f));
+                    rig.CarryingBoard = board.gameObject.activeSelf;
+                    Place(board, new Vector3(0.44f + 0.07f * board.localScale.x, 0.9f, 0.15f), new Vector3(-8f, 0f, 90f));
                     break;
                 case Pose.Paddle: // lying on the board, paddling
                     rig.CurrentMode = CharacterRig.Mode.Paddle;
+                    rig.CarryingBoard = false;
                     Place(board, new Vector3(0f, 0.05f, 0f), Vector3.zero);
                     break;
                 case Pose.Ride: // standing sideways on the board, knees bent
                     rig.CurrentMode = CharacterRig.Mode.Ride;
+                    rig.CarryingBoard = false;
                     Place(board, new Vector3(0f, 0.05f, 0f), Vector3.zero);
                     break;
             }

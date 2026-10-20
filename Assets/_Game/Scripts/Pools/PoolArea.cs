@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace SurfPool
@@ -5,9 +6,21 @@ namespace SurfPool
     /// <summary>
     /// One wave pool in the park: its water, wave machine and the route surfers take into it and out of it.
     /// The first pool is open from the start; others are built (opened) from the upgrade computer.
+    /// A pool can also have size stages: the main pool starts small and grows with Pool Expansion upgrades
+    /// (bigger waves need a bigger pool). The machine end and the south wall stay put; it grows toward the beach
+    /// and to the north.
     /// </summary>
     public class PoolArea : MonoBehaviour
     {
+        [Serializable]
+        public class SizeStage
+        {
+            public string name;
+            public float length, width;
+            [Tooltip("Walls, floor, beach and the deck that fills the not-yet-dug part, for this size.")]
+            public GameObject visuals;
+        }
+
         [SerializeField] string displayName = "Main Pool";
         [Tooltip("Upgrade id that builds this pool (empty for the starting pool).")]
         [SerializeField] string upgradeId;
@@ -33,6 +46,14 @@ namespace SurfPool
         [Tooltip("Light on the machine house that turns on with the Auto Wave Timer.")]
         [SerializeField] GameObject autoWaveLight;
 
+        [Header("Price and size")]
+        [Tooltip("Sessions in this pool cost this many times the base price (bigger pools, bigger prices).")]
+        [SerializeField] float priceMultiplier = 1f;
+        [Tooltip("Size stages from smallest to biggest. Empty = the pool is always full size.")]
+        [SerializeField] SizeStage[] stages;
+        [Tooltip("South edge of the pool (world z). The pool grows north from here.")]
+        [SerializeField] float southEdge;
+
         public string DisplayName => displayName;
         public string UpgradeId => upgradeId;
         public GameObject AutoWaveLight => autoWaveLight;
@@ -44,12 +65,17 @@ namespace SurfPool
         public Transform BeachLanding => beachLanding;
         public Transform[] PathOut => pathOut;
         public Transform[] ReturnPathOut => returnPathOut;
+        public float PriceMultiplier => priceMultiplier;
+        public int Stage { get; private set; }
+        public int StageCount => stages?.Length ?? 0;
+        public string StageName => StageCount > 0 ? stages[Stage].name : displayName;
 
         void Awake()
         {
             IsOpen = openAtStart;
             if (buildVisuals != null) buildVisuals.SetActive(IsOpen);
             if (lotVisuals != null) lotVisuals.SetActive(!IsOpen);
+            if (StageCount > 0) SetStage(0);
         }
 
         void OnEnable() => PoolRegistry.All.Add(this);
@@ -60,6 +86,30 @@ namespace SurfPool
             IsOpen = true;
             if (buildVisuals != null) buildVisuals.SetActive(true);
             if (lotVisuals != null) lotVisuals.SetActive(false);
+        }
+
+        /// <summary>Grows (or sets) the pool to a size stage: swaps the walls and deck, resizes the water and moves the beach.</summary>
+        public void SetStage(int stage)
+        {
+            if (StageCount == 0) return;
+            Stage = Mathf.Clamp(stage, 0, StageCount - 1);
+            for (int i = 0; i < stages.Length; i++)
+                if (stages[i].visuals != null) stages[i].visuals.SetActive(i == Stage);
+
+            var size = stages[Stage];
+            var waterPosition = water.transform.position;
+            waterPosition.z = southEdge + size.width / 2f;
+            water.transform.position = waterPosition;
+            water.Resize(size.length, size.width);
+
+            // Surfers land on the new beach and walk out past its end.
+            var landing = beachLanding.position;
+            beachLanding.position = new Vector3(size.length * 0.95f, landing.y, waterPosition.z);
+            if (pathOut.Length > 0)
+            {
+                var exit = pathOut[0].position;
+                pathOut[0].position = new Vector3(size.length + 3f, exit.y, exit.z);
+            }
         }
 
         /// <summary>Surfers waiting in this pool's water right now.</summary>

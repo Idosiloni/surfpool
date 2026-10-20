@@ -6,7 +6,7 @@ namespace SurfPool
     public class SurfCoach : MonoBehaviour
     {
         [Range(0f, 1f)] [SerializeField] float wipeoutMultiplier = 0.35f;
-        [SerializeField] int lessonFee = 10;
+        [SerializeField] int lessonFee = 25;
 
         void OnEnable()
         {
