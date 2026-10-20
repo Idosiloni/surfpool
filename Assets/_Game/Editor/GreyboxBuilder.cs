@@ -1198,23 +1198,99 @@ namespace SurfPool.EditorTools
             main.loop = false;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.gravityModifier = 1.1f;
-            main.maxParticles = 4000;
+            main.maxParticles = 2500;
             main.startColor = Color.white;
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f); // every puff turned differently
             var emission = ps.emission;
             emission.enabled = false;
             var shape = ps.shape;
             shape.enabled = false;
+            // Puffs swell as they fly and fade out, like spray turning to mist.
             var size = ps.sizeOverLifetime;
             size.enabled = true;
-            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 0.6f), new Keyframe(0.2f, 1f), new Keyframe(1f, 0f)));
+            size.size = new ParticleSystem.MinMaxCurve(1.6f, new AnimationCurve(new Keyframe(0f, 0.7f), new Keyframe(0.3f, 1.15f), new Keyframe(1f, 1.5f)));
+            var fade = ps.colorOverLifetime;
+            fade.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(new Color(0.9f, 0.96f, 1f), 1f) },
+                new[] { new GradientAlphaKey(0.95f, 0f), new GradientAlphaKey(0.85f, 0.45f), new GradientAlphaKey(0f, 1f) });
+            fade.color = gradient;
+            var spin = ps.rotationOverLifetime;
+            spin.enabled = true;
+            spin.z = new ParticleSystem.MinMaxCurve(-1.5f, 1.5f);
             var renderer = go.GetComponent<ParticleSystemRenderer>();
-            renderer.renderMode = ParticleSystemRenderMode.Mesh;
-            var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            renderer.mesh = sphere.GetComponent<MeshFilter>().sharedMesh;
-            Object.DestroyImmediate(sphere);
-            renderer.sharedMaterial = foamMat;
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            renderer.sharedMaterial = SprayMaterial();
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.sortMode = ParticleSystemSortMode.Distance;
             return ps;
+        }
+
+        /// <summary>Soft, alpha-blended spray puff (URP unlit particles), fading where it touches the water.</summary>
+        static Material SprayMaterial()
+        {
+            const string path = "Assets/_Game/Materials/SprayPuff.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            mat.SetTexture("_BaseMap", SprayTexture());
+            mat.SetColor("_BaseColor", Color.white);
+            mat.SetFloat("_Surface", 1f);
+            mat.SetFloat("_Blend", 0f);
+            mat.SetOverrideTag("RenderType", "Transparent");
+            mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            mat.SetInt("_ZWrite", 0);
+            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            // Soft particles: puffs fade where they meet the water instead of showing a hard cut.
+            mat.SetFloat("_SoftParticlesEnabled", 1f);
+            mat.SetFloat("_SoftParticlesNearFadeDistance", 0f);
+            mat.SetFloat("_SoftParticlesFarFadeDistance", 0.6f);
+            mat.SetVector("_SoftParticleFadeParams", new Vector4(0f, 1f / 0.6f, 0f, 0f));
+            mat.EnableKeyword("_SOFTPARTICLES_ON");
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        /// <summary>A cartoon cloud puff: a few overlapping soft circles, white on top, a cool shade underneath.</summary>
+        static Texture2D SprayTexture()
+        {
+            const string path = "Assets/_Game/Materials/SprayPuff.png";
+            if (!System.IO.File.Exists(path))
+            {
+                const int size = 128;
+                var blobs = new[] { new Vector3(0.5f, 0.5f, 0.3f), new Vector3(0.34f, 0.44f, 0.2f), new Vector3(0.66f, 0.45f, 0.21f),
+                                    new Vector3(0.45f, 0.64f, 0.2f), new Vector3(0.6f, 0.62f, 0.18f) };
+                var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+                for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    var p = new Vector2((x + 0.5f) / size, (y + 0.5f) / size);
+                    float a = 0f;
+                    foreach (var b in blobs)
+                    {
+                        float d = Vector2.Distance(p, new Vector2(b.x, b.y)) / b.z;
+                        a = Mathf.Max(a, Mathf.Clamp01(1f - d));
+                    }
+                    a = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(a * 2.2f));
+                    float shade = Mathf.Lerp(0.9f, 1f, Mathf.Clamp01(p.y * 1.4f - 0.1f)); // lighter on top
+                    tex.SetPixel(x, y, new Color(shade * 0.97f, shade * 0.99f, Mathf.Min(1f, shade * 1.03f), a));
+                }
+                System.IO.File.WriteAllBytes(path, tex.EncodeToPNG());
+                Object.DestroyImmediate(tex);
+                AssetDatabase.ImportAsset(path);
+                if (AssetImporter.GetAtPath(path) is TextureImporter importer)
+                {
+                    importer.alphaIsTransparency = true;
+                    importer.wrapMode = TextureWrapMode.Clamp;
+                    importer.SaveAndReimport();
+                }
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
         /// <summary>Shared UI Toolkit panel settings: scales with screen size from a 1920x1080 layout.</summary>

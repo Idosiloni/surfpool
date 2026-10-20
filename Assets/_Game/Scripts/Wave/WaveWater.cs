@@ -48,6 +48,12 @@ namespace SurfPool
         [Header("Calm water")]
         [SerializeField] float rippleHeight = 0.04f;
 
+        [Header("Look")]
+        [Tooltip("Seconds foam lingers on the water after the wave has passed (fading into lacy trails).")]
+        [SerializeField] float foamLinger = 3.5f;
+        [Tooltip("Depth of the dip in front of an unbroken wave face, as a share of its height (makes the face stand up).")]
+        [Range(0f, 0.3f)] [SerializeField] float troughDepth = 0.1f;
+
         [Header("Barrel lip and spray")]
         [SerializeField] MeshFilter lipMesh;
         [SerializeField] float lipLength = 6f;
@@ -83,6 +89,7 @@ namespace SurfPool
         Vector3[] baseVertices;
         Vector3[] vertices;
         Color[] colors;
+        float[] foamMemory;
         readonly List<Vector3> lipVertices = new();
         readonly List<Color> lipColors = new();
         readonly List<int> lipTriangles = new();
@@ -222,12 +229,22 @@ namespace SurfPool
             waves.RemoveAll(wave => WaveCenter(wave, t) > length + wave.type.backWidth * 3f);
             UpdateStates(t);
 
+            // Foam stays where it was made and fades over foamLinger seconds, leaving lacy trails behind the
+            // wave. Vertex color: R = foam, G = face brightness, B = shallowness (beach end), A = foam freshness
+            // (1 = just made, toward 0 = old foam the shader breaks into lace).
+            float fade = Time.deltaTime / Mathf.Max(0.1f, foamLinger);
             for (int i = 0; i < vertices.Length; i++)
             {
                 Vector3 v = baseVertices[i];
                 v.y = LocalHeight(v.x, v.z, t);
                 vertices[i] = v;
-                colors[i] = Foam(v.x, v.z);
+                var c = Foam(v.x, v.z);
+                float fresh = c.r;
+                float memory = foamMemory[i] = Mathf.Max(fresh, foamMemory[i] - fade);
+                c.r = memory;
+                c.b = Smooth(0.55f, 1f, v.x / length);
+                c.a = memory > 0.001f ? fresh / memory : 1f;
+                colors[i] = c;
             }
             mesh.vertices = vertices;
             mesh.colors = colors;
@@ -336,6 +353,13 @@ namespace SurfPool
 
                 float amplitude = state.amplitude * Mathf.Lerp(1f, state.type.whitewashHeight, broken) * (1f + pocket);
                 h += amplitude * edgeScale * shape;
+
+                // A shallow dip in front of the clean face: the wave draws water up into itself, so it stands taller.
+                if (troughDepth > 0f && d > 0f)
+                {
+                    float ahead = (d - 1.6f * front) / front;
+                    h -= troughDepth * amplitude * (1f - broken) * edgeScale * Mathf.Exp(-ahead * ahead);
+                }
 
                 // Whitewash is lumpy.
                 if (broken > 0.01f)
@@ -523,6 +547,7 @@ namespace SurfPool
 
             baseVertices = new Vector3[nx * nz];
             colors = new Color[nx * nz];
+            foamMemory = new float[nx * nz];
             var uvs = new Vector2[nx * nz];
             for (int iz = 0; iz < nz; iz++)
             for (int ix = 0; ix < nx; ix++)

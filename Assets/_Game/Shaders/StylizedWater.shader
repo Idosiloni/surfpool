@@ -1,12 +1,17 @@
 // Cartoon water for the wave pool (URP).
-// Vertex color R = foam amount (written by WaveWater every frame), G = extra brightness on wave faces.
-// Steep faces turn a lighter teal, foam is broken up by moving noise, lighting is soft-stepped like a toon shader.
+// Vertex color (written by WaveWater every frame): R = foam amount, G = extra brightness on wave faces,
+// B = shallowness (pale aqua over the shallow beach end), A = foam freshness (old foam breaks into lace).
+// Steep faces turn a lighter teal and glow when the sun shines through them from behind (like real pool waves),
+// foam is broken up by moving noise, lighting is soft-stepped like a toon shader.
 Shader "SurfPool/StylizedWater"
 {
     Properties
     {
         _DeepColor ("Deep water", Color) = (0.04, 0.36, 0.72, 1)
         _FaceColor ("Wave face", Color) = (0.12, 0.76, 0.82, 1)
+        _ShallowColor ("Shallow water", Color) = (0.38, 0.86, 0.84, 1)
+        _GlowColor ("Sunlit face glow", Color) = (0.45, 1.0, 0.82, 1)
+        _GlowStrength ("Sunlit face glow strength", Range(0, 2)) = 0.9
         _FoamColor ("Foam", Color) = (1, 1, 1, 1)
         _FoamNoiseScale ("Foam noise scale", Float) = 1.7
         _FoamThreshold ("Foam threshold", Range(0, 1)) = 0.3
@@ -37,6 +42,9 @@ Shader "SurfPool/StylizedWater"
             CBUFFER_START(UnityPerMaterial)
                 half4 _DeepColor;
                 half4 _FaceColor;
+                half4 _ShallowColor;
+                half4 _GlowColor;
+                half _GlowStrength;
                 half4 _FoamColor;
                 float _FoamNoiseScale;
                 half _FoamThreshold;
@@ -98,13 +106,21 @@ Shader "SurfPool/StylizedWater"
 
                 // Steeper wave faces are lighter and greener, like light shining through the wave.
                 half steep = saturate((1.0 - normal.y) * 2.2 + input.color.g);
-                half3 water = lerp(_DeepColor.rgb, _FaceColor.rgb, steep);
+                half3 deep = lerp(_DeepColor.rgb, _ShallowColor.rgb, input.color.b);
+                half3 water = lerp(deep, _FaceColor.rgb, steep);
 
-                // Foam from the vertex color, broken into cartoon blobs by two layers of moving noise.
+                // Foam from the vertex color, broken into cartoon blobs by two layers of moving noise. Old foam
+                // (low freshness) needs more to show and gets holes punched in it, so trails turn into lace.
                 float2 uv = input.positionWS.xz * _FoamNoiseScale;
                 float noise = ValueNoise(uv + _Time.y * 0.35) * 0.6 + ValueNoise(uv * 2.3 - _Time.y * 0.5) * 0.4;
+                half age = 1.0 - input.color.a;
                 half foamValue = input.color.r * (0.55 + noise * 0.9);
-                half foam = smoothstep(_FoamThreshold, _FoamThreshold + 0.08, foamValue);
+                half threshold = _FoamThreshold + age * 0.4;
+                half foam = smoothstep(threshold, threshold + 0.08, foamValue);
+                // Lace: old foam keeps only thin veins where two noise layers cross a narrow band.
+                float lace = ValueNoise(input.positionWS.xz * 3.1 + 17.0) * 0.6 + ValueNoise(input.positionWS.xz * 7.3) * 0.4;
+                half vein = 1.0 - smoothstep(0.06, 0.14 + (1.0 - age) * 0.4, abs(lace - 0.5));
+                foam *= lerp(1.0, vein, saturate(age * 1.3));
                 half3 albedo = lerp(water, _FoamColor.rgb, foam);
 
                 Light mainLight = GetMainLight(TransformWorldToShadowCoord(input.positionWS));
@@ -113,6 +129,12 @@ Shader "SurfPool/StylizedWater"
                 half shadow = lerp(0.65, 1.0, mainLight.shadowAttenuation);
                 half3 ambient = SampleSH(normal) * 0.45;
                 half3 color = albedo * (mainLight.color * toon * shadow + ambient);
+
+                // Sun shining through a steep, thin face from behind it: a bright lagoon glow (strongest near the
+                // top, where the water is thinnest).
+                half behind = pow(saturate(dot(viewDir, -mainLight.direction) * 0.5 + 0.5), 3.0);
+                half thin = saturate(steep * 1.4 - 0.25) * saturate(0.5 + input.color.g * 1.5);
+                color += _GlowColor.rgb * mainLight.color * behind * thin * _GlowStrength * (1.0 - foam) * shadow;
 
                 // Hard-edged sun sparkle and a light rim at grazing angles, both only on open water.
                 half3 halfDir = normalize(mainLight.direction + viewDir);
