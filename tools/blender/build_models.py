@@ -36,6 +36,12 @@ PALETTE = {
     "Glass": (0.35, 0.62, 0.78),
     "Red": (0.88, 0.20, 0.18),
     "Rock": (0.62, 0.60, 0.56),
+    "Charcoal": (0.17, 0.18, 0.21),
+    "KeyGrey": (0.80, 0.82, 0.84),
+    "Green": (0.22, 0.78, 0.36),
+    "Screen": (0.10, 0.35, 0.45),
+    "BoardDeck": (0.97, 0.97, 0.95),   # tinted per surfer in Unity
+    "Stringer": (0.55, 0.38, 0.22),
 }
 
 
@@ -292,6 +298,201 @@ def surfboard(name="Surfboard"):
     return obj
 
 
+# ---------------------------------------------------------------- surfboards (beginner foamie, funboard, shortboard)
+
+def _board_width(t, nose_round, tail_width):
+    """Half-width at t (0 = tail, 1 = nose) as a fraction of the max."""
+    base = math.sin(math.pi * (0.10 + 0.80 * t)) ** 0.6
+    if t < 0.15:  # squarer tail
+        base = max(base, tail_width * (0.4 + t / 0.15 * 0.6))
+    if t > 0.85:  # nose: round boards stay wide, pointy ones taper to a point
+        k = min((t - 0.85) / 0.15, 1.0)
+        base *= (1 - 0.7 * k ** 1.8) if nose_round else max(1 - k, 0.0) ** 1.2
+    return base
+
+
+def board(name, length, half_width, thickness, nose_round, tail_width, swallow, stripe_mat, fin_mat, stringer=True, bottom_mat="White"):
+    """A surfboard along Y (nose toward -Y = Unity forward), deck material BoardDeck (tinted in Unity),
+    with a wooden stringer, a colored stripe near the nose and three fins under the tail."""
+    steps = 18
+    stations = []
+    for i in range(steps + 1):
+        t = i / steps
+        y = length / 2 - length * t
+        w = max(half_width * _board_width(t, nose_round, tail_width), 0.012)
+        rocker = 0.07 * ((t - 0.45) / 0.55) ** 2 + (0.05 * ((t - 0.85) / 0.15) ** 2 if t > 0.85 else 0)
+        stations.append((t, y, w, rocker))
+    verts, faces, face_mats = [], [], []
+    for t, y, w, r in stations:
+        h = thickness / 2 * (0.55 + 0.45 * math.sin(math.pi * min(max(t, 0.05), 0.95)))
+        verts += [(-w, y, r + h), (w, y, r + h), (-w * 0.9, y, r - h), (w * 0.9, y, r - h)]
+    n = len(stations)
+    for i in range(n - 1):
+        a, b = i * 4, (i + 1) * 4
+        faces += [(a, a + 1, b + 1, b), (a + 2, b + 2, b + 3, a + 3), (a, b, b + 2, a + 2), (a + 1, a + 3, b + 3, b + 1)]
+        face_mats += [0, 1, 0, 0]
+    if swallow:  # notch the tail: replace the flat tail cap with two prongs (a V cut)
+        faces += [(0, 2, 3, 1)]
+    else:
+        faces += [(0, 2, 3, 1)]
+    faces += [((n - 1) * 4, (n - 1) * 4 + 1, (n - 1) * 4 + 3, (n - 1) * 4 + 2)]
+    face_mats += [0, 0]
+    obj = mesh_object(name, verts, faces, "BoardDeck")
+    obj.data.materials.append(material(bottom_mat))
+    for poly, m in zip(obj.data.polygons, face_mats):
+        poly.material_index = m
+    recalc_normals(obj)
+    parts = [obj]
+
+    def deck_z(t):
+        for (t0, y0, w0, r0), (t1, y1, w1, r1) in zip(stations, stations[1:]):
+            if t0 <= t <= t1:
+                k = (t - t0) / max(t1 - t0, 1e-6)
+                r = r0 + (r1 - r0) * k
+                h = thickness / 2 * (0.55 + 0.45 * math.sin(math.pi * min(max(t, 0.05), 0.95)))
+                return r + h, (w0 + (w1 - w0) * k)
+        return stations[-1][3], stations[-1][2]
+
+    if stringer:  # thin wooden strip down the middle of the deck
+        sv, sf = [], []
+        for i, (t, y, w, r) in enumerate(stations[1:-1]):
+            z, _ = deck_z(t)
+            sv += [(-0.006, y, z + 0.002), (0.006, y, z + 0.002)]
+            if i:
+                a = (i - 1) * 2
+                sf.append((a, a + 1, a + 3, a + 2))
+        parts.append(mesh_object(name + "Stringer", sv, sf, "Stringer"))
+    # colored stripe band across the deck near the nose
+    tv, tf = [], []
+    for i, t in enumerate((0.70, 0.73, 0.76, 0.79)):
+        y = length / 2 - length * t
+        z, w = deck_z(t)
+        tv += [(-w * 0.97, y, z + 0.003), (w * 0.97, y, z + 0.003)]
+        if i:
+            a = (i - 1) * 2
+            tf.append((a, a + 1, a + 3, a + 2))
+    parts.append(mesh_object(name + "Stripe", tv, tf, stripe_mat))
+    # three fins under the tail (a thruster): center fin at the very back, side fins a bit forward
+    tail_y = length / 2
+    for fx, fy, size in ((0.0, tail_y - 0.07 * length, 1.0), (-half_width * 0.55, tail_y - 0.14 * length, 0.8), (half_width * 0.55, tail_y - 0.14 * length, 0.8)):
+        _, _, _, r = stations[1]
+        base = r - thickness / 2 * 0.6
+        fin_len, fin_h = 0.11 * size, 0.11 * size
+        fv = [(fx, fy - fin_len / 2, base), (fx, fy + fin_len / 2, base), (fx, fy + fin_len * 0.55, base - fin_h)]
+        fv += [(fx + 0.008, x2, z2) for _, x2, z2 in fv]
+        ff = [(0, 1, 2), (3, 5, 4), (0, 3, 4, 1), (1, 4, 5, 2), (2, 5, 3, 0)]
+        fin = mesh_object(name + "Fin", fv, ff, fin_mat)
+        recalc_normals(fin)
+        parts.append(fin)
+    return join(name, parts)
+
+
+def board_foamie():
+    return board("BoardFoamie", 2.4, 0.31, 0.10, True, 0.85, False, "Teal", "Navy", stringer=False, bottom_mat="White")
+
+
+def board_fun():
+    return board("BoardFun", 2.1, 0.27, 0.075, True, 0.6, False, "Coral", "Navy")
+
+
+def board_short():
+    return board("BoardShort", 1.8, 0.235, 0.06, False, 0.45, True, "Teal", "Charcoal")
+
+
+# ---------------------------------------------------------------- desk machines
+# Operator side is Blender -Y. WorldArt.Model adds a 180 degree yaw, so place with yaw 180 when the
+# operator stands at Unity +Z (the ticket desk) and yaw 0 when they stand at Unity -Z (wave console).
+
+def cash_register(name="CashRegister"):
+    parts = [
+        box("Body", (0.46, 0.38, 0.12), (0, 0, 0.06), "Navy"),
+        box("Drawer", (0.42, 0.03, 0.08), (0, -0.2, 0.055), "Steel"),
+        box("Handle", (0.12, 0.02, 0.015), (0, -0.218, 0.07), "Charcoal"),
+        box("Keypad", (0.30, 0.20, 0.035), (-0.05, -0.06, 0.15), "Charcoal", rotation=(math.radians(-18), 0, 0)),
+        box("Printer", (0.11, 0.14, 0.08), (0.17, -0.04, 0.16), "White"),
+        box("Receipt", (0.07, 0.005, 0.07), (0.17, -0.02, 0.23), "White", rotation=(math.radians(10), 0, 0)),
+        box("Screen Back", (0.30, 0.04, 0.17), (0, 0.13, 0.27), "Navy", rotation=(math.radians(15), 0, 0)),
+        box("Screen", (0.26, 0.01, 0.13), (0, 0.105, 0.273), "Screen", rotation=(math.radians(15), 0, 0)),
+        box("Screen Post", (0.05, 0.05, 0.1), (0, 0.15, 0.15), "Navy"),
+        cylinder("Pole", 0.015, 0.22, (0.15, 0.16, 0.23), "Steel"),
+        box("Customer Display", (0.16, 0.03, 0.07), (0.15, 0.16, 0.36), "Charcoal"),
+        box("Customer Digits", (0.13, 0.005, 0.045), (0.15, 0.178, 0.36), "Green"),
+    ]
+    for row in range(3):
+        for col in range(4):
+            mat = "Green" if (row, col) == (2, 3) else "Red" if (row, col) == (0, 3) else "KeyGrey"
+            y = -0.12 + row * 0.055
+            z = 0.145 + row * 0.018
+            parts.append(box("Key", (0.045, 0.04, 0.02), (-0.155 + col * 0.068, y, z + 0.02), mat, rotation=(math.radians(-18), 0, 0)))
+    return join(name, parts)
+
+
+def computer(name="Computer"):
+    parts = [
+        box("Foot", (0.26, 0.2, 0.02), (0, 0.06, 0.01), "Steel"),
+        box("Neck", (0.06, 0.04, 0.24), (0, 0.08, 0.13), "Steel"),
+        box("Bezel", (0.66, 0.05, 0.44), (0, 0.04, 0.45), "Navy"),
+        box("Back Hump", (0.36, 0.08, 0.24), (0, 0.09, 0.45), "Navy"),
+        box("Keyboard", (0.44, 0.15, 0.025), (0, -0.2, 0.0125), "Charcoal"),
+        box("Mouse Pad", (0.2, 0.17, 0.006), (0.36, -0.2, 0.003), "Teal"),
+        box("Mouse", (0.06, 0.09, 0.03), (0.36, -0.2, 0.02), "White"),
+        box("Sticker", (0.07, 0.006, 0.05), (0.24, 0.015, 0.25), "Coral"),
+    ]
+    for row in range(4):
+        parts.append(box("Key Row", (0.40, 0.022, 0.012), (0, -0.25 + row * 0.032, 0.03), "KeyGrey"))
+    return join(name, parts)
+
+
+def wave_console(name="WaveConsole"):
+    """1.2 x 0.8 m pedestal, top at 1.0 m. The big button sits at Unity local (0, 1.04, -0.15) = Blender (0, -0.15, 1.04)."""
+    parts = [
+        box("Plinth", (1.3, 0.9, 0.1), (0, 0, 0.05), "Charcoal"),
+        box("Body", (1.2, 0.8, 0.86), (0, 0, 0.53), "White"),
+        box("Band", (1.21, 0.81, 0.12), (0, 0, 0.75), "Teal"),
+        box("Top", (1.24, 0.84, 0.05), (0, 0, 0.985), "Navy"),
+        cylinder("Button Ring", 0.21, 0.03, (0, -0.15, 1.02), "Yellow", vertices=16),
+        cylinder("Button Collar", 0.18, 0.035, (0, -0.15, 1.03), "Charcoal", vertices=16),
+        box("Riser", (1.0, 0.22, 0.3), (0, 0.27, 1.15), "Navy"),
+        cylinder("Lever Base", 0.06, 0.06, (0.45, -0.15, 1.04), "Steel", vertices=10),
+        cylinder("Lever", 0.018, 0.28, (0.45, -0.12, 1.17), "Steel", rotation=(math.radians(-15), 0, 0)),
+        ico("Lever Knob", 0.05, (0.45, -0.085, 1.31), "Red"),
+        box("Light 1", (0.06, 0.04, 0.04), (-0.45, -0.3, 1.03), "Green"),
+        box("Light 2", (0.06, 0.04, 0.04), (-0.35, -0.3, 1.03), "Yellow"),
+        box("Light 3", (0.06, 0.04, 0.04), (-0.25, -0.3, 1.03), "Red"),
+    ]
+    for i in range(6):  # hazard stripes on the operator side
+        parts.append(box("Hazard", (0.08, 0.01, 0.18), (-0.5 + i * 0.2, -0.405, 0.2), "Yellow", rotation=(0, math.radians(30), 0)))
+    for i in range(3):  # vents on the sides
+        for side in (-1, 1):
+            parts.append(box("Vent", (0.01, 0.4, 0.04), (side * 0.605, 0, 0.35 + i * 0.08), "Charcoal"))
+    return join(name, parts)
+
+
+def price_stand(name="PriceStand"):
+    """Pedestal (0.7 x 0.5, top at 1.0 m) for the +/- price buttons, with a big $ sign behind them."""
+    parts = [
+        box("Plinth", (0.8, 0.6, 0.08), (0, 0, 0.04), "Charcoal"),
+        box("Body", (0.7, 0.5, 0.9), (0, 0, 0.53), "White"),
+        box("Band", (0.71, 0.51, 0.1), (0, 0, 0.8), "Coral"),
+        box("Top", (0.74, 0.54, 0.04), (0, 0, 0.98), "Navy"),
+        box("Sign Post", (0.05, 0.05, 0.5), (0, 0.2, 1.25), "Steel"),
+        box("Sign", (0.5, 0.04, 0.3), (0, 0.2, 1.55), "Yellow"),
+        # "$": an S of three bars plus two short verticals, and a line through it
+        box("S Top", (0.14, 0.01, 0.03), (0, 0.178, 1.63), "Navy"),
+        box("S Mid", (0.14, 0.01, 0.03), (0, 0.178, 1.55), "Navy"),
+        box("S Bot", (0.14, 0.01, 0.03), (0, 0.178, 1.47), "Navy"),
+        box("S Left", (0.03, 0.01, 0.08), (-0.055, 0.178, 1.59), "Navy"),
+        box("S Right", (0.03, 0.01, 0.08), (0.055, 0.178, 1.51), "Navy"),
+        box("S Line", (0.02, 0.012, 0.24), (0, 0.176, 1.55), "Navy"),
+        # + and - labels on the front, under the buttons (placed with yaw 180, Blender +x = the operator's right,
+        # where the + button is)
+        box("Plus H", (0.1, 0.02, 0.02), (0.17, -0.26, 0.9), "White"),
+        box("Plus V", (0.02, 0.02, 0.1), (0.17, -0.26, 0.9), "White"),
+        box("Minus", (0.1, 0.02, 0.02), (-0.17, -0.26, 0.9), "White"),
+    ]
+    return join(name, parts)
+
+
 def lifeguard_tower(name="LifeguardTower"):
     """Stilts, platform with railing, ladder, and a red-and-white roof. Faces -Y (toward the pool when rotated)."""
     parts = []
@@ -428,6 +629,8 @@ def build_all():
         lambda: beach_umbrella("BeachUmbrellaCoral", "Coral"),
         lounge_chair,
         lambda: rock("Rock", 3),
+        board_foamie, board_fun, board_short,
+        cash_register, computer, wave_console, price_stand,
         char_torso, char_shorts, char_head, char_hair_short, char_hair_long, char_arm, char_leg,
     ):
         obj = factory()

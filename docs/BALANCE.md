@@ -35,6 +35,13 @@ Mission rewards (about $60k in total, $50k of it for finishing chapter 4) speed 
 The last row shows why the price buttons matter: the upgrades raise what surfers will pay (fair price $65 by then),
 but you only earn it if you raise your base price. The price buttons now say what surfers expect.
 
+## Running costs (paid at closing time, listed in the day report)
+- **Electricity:** every wave uses power: Beginner $1, Intermediate $3, Pro $6, times the pool multiplier (Reef x2.5, Lagoon x5).
+  The console and HUD show the cost per press. **Solar Panels** ($1,500) halve it.
+- **Water:** each open pool, per day: main pool $10 (starter) -> $25 (full size), Reef $60, Lagoon $150. **Water Recycling** ($5,000) halves it.
+- **Business tax:** 6% of the day's income.
+- The HUD's "Today's bills" grows during the day. Together with wages, costs aim at 15–25% of income (what other sims do, see docs/research/sim-games-2.md).
+
 ## Rules of thumb used
 - Early buys take 1–3 minutes of income, mid-game buys a few days, and each new pool about 4–5 days.
 - Each wave tier needs the bigger pool first (Expansion I → Intermediate, Expansion II → Pro). That's the "bigger waves need a bigger pool" step.

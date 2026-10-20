@@ -50,6 +50,8 @@ namespace SurfPool
         {
             // The player controller locks the cursor on start; keep it free while the letter is open.
             if (open && UnityEngine.Cursor.lockState == CursorLockMode.Locked) FirstPersonController.LockCursor(false);
+            // Stay hidden once read (UI live-reload in the Editor rebuilds the screen visible).
+            if (!open && root != null) root.EnableInClassList("hidden", true);
         }
 
         public void Close()

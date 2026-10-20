@@ -10,6 +10,7 @@
                     <ui:VisualElement name="ratingStarsSlot" picking-mode="Ignore" />
                     <ui:Label name="ratingLabel" text="3.5" class="rating-label" picking-mode="Ignore" />
                 </ui:VisualElement>
+                <ui:Label name="incomeRate" text="+$0 / min" class="income-rate" picking-mode="Ignore" />
                 <ui:Label name="dayLabel" text="Day 1 · 8:00 AM" class="day-label" picking-mode="Ignore" />
             </ui:VisualElement>
             <ui:VisualElement name="popupStack" class="popup-stack" picking-mode="Ignore" />
@@ -41,6 +42,10 @@
                 <ui:Label text="Lost customers" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="lostValue" text="0" class="stat-value" picking-mode="Ignore" />
             </ui:VisualElement>
+            <ui:VisualElement name="billsRow" class="stat-row" picking-mode="Ignore">
+                <ui:Label text="Today's bills" class="stat-name" picking-mode="Ignore" />
+                <ui:Label name="billsValue" text="$0" class="stat-value stat-value--bill" picking-mode="Ignore" />
+            </ui:VisualElement>
             <ui:VisualElement name="wagesRow" class="stat-row" picking-mode="Ignore">
                 <ui:Label text="Staff wages" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="wagesValue" text="$0/min" class="stat-value" picking-mode="Ignore" />
@@ -61,6 +66,17 @@
         </ui:VisualElement>
 
         <ui:Label name="missionBanner" class="mission-banner hidden" picking-mode="Ignore" />
+
+        <ui:VisualElement name="goalStrip" class="goal-strip card hidden" picking-mode="Ignore">
+            <ui:VisualElement class="goal-header" picking-mode="Ignore">
+                <ui:Label text="NEXT GOAL" class="section-title goal-kicker" picking-mode="Ignore" />
+                <ui:Label name="goalName" class="goal-name" picking-mode="Ignore" />
+                <ui:Label name="goalAmount" class="goal-amount" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement class="bar goal-bar" picking-mode="Ignore">
+                <ui:VisualElement name="goalFill" class="bar-fill goal-fill" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
 
         <ui:VisualElement name="toasts" class="toasts" picking-mode="Ignore" />
 

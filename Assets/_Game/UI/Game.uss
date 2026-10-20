@@ -184,6 +184,10 @@
     color: #FF6B57;
 }
 
+.stat-value--bill {
+    color: #C9824F;
+}
+
 .crosshair {
     position: absolute;
     left: 50%;
@@ -706,7 +710,7 @@
 .mission-card {
     position: absolute;
     left: 32px;
-    top: 200px;
+    top: 232px;
     width: 380px;
 }
 
@@ -944,4 +948,69 @@
     border-radius: 10px;
     border-width: 0;
     background-color: #14B8A6;
+}
+
+/* ---------- Income rate and next-goal strip ---------- */
+
+.income-rate {
+    font-size: 17px;
+    -unity-font-style: bold;
+    color: #0E9F7E;
+    margin-top: 2px;
+}
+
+.income-rate--negative {
+    color: #FF6B57;
+}
+
+.goal-strip {
+    position: absolute;
+    bottom: 22px;
+    left: 50%;
+    width: 520px;
+    margin-left: -260px;
+    padding: 10px 18px 12px 18px;
+}
+
+.goal-header {
+    flex-direction: row;
+    align-items: center;
+}
+
+.goal-kicker {
+    margin: 0 12px 0 0;
+}
+
+.goal-name {
+    flex-grow: 1;
+    font-size: 19px;
+    -unity-font-style: bold;
+    color: #0B2E3A;
+}
+
+.goal-amount {
+    font-size: 17px;
+    color: #5B6B73;
+}
+
+.goal-bar {
+    margin-top: 8px;
+}
+
+.goal-fill {
+    background-color: #FFC857;
+    transition-duration: 0.3s;
+}
+
+.goal-strip--ready {
+    border-color: #14B8A6;
+}
+
+.goal-strip--ready .goal-fill {
+    background-color: #14B8A6;
+}
+
+.goal-strip--ready .goal-amount {
+    color: #0E9F7E;
+    -unity-font-style: bold;
 }

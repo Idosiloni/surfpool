@@ -44,6 +44,10 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
   - [x] Balance pass on prices, wages and pool costs (incremental curve to big numbers, see `docs/BALANCE.md`)
   - [x] Map-changing upgrades: main pool grows (Starter -> Expanded -> Full-Size), Tiki Garden, Grandstand
   - [x] NPC polish: board carried beside the arm, crawl-stroke paddling, surfers keep their distance
+  - [x] Running costs (power per wave, water, tax) + Solar Panels / Water Recycling
+  - [x] Real models for the register, computer, wave console, price stand; foam / fun / short boards by skill
+  - [x] HUD: money counts up, +$/min, next-goal bar
+  - [ ] Ideas from docs/research/sim-games-2.md: park level + XP, mess & janitor, staff stars, random daily events, machine breakdowns
   - [ ] Snack bar, lessons area, more decoration you can place
   - [ ] Wave presets inspired by famous waves; pool-specific wave menus
   - [ ] Characters: real rigs/animations (Quaternius / Mixamo, needs download OK)

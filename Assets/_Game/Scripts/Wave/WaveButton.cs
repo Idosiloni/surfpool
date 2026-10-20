@@ -18,7 +18,8 @@ namespace SurfPool
         float pressedUntil;
 
         public string Prompt => machine.Ready
-            ? $"Send {machine.Selected} wave" + (machine.WavesPerSet > 1 ? $" set (x{machine.WavesPerSet})" : "")
+            ? $"Send {machine.Selected} wave" + (machine.WavesPerSet > 1 ? $" set (x{machine.WavesPerSet})" : "") +
+              $"  ({MoneyText.Format(machine.PressCost)} power)"
             : $"Wave machine charging... {Mathf.CeilToInt(machine.SecondsUntilReady)}";
 
         void Awake()

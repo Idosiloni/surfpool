@@ -134,7 +134,9 @@ namespace SurfPool.EditorTools
             desk.position = new Vector3(20, 0, -22.5f);
             WorldArt.Model("KioskTeal", desk, desk.position);
             Box("Counter", desk, desk.position + new Vector3(0, 0.55f, 0), new Vector3(3, 1.1f, 1), deskMat);
-            var registerGo = Box("Register", desk, desk.position + new Vector3(0.6f, 1.25f, 0), new Vector3(0.5f, 0.3f, 0.4f), consoleMat);
+            var registerGo = Box("Register", desk, desk.position + new Vector3(0.6f, 1.32f, 0), new Vector3(0.5f, 0.44f, 0.42f), consoleMat);
+            registerGo.GetComponent<MeshRenderer>().enabled = false; // keeps its collider; the model is the look
+            WorldArt.Model("CashRegister", desk, desk.position + new Vector3(0.6f, 1.1f, 0), 180f);
             var register = registerGo.AddComponent<TicketRegister>();
             Set(register, "pricing", pricing);
 
@@ -142,14 +144,19 @@ namespace SurfPool.EditorTools
             var computer = new GameObject("Upgrade Computer").transform;
             computer.SetParent(desk, false);
             computer.position = desk.position + new Vector3(-0.8f, 1.1f, -0.2f);
-            Box("Monitor Stand", computer, computer.position + new Vector3(0, 0.12f, 0), new Vector3(0.12f, 0.24f, 0.12f), consoleMat);
-            Box("Monitor", computer, computer.position + new Vector3(0, 0.45f, 0), new Vector3(0.7f, 0.45f, 0.06f), screenMat);
+            var monitorStand = Box("Monitor Stand", computer, computer.position + new Vector3(0, 0.12f, 0), new Vector3(0.12f, 0.24f, 0.12f), consoleMat);
+            monitorStand.GetComponent<MeshRenderer>().enabled = false;
+            WorldArt.Model("Computer", computer, computer.position, 180f);
+            // The glowing screen sits in the model's bezel (its collider is what you look at to use the computer).
+            Box("Monitor", computer, computer.position + new Vector3(0, 0.45f, -0.005f), new Vector3(0.58f, 0.36f, 0.012f), screenMat);
             var shop = computer.gameObject.AddComponent<UpgradeShop>();
 
             // Price panel next to the desk: − on the left and + on the right, as seen from behind the desk.
             var pricePanel = new GameObject("Price Panel").transform;
             pricePanel.position = new Vector3(17.6f, 0, -22.3f);
-            Box("Pedestal", pricePanel, pricePanel.position + new Vector3(0, 0.5f, 0), new Vector3(0.7f, 1f, 0.5f), consoleMat);
+            var pricePedestal = Box("Pedestal", pricePanel, pricePanel.position + new Vector3(0, 0.5f, 0), new Vector3(0.7f, 1f, 0.5f), consoleMat);
+            pricePedestal.GetComponent<MeshRenderer>().enabled = false;
+            WorldArt.Model("PriceStand", pricePanel, pricePanel.position, 180f);
             var priceUp = Box("Price Up (+)", pricePanel, pricePanel.position + new Vector3(-0.17f, 1.04f, 0), new Vector3(0.22f, 0.08f, 0.22f), greenMat);
             Set(priceUp.AddComponent<PriceButton>(), "pricing", pricing);
             var priceDown = Box("Price Down (-)", pricePanel, pricePanel.position + new Vector3(0.17f, 1.04f, 0), new Vector3(0.22f, 0.08f, 0.22f), redMat);
@@ -216,14 +223,14 @@ namespace SurfPool.EditorTools
             var reef = BuildPool(new PoolSpec
             {
                 name = "Reef Pool", display = "Reef Pool", upgradeId = "pool_reef", z = 64, open = false, depth = PoolDepth,
-                waterLevel = WaterLevel, size = 1.08f, peel = 0.8f, price = 2.5f,
+                waterLevel = WaterLevel, size = 1.08f, peel = 0.8f, price = 2.5f, water = 60f,
                 pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-2, 0, 46), new Vector3(14, 0, 64 - halfW - 0.6f) },
                 pathOut = new[] { new Vector3(PoolLength + 3, 0, 58), new Vector3(PoolLength + 40, 0, 58) },
             });
             var lagoon = BuildPool(new PoolSpec
             {
                 name = "Big Wave Lagoon", display = "Big Wave Lagoon", upgradeId = "pool_lagoon", z = 116, open = false,
-                depth = PoolDepth + 1f, waterLevel = WaterLevel - 0.8f, size = 1.25f, peel = 0.9f, price = 5f,
+                depth = PoolDepth + 1f, waterLevel = WaterLevel - 0.8f, size = 1.25f, peel = 0.9f, price = 5f, water = 150f,
                 pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-2, 0, 98), new Vector3(14, 0, 116 - halfW - 0.6f) },
                 pathOut = new[] { new Vector3(PoolLength + 3, 0, 110), new Vector3(PoolLength + 40, 0, 110) },
             });
@@ -333,6 +340,7 @@ namespace SurfPool.EditorTools
             coach.SetActive(false);
             operatorGuy.SetActive(false);
             game.AddComponent<PassiveIncome>();
+            game.AddComponent<OperatingCosts>();
 
             Set(shop, "lifeguard", tower.gameObject);
             Set(shop, "boardRunner", runner);
@@ -435,7 +443,7 @@ namespace SurfPool.EditorTools
         class PoolSpec
         {
             public string name, display, upgradeId;
-            public float z, depth, waterLevel, size, peel, price = 1f;
+            public float z, depth, waterLevel, size, peel, price = 1f, water = 25f;
             public Vector2[] stages; // (length, width) from smallest to full size; null = always full size
             public string[] stageNames;
             public bool open, mainDeck;
@@ -515,7 +523,9 @@ namespace SurfPool.EditorTools
             var console = new GameObject("Wave Console").transform;
             console.SetParent(built, false);
             console.position = new Vector3(5, 0, zc - halfW - 1.5f);
-            Box("Pedestal", console, console.position + new Vector3(0, 0.5f, 0), new Vector3(1.2f, 1f, 0.8f), mats.console);
+            var pedestal = Box("Pedestal", console, console.position + new Vector3(0, 0.5f, 0), new Vector3(1.2f, 1f, 0.8f), mats.console);
+            pedestal.GetComponent<MeshRenderer>().enabled = false;
+            WorldArt.Model("WaveConsole", console, console.position);
             var buttonGo = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             buttonGo.name = "Button";
             buttonGo.transform.SetParent(console, false);
@@ -576,6 +586,9 @@ namespace SurfPool.EditorTools
             SetString(area, "displayName", spec.display);
             SetFloat(area, "priceMultiplier", spec.price);
             SetFloat(area, "southEdge", southZ);
+            SetFloat(area, "dailyWater", spec.water);
+            Set(area, "solarPanels", SolarPanels(built, zc));
+            Set(area, "waterTanks", WaterTanks(built, zc));
             if (spec.stages != null)
             {
                 var so = new SerializedObject(area);
@@ -607,6 +620,58 @@ namespace SurfPool.EditorTools
             if (!spec.open) built.gameObject.SetActive(false);
 
             return new PoolBuild { area = area, built = built, water = water, machine = machine, panel = panel, peg = peg };
+        }
+
+        /// <summary>Rows of tilted solar panels on the machine house roof (hidden until Solar Panels are bought).</summary>
+        static GameObject SolarPanels(Transform parent, float zc)
+        {
+            var root = new GameObject("Solar Panels");
+            root.transform.SetParent(parent, false);
+            var cell = Mat("SolarCell", new Color(0.12f, 0.2f, 0.42f), 0.85f);
+            var frame = Mat("SolarFrame", new Color(0.85f, 0.87f, 0.9f), 0.5f);
+            for (int row = 0; row < 2; row++)
+            for (int i = 0; i < 4; i++)
+            {
+                var center = new Vector3(-11.5f + row * 3.6f, 5.55f, zc - 7.5f + i * 5f);
+                var panel = Box("Solar Panel", root.transform, center, new Vector3(3f, 0.08f, 4.4f), cell);
+                panel.transform.rotation = Quaternion.Euler(0, 0, 18f);
+                Object.DestroyImmediate(panel.GetComponent<Collider>());
+                var rim = Box("Panel Frame", root.transform, center + new Vector3(0, -0.06f, 0), new Vector3(3.2f, 0.06f, 4.6f), frame);
+                rim.transform.rotation = panel.transform.rotation;
+                Object.DestroyImmediate(rim.GetComponent<Collider>());
+            }
+            root.SetActive(false);
+            return root;
+        }
+
+        /// <summary>Two big filter tanks with pipes beside the machine house (hidden until Water Recycling is bought).</summary>
+        static GameObject WaterTanks(Transform parent, float zc)
+        {
+            var root = new GameObject("Water Recycling");
+            root.transform.SetParent(parent, false);
+            var tank = Mat("Tank", new Color(0.92f, 0.95f, 0.96f), 0.45f);
+            var band = Mat("TankBand", new Color(0.08f, 0.72f, 0.65f), 0.4f);
+            foreach (float dz in new[] { -5f, 5f })
+            {
+                var basePos = new Vector3(-17.2f, 0, zc + dz);
+                var body = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                body.name = "Filter Tank";
+                body.transform.SetParent(root.transform, false);
+                body.transform.position = basePos + new Vector3(0, 1.9f, 0);
+                body.transform.localScale = new Vector3(2.6f, 1.9f, 2.6f);
+                body.GetComponent<MeshRenderer>().sharedMaterial = tank;
+                var stripe = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                stripe.name = "Tank Band";
+                stripe.transform.SetParent(root.transform, false);
+                stripe.transform.position = basePos + new Vector3(0, 2.6f, 0);
+                stripe.transform.localScale = new Vector3(2.66f, 0.2f, 2.66f);
+                stripe.GetComponent<MeshRenderer>().sharedMaterial = band;
+                Object.DestroyImmediate(stripe.GetComponent<Collider>());
+                var pipe = Box("Pipe", root.transform, basePos + new Vector3(2.6f, 0.6f, 0), new Vector3(3f, 0.3f, 0.3f), mats.coping);
+                Object.DestroyImmediate(pipe.GetComponent<Collider>());
+            }
+            root.SetActive(false);
+            return root;
         }
 
         static void PoolDeckDressing(Transform parent, float zc)
@@ -1044,6 +1109,10 @@ namespace SurfPool.EditorTools
             var surfer = root.AddComponent<Surfer>();
             Set(surfer, "rig", rig);
             Set(surfer, "board", board);
+            SetArray(surfer, "boardModels",
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Models/BoardFoamie.fbx"),
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Models/BoardFun.fbx"),
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Models/BoardShort.fbx"));
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
             Object.DestroyImmediate(root);

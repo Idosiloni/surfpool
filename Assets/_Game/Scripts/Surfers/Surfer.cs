@@ -32,6 +32,8 @@ namespace SurfPool
         [Header("Parts")]
         [SerializeField] CharacterRig rig;
         [SerializeField] Transform board;
+        [Tooltip("Board models by skill: foam board (Beginner), funboard (Intermediate), shortboard (Pro).")]
+        [SerializeField] GameObject[] boardModels;
 
         [Header("Movement")]
         [SerializeField] float walkSpeed = 1.6f;
@@ -189,13 +191,7 @@ namespace SurfPool
             Skill = owner.RollSkill();
             PreferredDirection = Random.value < 0.6f ? WaveDirection.Right : WaveDirection.Left;
             MaxPrice = owner.Pricing.FairFor(Skill, pool) * Random.Range(0.8f, 1.5f);
-            // Beginners ride big foam boards, pros ride short narrow ones.
-            board.localScale = Skill switch
-            {
-                WaveLevel.Beginner => new Vector3(1.2f, 1.1f, 1.2f),
-                WaveLevel.Pro => new Vector3(0.85f, 0.85f, 0.85f),
-                _ => Vector3.one,
-            };
+            UseBoardFor(Skill);
             var skin = Color.Lerp(new Color(0.42f, 0.27f, 0.17f), new Color(1f, 0.84f, 0.7f), Random.value);
             var hair = Random.value < 0.25f ? new Color(0.95f, 0.82f, 0.45f) : Color.Lerp(new Color(0.08f, 0.06f, 0.05f), new Color(0.45f, 0.28f, 0.15f), Random.value);
             rig.Paint(skin, Random.ColorHSV(0f, 1f, 0.5f, 0.9f, 0.6f, 1f), Random.ColorHSV(0f, 1f, 0.4f, 0.8f, 0.3f, 0.8f), hair, Random.Range(0, 2));
@@ -682,11 +678,31 @@ namespace SurfPool
             part.localEulerAngles = localEuler;
         }
 
+        /// <summary>Beginners ride big foam boards, intermediates funboards, pros short pointy thrusters.</summary>
+        void UseBoardFor(WaveLevel skill)
+        {
+            if (boardModels == null || boardModels.Length <= (int)skill || boardModels[(int)skill] == null) return;
+            var source = boardModels[(int)skill].GetComponentInChildren<MeshFilter>();
+            board.GetComponent<MeshFilter>().sharedMesh = source.sharedMesh;
+            board.GetComponent<MeshRenderer>().sharedMaterials = source.GetComponent<MeshRenderer>().sharedMaterials;
+            board.localScale = Vector3.one;
+        }
+
+        /// <summary>Tints a part. Boards only get their deck tinted, so stripes, stringer and fins keep their colors.</summary>
         static void Paint(Transform part, Color color)
         {
             var block = new MaterialPropertyBlock();
             block.SetColor(BaseColor, color);
-            part.GetComponent<Renderer>().SetPropertyBlock(block);
+            var renderer = part.GetComponent<Renderer>();
+            var materials = renderer.sharedMaterials;
+            bool tinted = false;
+            for (int i = 0; i < materials.Length; i++)
+            {
+                if (materials[i] == null || !materials[i].name.StartsWith("BoardDeck")) continue;
+                renderer.SetPropertyBlock(block, i);
+                tinted = true;
+            }
+            if (!tinted) renderer.SetPropertyBlock(block);
         }
     }
 }

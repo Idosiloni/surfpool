@@ -13,3 +13,4 @@ Date: 2026-10-20
 - [surfing-basics.md](surfing-basics.md): skill levels, boards, gear, etiquette, wipeouts, lessons, surf culture for NPCs.
 - [sound-design.md](sound-design.md): sim game sound feel, real wave pool/surf park sounds, layering/mixing/falloff/ducking numbers, chill beach music, Python synthesis recipes (waves, coin, gull, whistle, UI, arpeggio, Karplus-Strong track).
 - [incremental-economy.md](incremental-economy.md): cost growth ratios, payback and purchase-pace targets, wage ratios, number formatting, 40-day income/price curve for our 4 chapters, money sinks.
+- [sim-games-2.md](sim-games-2.md): more sims (TCG Card Shop, Supermarket, Waterpark Simulator, Planet Coaster 2, Two Point, Parkitect, Internet Cafe 2): how they charge running costs (bills timing, size, grace), HUD/finance app patterns, counter props, progression features we lack, ranked ideas.

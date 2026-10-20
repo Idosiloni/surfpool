@@ -28,6 +28,23 @@ namespace SurfPool
         float chargeDuration;
         float nextAutoWave;
 
+        PoolArea pool;
+
+        /// <summary>The pool this machine belongs to.</summary>
+        public PoolArea Pool
+        {
+            get
+            {
+                if (pool == null)
+                    foreach (var area in PoolRegistry.All)
+                        if (area.Machine == this) pool = area;
+                return pool;
+            }
+        }
+
+        /// <summary>Power cost of one press with the selected wave (a whole set if upgraded).</summary>
+        public int PressCost => OperatingCosts.Instance != null ? OperatingCosts.Instance.PowerCost(Selected, Pool) * wavesPerSet : 0;
+
         public WaveLevel Selected { get; private set; } = WaveLevel.Beginner;
         public WaveDirection SelectedDirection { get; private set; } = WaveDirection.Peak;
         public bool Ready => Time.time >= readyAt;
@@ -116,6 +133,7 @@ namespace SurfPool
             for (int i = 0; i < wavesPerSet; i++)
                 pending.Add((Time.time + i * setSpacing, level, direction));
             GameStats.WavesSent += wavesPerSet;
+            if (OperatingCosts.Instance != null) OperatingCosts.Instance.MeterWaves(level, Pool, wavesPerSet);
             Sfx.Play(Sound.WaveMachine, transform.position);
             chargeDuration = cooldown + (wavesPerSet - 1) * setSpacing;
             readyAt = Time.time + chargeDuration;

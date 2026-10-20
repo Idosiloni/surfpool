@@ -30,9 +30,9 @@ namespace SurfPool
             public VisualElement patienceFill;
         }
 
-        VisualElement root, bubbleLayer, popupStack, toasts, crosshair, prompt, waveBarFill, rentalRow, wagesRow;
+        VisualElement root, bubbleLayer, popupStack, toasts, crosshair, prompt, waveBarFill, rentalRow, wagesRow, billsRow;
         Label money, ratingLabel, waveType, waveStatus, waveAuto, ticketValue, rentalValue, servedValue, lostValue,
-            wagesValue, promptLabel, clickToPlay, hint, dayLabel;
+            wagesValue, billsValue, promptLabel, clickToPlay, hint, dayLabel;
         StarRating stars;
         VisualElement missionCard, missionObjectives, missionMarker;
         Label missionChapter, missionTitle, missionStory, missionHint, markerDistance, missionBanner;
@@ -42,6 +42,12 @@ namespace SurfPool
         readonly Dictionary<Surfer, Bubble> bubbles = new();
         readonly List<Surfer> staleBubbles = new();
         Wallet wallet;
+        UpgradeShop shop;
+        VisualElement goalStrip, goalFill;
+        Label incomeRate, goalName, goalAmount;
+        float shownMoney;
+        readonly Queue<(float time, int amount)> recentIncome = new();
+        int incomeLastMinute;
 
         void OnEnable()
         {
@@ -54,6 +60,8 @@ namespace SurfPool
             waveBarFill = root.Q("waveBarFill");
             rentalRow = root.Q("rentalRow");
             wagesRow = root.Q("wagesRow");
+            billsRow = root.Q("billsRow");
+            billsValue = root.Q<Label>("billsValue");
             money = root.Q<Label>("moneyLabel");
             ratingLabel = root.Q<Label>("ratingLabel");
             waveType = root.Q<Label>("waveType");
@@ -68,6 +76,11 @@ namespace SurfPool
             clickToPlay = root.Q<Label>("clickToPlay");
             hint = root.Q<Label>("hint");
             dayLabel = root.Q<Label>("dayLabel");
+            incomeRate = root.Q<Label>("incomeRate");
+            goalStrip = root.Q("goalStrip");
+            goalFill = root.Q("goalFill");
+            goalName = root.Q<Label>("goalName");
+            goalAmount = root.Q<Label>("goalAmount");
 
             missionCard = root.Q("missionCard");
             missionObjectives = root.Q("missionObjectives");
@@ -101,9 +114,12 @@ namespace SurfPool
             {
                 wallet = Wallet.Instance;
                 wallet.Changed += ShowPopup;
+                wallet.Changed += TrackIncome;
+                shownMoney = wallet.Money;
             }
 
             UpdateMoneyAndRating();
+            UpdateGoal();
             UpdateWavePanel();
             UpdateStats();
             UpdatePrompt();
@@ -122,12 +138,48 @@ namespace SurfPool
             }
         }
 
+        /// <summary>Earnings from the park itself (not one-off mission rewards) feed the "+$/min" readout.</summary>
+        void TrackIncome(int amount, string reason)
+        {
+            if (amount <= 0 || reason == "mission reward") return;
+            recentIncome.Enqueue((Time.time, amount));
+            incomeLastMinute += amount;
+        }
+
+        /// <summary>
+        /// The cheapest upgrade you can buy next, with a bar filling toward its price. When you can afford it, the
+        /// strip turns teal: go to the computer.
+        /// </summary>
+        void UpdateGoal()
+        {
+            if (shop == null) shop = FindAnyObjectByType<UpgradeShop>();
+            if (shop == null || wallet == null) return;
+            Upgrade next = null;
+            foreach (var upgrade in shop.Upgrades)
+                if (!upgrade.owned && shop.RequirementMet(upgrade) && (next == null || upgrade.cost < next.cost))
+                    next = upgrade;
+            goalStrip.EnableInClassList("hidden", next == null || shop.IsOpen);
+            if (next == null) return;
+            bool ready = wallet.Money >= next.cost;
+            SetText(goalName, next.title);
+            SetText(goalAmount, ready ? "Ready! Buy it at the computer" : $"{MoneyText.Format(Mathf.Max(0, wallet.Money))} / {MoneyText.Format(next.cost)}");
+            goalFill.style.width = Length.Percent(Mathf.Clamp01(wallet.Money / (float)next.cost) * 100f);
+            goalStrip.EnableInClassList("goal-strip--ready", ready);
+        }
+
         void UpdateMoneyAndRating()
         {
             if (wallet != null)
             {
-                SetText(money, MoneyText.Format(wallet.Money));
+                // The number counts up (or down) to the real amount, fast for big jumps.
+                float gap = Mathf.Abs(wallet.Money - shownMoney);
+                shownMoney = Mathf.MoveTowards(shownMoney, wallet.Money, Mathf.Max(gap * 8f, 40f) * Time.unscaledDeltaTime);
+                SetText(money, MoneyText.Format(Mathf.RoundToInt(shownMoney)));
                 money.EnableInClassList("money-label--negative", wallet.Money < 0);
+
+                while (recentIncome.Count > 0 && Time.time - recentIncome.Peek().time > 60f)
+                    incomeLastMinute -= recentIncome.Dequeue().amount;
+                SetText(incomeRate, (incomeLastMinute >= 0 ? "+" : "") + MoneyText.Format(incomeLastMinute) + " / min");
             }
             if (DayCycle.Instance != null) SetText(dayLabel, $"Day {DayCycle.Instance.Day}  ·  {DayCycle.Instance.Clock}");
             if (ParkReputation.Instance != null)
@@ -171,7 +223,7 @@ namespace SurfPool
             waveBarFill.style.width = Length.Percent(machine.ReadyProgress * 100f);
             waveBarFill.EnableInClassList("bar-fill--charging", !machine.Ready);
             SetText(waveStatus, machine.Ready
-                ? "Ready - press the big button"
+                ? $"Ready - press the big button  ·  {MoneyText.Format(machine.PressCost)} power"
                 : $"Recharging... {Mathf.CeilToInt(machine.SecondsUntilReady)}s");
 
             string auto = machine.AutoInterval <= 0f ? "Auto: off"
@@ -200,6 +252,9 @@ namespace SurfPool
                 wagesRow.EnableInClassList("hidden", wages <= 0);
                 SetText(wagesValue, MoneyText.Format(wages) + "/min");
             }
+            var costs = OperatingCosts.Instance;
+            if (costs != null && DayCycle.Instance != null)
+                SetText(billsValue, MoneyText.Format(costs.EstimateToday(DayCycle.Instance.IncomeToday)));
         }
 
         /// <summary>"$20" at first; "$20 · $50 · $120" once better surfers come (beginner · intermediate · pro).</summary>

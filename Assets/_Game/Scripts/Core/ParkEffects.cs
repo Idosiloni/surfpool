@@ -23,6 +23,12 @@ namespace SurfPool
         /// <summary>Passive income per minute (season passes).</summary>
         public static int PassiveIncomePerMinute;
 
+        /// <summary>Multiplies the power each wave uses. Solar Panels lower it.</summary>
+        public static float ElectricityCostMultiplier = 1f;
+
+        /// <summary>Multiplies the daily water bill. Water Recycling lowers it.</summary>
+        public static float WaterCostMultiplier = 1f;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void ResetStatics()
         {
@@ -32,6 +38,8 @@ namespace SurfPool
             LessonFee = 0;
             MerchPerHappySurfer = 0;
             PassiveIncomePerMinute = 0;
+            ElectricityCostMultiplier = 1f;
+            WaterCostMultiplier = 1f;
         }
     }
 }

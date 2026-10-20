@@ -50,6 +50,9 @@ namespace SurfPool
         public float Progress => Mathf.Clamp01(time / dayLength);
         public bool Closed { get; private set; }
 
+        /// <summary>Money earned so far today.</summary>
+        public int IncomeToday => today != null ? today.TotalIncome : 0;
+
         /// <summary>Fires at closing time with the day's report.</summary>
         public event Action<DayReport> DayEnded;
 
@@ -116,6 +119,7 @@ namespace SurfPool
                 today.served = spawner.Served - servedAtStart;
                 today.lost = spawner.Lost - lostAtStart;
             }
+            if (OperatingCosts.Instance != null) OperatingCosts.Instance.PayDailyBills(today.TotalIncome);
             Sfx.Play(Sound.DayEnd);
             Lifeguard.Whistle();
             DayEnded?.Invoke(today);

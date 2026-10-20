@@ -69,6 +69,10 @@ namespace SurfPool
                 description = "Surfers arrive 40% more often." },
             new Upgrade { id = "tiki_garden", category = UpgradeCategory.Park, title = "Tiki Garden", cost = 2000,
                 description = "Palms, tiki torches and flower beds all around the pools. A prettier park: surfers will pay $10 more." },
+            new Upgrade { id = "solar_panels", category = UpgradeCategory.Park, title = "Solar Panels", cost = 1500,
+                description = "Solar panels on every wave machine roof. Waves use half the electricity." },
+            new Upgrade { id = "water_recycling", category = UpgradeCategory.Park, title = "Water Recycling", cost = 5000, requires = "solar_panels",
+                description = "Filter tanks next to every wave machine clean and reuse the pool water. The daily water bill is halved." },
             new Upgrade { id = "surf_shop", category = UpgradeCategory.Park, title = "Surf Shop", cost = 3500,
                 description = "A merch kiosk by the entrance. Every happy surfer buys $15 of wax, stickers and tees on the way out." },
             new Upgrade { id = "vip_sessions", category = UpgradeCategory.Park, title = "VIP Sessions", cost = 8000, requires = "intermediate_waves",
@@ -229,6 +233,14 @@ namespace SurfPool
                 case "pool_expand_2":
                     spawner.MainPool.SetStage(2);
                     spawner.MaxSurfers += 2;
+                    break;
+                case "solar_panels":
+                    ParkEffects.ElectricityCostMultiplier = 0.5f;
+                    foreach (var area in PoolRegistry.All) if (area.SolarPanels != null) area.SolarPanels.SetActive(true);
+                    break;
+                case "water_recycling":
+                    ParkEffects.WaterCostMultiplier = 0.5f;
+                    foreach (var area in PoolRegistry.All) if (area.WaterTanks != null) area.WaterTanks.SetActive(true);
                     break;
                 case "tiki_garden":
                     foreach (var garden in tikiGarden) if (garden != null) garden.SetActive(true);

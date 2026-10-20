@@ -53,6 +53,12 @@ namespace SurfPool
         [SerializeField] SizeStage[] stages;
         [Tooltip("South edge of the pool (world z). The pool grows north from here.")]
         [SerializeField] float southEdge;
+        [Tooltip("Daily water bill at full size (smaller stages pay for their smaller area).")]
+        [SerializeField] float dailyWater = 25f;
+        [Tooltip("Shown when Solar Panels are bought (on the machine house roof).")]
+        [SerializeField] GameObject solarPanels;
+        [Tooltip("Shown when Water Recycling is bought (tanks next to the machine house).")]
+        [SerializeField] GameObject waterTanks;
 
         public string DisplayName => displayName;
         public string UpgradeId => upgradeId;
@@ -69,6 +75,20 @@ namespace SurfPool
         public int Stage { get; private set; }
         public int StageCount => stages?.Length ?? 0;
         public string StageName => StageCount > 0 ? stages[Stage].name : displayName;
+        public GameObject SolarPanels => solarPanels;
+        public GameObject WaterTanks => waterTanks;
+
+        /// <summary>Today's water bill for this pool: the full-size bill times how much of the full area is dug.</summary>
+        public float DailyWaterCost
+        {
+            get
+            {
+                if (StageCount == 0) return dailyWater;
+                var full = stages[StageCount - 1];
+                var now = stages[Stage];
+                return dailyWater * (now.length * now.width) / (full.length * full.width);
+            }
+        }
 
         void Awake()
         {
