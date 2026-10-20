@@ -370,47 +370,42 @@ def cheer(name, seed):
 
 CHORDS_A = [(60, 64, 67, 71), (57, 60, 64, 67), (53, 57, 60, 64), (55, 59, 62, 64)]  # Cmaj7 Am7 Fmaj7 G6
 CHORDS_B = [(53, 57, 60, 64), (52, 55, 59, 62), (50, 53, 57, 60), (48, 52, 55, 59)]  # Fmaj7 Em7 Dm7 Cmaj7
+CHORDS_C = [(57, 60, 64, 67), (53, 57, 60, 64), (48, 52, 55, 59), (55, 59, 62, 65)]  # Am7 Fmaj7 Cmaj7 G7
 PENTA = [72, 74, 76, 79, 81, 84]
 
 
-def music(name, chords, seed, bpm=90, bars=16):
+def music(name, chords, seed, bpm=76, bars=16):
+    """Calm background music: a soft pad and a fingerpicked guitar (one note at a time, no drums), warm and quiet.
+    Not a loop: it fades in and out, and the game leaves long beach-only breaks between songs."""
     beat = 60 / bpm
     bar = beat * 4
-    length = bar * bars
+    length = bar * bars + 3.0
     n = int(SR * length)
     x = np.zeros(n)
     r = rng(seed)
-    melody_rest = 0.45
+    pattern = [0, 2, 1, 3, 2, 1]  # gentle arpeggio order over the chord tones
     for b in range(bars):
         chord = chords[b % len(chords)]
         t0 = b * bar
-        # strummed uke on 1 and the "and" of 2, a light upstroke on 4
-        for at, gain, down in ((0, 0.55, True), (beat * 1.5, 0.45, True), (beat * 3, 0.3, False)):
-            order = chord if down else chord[::-1]
-            for i, m in enumerate(order):
-                place(x, pluck(midi(m), 1.4, 0.994, seed * 100 + b * 10 + i), t0 + at + i * 0.022, gain / 4, wrap=True)
-        # bass on 1 and 3
-        root = chord[0] - 24
-        place(x, pluck(midi(root), 1.2, 0.997, seed + b), t0, 0.5, wrap=True)
-        place(x, pluck(midi(root + 7), 1.0, 0.997, seed + b + 50), t0 + beat * 2, 0.35, wrap=True)
-        # marimba-ish melody, rests often
-        for s in range(8):
-            if r.random() < melody_rest or s % 2 == 1 and r.random() < 0.6:
+        # bass note on beat 1, softly
+        place(x, pluck(midi(chord[0] - 12), 2.4, 0.998, seed + b, soft=4), t0, 0.35)
+        # fingerpicked eighth-note arpeggio, a little humanized
+        for k in range(8):
+            if k == 7 and r.random() < 0.5:
                 continue
-            m = PENTA[r.integers(0, len(PENTA))]
-            tt = secs(0.7)
-            mallet = (np.sin(2 * np.pi * midi(m) * tt) + 0.25 * np.sin(2 * np.pi * midi(m) * 4 * tt)) * np.exp(-tt / 0.22)
-            place(x, mallet, t0 + s * beat / 2, 0.16, wrap=True)
-        # shaker on every offbeat 8th
-        for s in range(8):
-            sh = highpass(white(int(SR * 0.05), b * 8 + s), 5000) * np.exp(-secs(0.05) / 0.015)
-            place(x, sh, t0 + s * beat / 2 + beat / 4, 0.05 if s % 2 else 0.08, wrap=True)
-        # soft pad
-        pad_t = secs(bar)
-        pad = sum(np.sin(2 * np.pi * midi(m) * pad_t) for m in chord) * np.sin(np.pi * pad_t / bar) ** 2
-        place(x, pad, t0, 0.025, wrap=True)
-    x = lowpass(x, 7000)
-    save(name, stereo_widen(x, seed, 9))
+            m = chord[pattern[k % len(pattern)]] + (12 if k in (3, 5) else 0)
+            at = max(0.0, t0 + k * beat / 2 + r.uniform(-0.012, 0.012))
+            place(x, pluck(midi(m), 1.8, 0.996, seed * 100 + b * 10 + k, soft=4), at, r.uniform(0.11, 0.16))
+        # warm pad
+        pad_t = secs(bar + 0.5)
+        pad = sum(np.sin(2 * np.pi * midi(m - 12) * pad_t) * 0.6 + np.sin(2 * np.pi * midi(m) * pad_t) * 0.4 for m in chord[:3])
+        place(x, pad * np.sin(np.pi * np.clip(pad_t / (bar + 0.5), 0, 1)) ** 2, t0, 0.03)
+    x = lowpass(x, 3200)
+    # fade in and out
+    fade_len = int(SR * 3)
+    x[:fade_len] *= np.linspace(0, 1, fade_len)
+    x[-fade_len:] *= np.linspace(1, 0, fade_len)
+    save(name, stereo_widen(x, seed, 9), peak_db=-3)
 
 
 def main():
@@ -440,6 +435,7 @@ def main():
     cheer("cheer_2", 402)
     music("music_sunny", CHORDS_A, 7)
     music("music_lazy", CHORDS_B, 8)
+    music("music_sunset", CHORDS_C, 9, bpm=70)
     for name, length, ch in written:
         print(f"{name:20s} {length:6.2f}s  {'stereo' if ch == 2 else 'mono'}")
 

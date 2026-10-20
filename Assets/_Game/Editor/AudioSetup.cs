@@ -45,7 +45,7 @@ namespace SurfPool.EditorTools
             };
             bank.surfLoop = Clip("amb_surf_loop");
             bank.crowdLoop = Clip("amb_crowd_loop");
-            bank.music = new[] { Clip("music_sunny"), Clip("music_lazy") };
+            bank.music = new[] { Clip("music_sunny"), Clip("music_lazy"), Clip("music_sunset") };
             EditorUtility.SetDirty(bank);
             AssetDatabase.SaveAssets();
             return bank;

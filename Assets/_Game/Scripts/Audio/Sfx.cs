@@ -15,7 +15,9 @@ namespace SurfPool
 
         [SerializeField] SoundBank bank;
         [SerializeField] PriceBoard pricing;
-        [Range(0f, 1f)] [SerializeField] float musicLevel = 0.32f;
+        [Range(0f, 1f)] [SerializeField] float musicLevel = 0.2f;
+        [Tooltip("Seconds of just beach sounds between songs (random in this range).")]
+        [SerializeField] Vector2 songGap = new(45f, 110f);
         [Range(0f, 1f)] [SerializeField] float surfLevel = 0.35f;
         [Range(0f, 1f)] [SerializeField] float crowdLevel = 0.22f;
         [Tooltip("Seconds between seagull calls (random in this range).")]
@@ -31,7 +33,8 @@ namespace SurfPool
         readonly Dictionary<Sound, int> lastVariant = new();
         AudioSource music, surf, crowd;
         int nextVoice, musicIndex = -1;
-        float duckUntil, duck = 1f, nextSeagull, pendingMoney;
+        float duckUntil, duck = 1f, nextSeagull, pendingMoney, nextSongAt = 4f;
+        bool songPlaying;
 
         /// <summary>How many one-shots have played (for tests).</summary>
         public static int PlayedCount { get; private set; }
@@ -39,7 +42,7 @@ namespace SurfPool
         void Awake()
         {
             instance = this;
-            MusicVolume = PlayerPrefs.GetFloat("vol_music", 0.8f);
+            MusicVolume = PlayerPrefs.GetFloat("vol_music", 0.6f);
             EffectsVolume = PlayerPrefs.GetFloat("vol_effects", 0.9f);
             AmbienceVolume = PlayerPrefs.GetFloat("vol_ambience", 0.8f);
 
@@ -180,11 +183,18 @@ namespace SurfPool
             crowd.volume = Mathf.MoveTowards(crowd.volume, crowdLevel * busy * AmbienceVolume * duck, Time.unscaledDeltaTime * 0.2f);
 
             music.volume = musicLevel * MusicVolume * duck;
-            if (!music.isPlaying && bank.music != null && bank.music.Length > 0)
+            // Songs with long breaks of just the beach in between, so the music never nags.
+            if (songPlaying && !music.isPlaying)
+            {
+                songPlaying = false;
+                nextSongAt = now + Random.Range(songGap.x, songGap.y);
+            }
+            if (!songPlaying && now >= nextSongAt && bank.music != null && bank.music.Length > 0)
             {
                 musicIndex = (musicIndex + 1 + Random.Range(0, bank.music.Length - 1)) % bank.music.Length;
                 music.clip = bank.music[musicIndex];
                 music.Play();
+                songPlaying = true;
             }
 
             if (!menuOpen && (nextSeagull -= Time.deltaTime) <= 0f)
