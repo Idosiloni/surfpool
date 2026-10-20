@@ -14,11 +14,13 @@ namespace SurfPool
     {
         [SerializeField] SaveSystem saveSystem;
         [SerializeField] SurferSpawner spawner;
+        StaffPayroll payroll;
 
         const string Controls =
             "WASD  walk  ·  Shift  sprint  ·  Space  jump\n" +
             "E  use whatever you look at (register, computer, wave console, boards...)\n" +
             "B  build mode: decorate the park (1-0 pick, R rotate, click place, X sell back)\n" +
+            "J  journal: mission story and today's challenges\n" +
             "Esc  free the mouse  ·  Tab  this menu\n\n" +
             "Surfing: E on your board by a wave console. W paddle, Space stand up when a wave reaches you, " +
             "A/D carve, W/S up and down the face, Space air, F send a wave, Q get out.";
@@ -77,11 +79,13 @@ namespace SurfPool
             Time.timeScale = 0f;
             InputBlocker.Block();
             FirstPersonController.LockCursor(false);
+            if (payroll == null) payroll = FindAnyObjectByType<StaffPayroll>();
             int day = DayCycle.Instance != null ? DayCycle.Instance.Day : 1;
             subtitle.text = $"Day {day}  ·  {MoneyText.Format(Wallet.Instance.Money)} in the bank  ·  {PoolRegistry.OpenPools} of {PoolRegistry.TotalPools} pools open";
             stats.Clear();
             AddStat("Happy surfers (all time)", GameStats.SurfersServed.ToString());
             AddStat("Lost customers", spawner.Lost.ToString());
+            if (payroll != null) AddStat("Staff wages", MoneyText.Format(payroll.WagesPerMinute) + "/min");
             AddStat("Tickets sold", GameStats.TicketsSold.ToString());
             AddStat("Waves sent", GameStats.WavesSent.ToString());
             AddStat("Boards rented", GameStats.BoardsRented.ToString());

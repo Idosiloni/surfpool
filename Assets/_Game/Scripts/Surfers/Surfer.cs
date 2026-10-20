@@ -73,9 +73,12 @@ namespace SurfPool
         readonly Queue<Vector3> path = new();
         State stateAfterPath;
         Vector3 lineupTarget;
-        bool wantsSnack, ateSnack, rodeFamous;
+        bool wantsSnack, ateSnack, rodeFamous, rideWhitewash;
         float lane;            // sideways offset from the path (m), so surfers don't walk in single file on top of each other
         Vector3 segmentStart;  // where the current path segment began (lane direction)
+
+        /// <summary>Where beginners wait, as a share of the pool's length from the wave machine.</summary>
+        const float InsideLineup = 0.45f;
 
         const float WalkSpace = 0.8f;   // personal space on foot (m)
         const float WaterSpace = 1.8f;  // personal space on a board (boards are 2 m long)
@@ -124,7 +127,7 @@ namespace SurfPool
         int PreferredSide => PreferredDirection == WaveDirection.Right ? -1 : 1;
 
         string WantedWave => Skill == WaveLevel.Beginner
-            ? "a Beginner wave"
+            ? "any wave"
             : $"{(Skill == WaveLevel.Intermediate ? "an" : "a")} {Skill} {PreferredDirection.ToString().ToLowerInvariant()}";
         public bool ShowPatience => state is State.InDeskLine or State.InRentalLine or State.WaitingForWave;
         public float Patience => patience;
@@ -297,6 +300,9 @@ namespace SurfPool
             for (int i = 0; i < 8; i++)
             {
                 var spot = pool.Lineup.position + new Vector3(Random.Range(-2f, 2f), 0f, 0f);
+                // Beginners wait on the inside, nearer the beach, where bigger waves have already turned to whitewater.
+                if (Skill == WaveLevel.Beginner)
+                    spot = water.transform.TransformPoint(new Vector3(water.Length * InsideLineup + Random.Range(-1.5f, 1.5f), 0f, 0f));
                 spot.z = water.transform.position.z + Random.Range(-halfWidth, halfWidth);
                 float gap = float.MaxValue;
                 foreach (var other in All)
@@ -505,7 +511,17 @@ namespace SurfPool
                 if (crest <= x - 2.5f || crest >= x + 0.5f || wave == skippedWave) continue;
 
                 int diff = (int)level - (int)Skill;
-                if (Mathf.Abs(diff) >= 2)
+                // Beginners on the inside happily ride the whitewater of any bigger wave once it has broken.
+                bool whitewash = Skill == WaveLevel.Beginner && diff > 0;
+                if (whitewash && !water.IsBroken(wave)) continue; // not whitewater yet: wait for it
+                // Better surfers let waves that are too small roll past and keep waiting.
+                if (diff < 0)
+                {
+                    skippedWave = wave;
+                    if (Random.value < 0.5f) Shout("Too small for me, I'll wait.", 2f);
+                    continue;
+                }
+                if (!whitewash && Mathf.Abs(diff) >= 2)
                 {
                     // Way too big or way too small: let it pass.
                     skippedWave = wave;
@@ -518,14 +534,15 @@ namespace SurfPool
                 rideStartTime = Time.time;
                 rideLaneZ = water.transform.InverseTransformPoint(transform.position).z;
                 rideZ = rideLaneZ;
-                rideQuality = diff == 0 ? 1f : diff < 0 ? 0.5f : 0.6f;
+                rideQuality = diff == 0 ? 1f : whitewash ? (diff == 1 ? 1f : 0.85f) : diff < 0 ? 0.5f : 0.6f;
+                rideWhitewash = whitewash;
 
                 // On a single-direction wave, going your frontside feels better than going backside.
                 var waveDirection = water.DirectionOf(wave);
                 bool backside = level != WaveLevel.Beginner && waveDirection != WaveDirection.Peak
                                 && waveDirection != PreferredDirection;
                 if (backside) rideQuality *= 0.85f;
-                rideMatched = diff == 0;
+                rideMatched = diff == 0 || whitewash;
                 string famous = water.FamousName(wave);
                 if (famous != null && diff == 0)
                 {
@@ -536,12 +553,12 @@ namespace SurfPool
                 nextTrickAt = Time.time + Random.Range(trickInterval.x, trickInterval.y);
 
                 // Too-big waves often end in a wipeout; everyone wipes out sometimes.
-                float wipeoutChance = diff > 0 ? 0.6f : Skill switch { WaveLevel.Beginner => 0.2f, WaveLevel.Intermediate => 0.1f, _ => 0.05f };
+                float wipeoutChance = whitewash ? (diff == 1 ? 0.22f : 0.35f) : diff > 0 ? 0.6f : Skill switch { WaveLevel.Beginner => 0.2f, WaveLevel.Intermediate => 0.1f, _ => 0.05f };
                 if (Skill == WaveLevel.Beginner) wipeoutChance *= ParkEffects.BeginnerWipeoutMultiplier;
                 wipeoutAt = Random.value < wipeoutChance ? Time.time + Random.Range(0.8f, 2.5f) : -1f;
 
                 state = State.Riding;
-                Shout(diff < 0 ? "Kinda small..." : diff > 0 ? "Whoa, big one!"
+                Shout(whitewash ? "Riding the whitewater!" : diff < 0 ? "Kinda small..." : diff > 0 ? "Whoa, big one!"
                     : backside ? "Going backside!" : RideShouts[Random.Range(0, RideShouts.Length)], 2f);
                 return;
             }
@@ -577,7 +594,7 @@ namespace SurfPool
             float carve = Mathf.Sin((Time.time - rideStartTime) * carveSpeed);
             float targetZ;
             inBarrel = false;
-            if (water.TryGetPocket(rideWave, PreferredSide, out float pocketZ, out int side, out bool breaking,
+            if (!rideWhitewash && water.TryGetPocket(rideWave, PreferredSide, out float pocketZ, out int side, out bool breaking,
                     out bool finished, out bool barrel))
             {
                 if (finished)

@@ -185,14 +185,19 @@ namespace SurfPool
         bool IsMine(Surfer surfer) => surfer.Pool != null && surfer.Pool.Machine == this;
 
         /// <summary>The unlocked wave type wanted by the most surfers waiting in the water.</summary>
+        /// <summary>
+        /// The wave type to send for the surfers waiting in this pool. Beginners ride the whitewater of any wave, so a
+        /// bigger wave serves them too: send the type most of the better surfers want, or a Beginner wave if only
+        /// beginners are waiting.
+        /// </summary>
         WaveLevel MostWantedLevel()
         {
             var counts = new int[3];
             foreach (var surfer in Surfer.All)
                 if (surfer.WaitingForWave && IsMine(surfer)) counts[(int)surfer.Skill]++;
-            WaveLevel best = Selected;
+            WaveLevel best = counts[0] > 0 || (counts[1] == 0 && counts[2] == 0) ? WaveLevel.Beginner : Selected;
             int bestCount = 0;
-            for (int i = 0; i < counts.Length; i++)
+            for (int i = 1; i < counts.Length; i++)
             {
                 var level = (WaveLevel)i;
                 if (counts[i] > bestCount && IsUnlocked(level))

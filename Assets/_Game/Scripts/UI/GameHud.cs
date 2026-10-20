@@ -45,7 +45,9 @@ namespace SurfPool
         UpgradeShop shop;
         VisualElement goalStrip, goalFill, xpFill;
         Label incomeRate, goalName, goalAmount, levelLabel, xpLabel, eventLabel, trashValue;
-        VisualElement trashRow, challengeCard, challengeList;
+        VisualElement trashRow, challengeCard, challengeList, wavePanel, lostRow;
+        bool journalOpen;
+        float missionShownAt;
         Label challengeReward;
         float nextChallengeRefresh;
         ParkLevel subscribedLevel;
@@ -89,6 +91,8 @@ namespace SurfPool
             eventLabel = root.Q<Label>("eventLabel");
             trashValue = root.Q<Label>("trashValue");
             trashRow = root.Q("trashRow");
+            wavePanel = root.Q("wavePanel");
+            lostRow = root.Q("lostRow");
             challengeCard = root.Q("challengeCard");
             challengeList = root.Q("challengeList");
             challengeReward = root.Q<Label>("challengeReward");
@@ -134,6 +138,13 @@ namespace SurfPool
             }
 
             UpdateMoneyAndRating();
+            var keyboard = UnityEngine.InputSystem.Keyboard.current;
+            if (keyboard != null && keyboard.jKey.wasPressedThisFrame && !InputBlocker.Blocked)
+            {
+                journalOpen = !journalOpen;
+                nextChallengeRefresh = 0f;
+                nextMissionRefresh = 0f;
+            }
             UpdateLevel();
             UpdateGoal();
             UpdateChallenges();
@@ -150,7 +161,7 @@ namespace SurfPool
             }
             else
             {
-                SetText(hint, "WASD move   ·   Shift sprint   ·   Space jump   ·   E use   ·   B build   ·   Tab menu   ·   Esc free mouse");
+                SetText(hint, "WASD move   ·   Shift sprint   ·   E use   ·   B build   ·   J journal   ·   Tab menu");
                 hint.EnableInClassList("hint--hidden", Time.timeSinceLevelLoad > hintSeconds);
             }
         }
@@ -161,7 +172,12 @@ namespace SurfPool
             challengeCard.EnableInClassList("hidden", challenges == null || challenges.Today.Count == 0);
             if (challenges == null || Time.unscaledTime < nextChallengeRefresh) return;
             nextChallengeRefresh = Time.unscaledTime + 0.5f;
-            SetText(challengeReward, $"{MoneyText.Format(challenges.Reward)} + 30 XP each");
+            int done = 0;
+            foreach (var challenge in challenges.Today) if (challenge.done) done++;
+            SetText(challengeReward, journalOpen
+                ? $"{MoneyText.Format(challenges.Reward)} + 30 XP each"
+                : $"{done}/{challenges.Today.Count} done  ·  J for details");
+            challengeList.EnableInClassList("hidden", !journalOpen);
             challengeList.Clear();
             foreach (var challenge in challenges.Today)
             {
@@ -202,6 +218,15 @@ namespace SurfPool
             Notifications.Post(unlocked.Count > 0 ? $"Park level {level}: unlocked {string.Join(", ", unlocked)}" : $"Park level {level}!");
             Sfx.Play(Sound.Mission);
             Sfx.Duck();
+        }
+
+        float DistanceToPool(PoolArea pool)
+        {
+            var rect = pool.Footprint(0f);
+            var p = new Vector2(player.transform.position.x, player.transform.position.z);
+            float dx = Mathf.Max(rect.xMin - p.x, 0f, p.x - rect.xMax);
+            float dy = Mathf.Max(rect.yMin - p.y, 0f, p.y - rect.yMax);
+            return Mathf.Sqrt(dx * dx + dy * dy);
         }
 
         /// <summary>Earnings from the park itself (not one-off mission rewards) feed the "+$/min" readout.</summary>
@@ -280,7 +305,11 @@ namespace SurfPool
         void UpdateWavePanel()
         {
             var machine = NearestMachine();
-            if (machine == null) return;
+            // Only shown near a pool (or while surfing): the rest of the time the HUD stays clear.
+            bool near = machine != null && player != null && machine.Pool != null &&
+                        (DistanceToPool(machine.Pool) < 18f || (PlayerSurfing.Instance != null && PlayerSurfing.Instance.IsSurfing));
+            wavePanel.EnableInClassList("hidden", !near);
+            if (!near) return;
             var selected = machine.Selected;
             string direction = selected == WaveLevel.Beginner ? "Whitewater"
                 : machine.SelectedDirection == WaveDirection.Peak ? "Peak" : machine.SelectedDirection.ToString();
@@ -316,7 +345,7 @@ namespace SurfPool
             }
             if (spawner != null)
             {
-                rentalRow.EnableInClassList("hidden", spawner.RenterChance <= 0f);
+                lostRow.EnableInClassList("hidden", spawner.Lost == 0);
                 SetText(servedValue, spawner.Served.ToString());
                 SetText(lostValue, spawner.Lost.ToString());
                 lostValue.EnableInClassList("stat-value--bad", spawner.Lost > 0);
@@ -324,7 +353,7 @@ namespace SurfPool
             if (payroll != null)
             {
                 int wages = payroll.WagesPerMinute;
-                wagesRow.EnableInClassList("hidden", wages <= 0);
+
                 SetText(wagesValue, MoneyText.Format(wages) + "/min");
             }
             int trash = Trash.All.Count;
@@ -440,7 +469,12 @@ namespace SurfPool
 
             if (mission == null || Time.unscaledTime < nextMissionRefresh && mission == shownMission) return;
             nextMissionRefresh = Time.unscaledTime + 0.25f;
+            if (mission != shownMission) missionShownAt = Time.unscaledTime;
             shownMission = mission;
+            // Compact unless you open the journal (J), the mission just started, or you're still in the tutorial chapter.
+            bool details = journalOpen || Time.unscaledTime - missionShownAt < 12f || missions.Index < 6;
+            missionStory.EnableInClassList("hidden", !details);
+            missionHint.EnableInClassList("hidden", !details);
             SetText(missionChapter, mission.chapter.ToUpperInvariant());
             SetText(missionTitle, mission.title);
             SetText(missionStory, mission.story);
@@ -521,7 +555,7 @@ namespace SurfPool
 
         void ShowToast(string message, bool bad)
         {
-            while (toasts.childCount >= 4) toasts.RemoveAt(0);
+            while (toasts.childCount >= 2) toasts.RemoveAt(0);
             var toast = new Label(message) { pickingMode = PickingMode.Ignore };
             toast.AddToClassList("toast");
             toast.EnableInClassList("toast--bad", bad);

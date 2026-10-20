@@ -17,7 +17,7 @@ namespace SurfPool
 
         static readonly string[] Descriptions =
         {
-            "Small rolling whitewater. Easy to ride. For beginners.",
+            "Small rolling whitewater for beginners. Beginners also ride the whitewater of bigger waves from the inside.",
             "2 m peeling wave with a clean face. For intermediate surfers.",
             "2.8 m steep, fast, barreling wave. For pros.",
         };

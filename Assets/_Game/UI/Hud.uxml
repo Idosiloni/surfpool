@@ -49,17 +49,19 @@
         </ui:VisualElement>
 
         <ui:VisualElement class="top-right card" picking-mode="Ignore">
-            <ui:VisualElement class="title-row" picking-mode="Ignore">
-                <ui:VisualElement class="icon icon--wave" picking-mode="Ignore" />
-                <ui:Label text="WAVE MACHINE" class="section-title" picking-mode="Ignore" />
+            <ui:VisualElement name="wavePanel" picking-mode="Ignore">
+                <ui:VisualElement class="title-row" picking-mode="Ignore">
+                    <ui:VisualElement class="icon icon--wave" picking-mode="Ignore" />
+                    <ui:Label text="WAVE MACHINE" class="section-title" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:Label name="waveType" text="Intermediate" class="wave-type wave-type--intermediate" picking-mode="Ignore" />
+                <ui:VisualElement class="bar" picking-mode="Ignore">
+                    <ui:VisualElement name="waveBarFill" class="bar-fill" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:Label name="waveStatus" text="Ready" class="small-text" picking-mode="Ignore" />
+                <ui:Label name="waveAuto" text="Auto: off" class="small-text" picking-mode="Ignore" />
+                <ui:VisualElement class="divider" picking-mode="Ignore" />
             </ui:VisualElement>
-            <ui:Label name="waveType" text="Intermediate" class="wave-type wave-type--intermediate" picking-mode="Ignore" />
-            <ui:VisualElement class="bar" picking-mode="Ignore">
-                <ui:VisualElement name="waveBarFill" class="bar-fill" picking-mode="Ignore" />
-            </ui:VisualElement>
-            <ui:Label name="waveStatus" text="Ready" class="small-text" picking-mode="Ignore" />
-            <ui:Label name="waveAuto" text="Auto: off" class="small-text" picking-mode="Ignore" />
-            <ui:VisualElement class="divider" picking-mode="Ignore" />
             <ui:VisualElement class="title-row" picking-mode="Ignore">
                 <ui:VisualElement class="icon icon--palm" picking-mode="Ignore" />
                 <ui:Label text="PARK" class="section-title" picking-mode="Ignore" />
@@ -69,17 +71,17 @@
                 <ui:Label text="Session prices" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="ticketValue" text="$20" class="stat-value" picking-mode="Ignore" />
             </ui:VisualElement>
-            <ui:VisualElement name="rentalRow" class="stat-row" picking-mode="Ignore">
+            <ui:VisualElement name="rentalRow" class="stat-row hidden" picking-mode="Ignore">
                 <ui:VisualElement class="icon icon--small icon--board" picking-mode="Ignore" />
                 <ui:Label text="Board rental" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="rentalValue" text="$10" class="stat-value" picking-mode="Ignore" />
             </ui:VisualElement>
-            <ui:VisualElement class="stat-row" picking-mode="Ignore">
+            <ui:VisualElement name="servedRow" class="stat-row hidden" picking-mode="Ignore">
                 <ui:VisualElement class="icon icon--small icon--smile" picking-mode="Ignore" />
                 <ui:Label text="Happy surfers" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="servedValue" text="0" class="stat-value" picking-mode="Ignore" />
             </ui:VisualElement>
-            <ui:VisualElement class="stat-row" picking-mode="Ignore">
+            <ui:VisualElement name="lostRow" class="stat-row hidden" picking-mode="Ignore">
                 <ui:VisualElement class="icon icon--small icon--frown" picking-mode="Ignore" />
                 <ui:Label text="Lost customers" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="lostValue" text="0" class="stat-value" picking-mode="Ignore" />
@@ -94,7 +96,7 @@
                 <ui:Label text="Today's bills" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="billsValue" text="$0" class="stat-value stat-value--bill" picking-mode="Ignore" />
             </ui:VisualElement>
-            <ui:VisualElement name="wagesRow" class="stat-row" picking-mode="Ignore">
+            <ui:VisualElement name="wagesRow" class="stat-row hidden" picking-mode="Ignore">
                 <ui:VisualElement class="icon icon--small icon--person" picking-mode="Ignore" />
                 <ui:Label text="Staff wages" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="wagesValue" text="$0/min" class="stat-value" picking-mode="Ignore" />

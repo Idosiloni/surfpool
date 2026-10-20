@@ -193,6 +193,14 @@ namespace SurfPool
             waves.Add(new ActiveWave { start = Time.time, type = type, direction = direction, famous = preset?.name });
         }
 
+        /// <summary>Has this wave broken into whitewater yet? (Beginners on the inside ride the whitewater of bigger waves.)</summary>
+        public bool IsBroken(float waveId)
+        {
+            foreach (var state in states)
+                if (state.id == waveId) return state.breaking || state.beachBreak > 0f;
+            return false;
+        }
+
         /// <summary>The famous wave this wave imitates (null for plain waves or if it's gone).</summary>
         public string FamousName(float waveId)
         {
