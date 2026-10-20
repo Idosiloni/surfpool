@@ -46,6 +46,12 @@ PALETTE = {
     "Tire": (0.12, 0.12, 0.13),
     "Headlight": (1.0, 0.95, 0.7),
     "Taillight": (0.85, 0.12, 0.1),
+    "Rust": (0.55, 0.27, 0.13),
+    "Plywood": (0.62, 0.52, 0.38),
+    "DeadGrass": (0.62, 0.58, 0.32),
+    "Bulb": (1.0, 0.86, 0.5),          # swapped for a glowing material in Unity
+    "Flower": (0.98, 0.45, 0.62),
+    "Tan": (0.93, 0.72, 0.55),
 }
 
 
@@ -713,10 +719,336 @@ def char_leg():
     return join("CharLeg", [leg, foot])
 
 
-def build_all():
+
+# ---------------------------------------------------------------- park glow-up and life (ambience step)
+
+def catenary(t, sag):
+    """0 at both ends, -sag in the middle."""
+    return -sag * (1 - (2 * t - 1) ** 2)
+
+
+def seagull(name="Seagull"):
+    """A gull in flight, about 1.3 m wingspan, flying toward -Y. Wings form a shallow M."""
+    parts = [ico("Body", 0.14, (0, 0, 0), "White", subdivisions=1)]
+    parts[0].scale = (0.75, 2.1, 0.8)
+    bpy.context.view_layer.objects.active = parts[0]
+    bpy.ops.object.transform_apply(scale=True)
+    parts.append(ico("Head", 0.09, (0, -0.3, 0.05), "White", subdivisions=1))
+    parts.append(cylinder("Beak", 0.025, 0.1, (0, -0.42, 0.04), "Yellow", vertices=5, rotation=(math.radians(90), 0, 0), radius_top=0.005))
+    for side in (-1, 1):
+        inner = [(side * 0.05, -0.08, 0.02), (side * 0.36, -0.06, 0.14), (side * 0.36, 0.08, 0.12), (side * 0.05, 0.1, 0.0)]
+        parts.append(mesh_object("Wing Inner", inner, [(0, 1, 2, 3) if side > 0 else (3, 2, 1, 0)], "White", double_sided=True))
+        outer = [(side * 0.36, -0.06, 0.14), (side * 0.68, 0.04, 0.04), (side * 0.36, 0.08, 0.12)]
+        parts.append(mesh_object("Wing Tip", outer, [(0, 1, 2) if side > 0 else (2, 1, 0)], "Charcoal", double_sided=True))
+    parts.append(mesh_object("Tail", [(-0.07, 0.22, 0.0), (0.07, 0.22, 0.0), (0, 0.38, 0.02)], [(0, 1, 2)], "White", double_sided=True))
+    obj = join(name, parts)
+    return obj
+
+
+def hull(name, length, width, height, mat):
+    """Boat hull: flat-ish bottom, pointy bow toward -Y."""
+    hl, hw = length / 2, width / 2
+    verts = [
+        (0, -hl, height), (hw, -hl * 0.45, height), (hw, hl, height), (-hw, hl, height), (-hw, -hl * 0.45, height),
+        (0, -hl * 0.92, 0), (hw * 0.6, -hl * 0.4, 0), (hw * 0.6, hl * 0.95, 0), (-hw * 0.6, hl * 0.95, 0), (-hw * 0.6, -hl * 0.4, 0),
+    ]
+    faces = [(0, 1, 2, 3, 4), (9, 8, 7, 6, 5), (0, 5, 6, 1), (1, 6, 7, 2), (2, 7, 8, 3), (3, 8, 9, 4), (4, 9, 5, 0)]
+    obj = mesh_object(name, verts, faces, mat)
+    recalc_normals(obj)
+    return obj
+
+
+def sailboat(name="Sailboat"):
+    parts = [hull("Hull", 6.0, 2.0, 0.9, "Navy")]
+    parts.append(box("Deck", (1.7, 4.2, 0.08), (0, 0.6, 0.92), "Wood"))
+    parts.append(box("Cabin", (1.1, 1.6, 0.45), (0, 0.4, 1.15), "White"))
+    parts.append(cylinder("Mast", 0.07, 8.0, (0, -0.4, 4.9), "White", vertices=6))
+    parts.append(box("Boom", (0.08, 2.6, 0.08), (0, 0.9, 1.75), "White"))
+    parts.append(mesh_object("Mainsail", [(0, -0.35, 8.6), (0, -0.35, 1.85), (0, 2.15, 1.85)], [(0, 1, 2)], "White", double_sided=True))
+    parts.append(mesh_object("Jib", [(0, -0.45, 7.6), (0, -2.8, 1.1), (0, -0.5, 1.4)], [(0, 1, 2)], "Coral", double_sided=True))
+    return join(name, parts)
+
+
+def fishing_boat(name="FishingBoat"):
+    parts = [hull("Hull", 7.0, 2.6, 1.1, "Red")]
+    parts.append(box("Stripe", (2.62, 4.6, 0.12), (0, 1.0, 1.0), "White"))
+    parts.append(box("Deck", (2.3, 5.2, 0.08), (0, 0.8, 1.12), "Wood"))
+    parts.append(box("Wheelhouse", (1.8, 1.8, 1.5), (0, 0.2, 1.9), "White"))
+    parts.append(box("Windows", (1.82, 0.4, 0.5), (0, -0.52, 2.2), "Glass"))
+    parts.append(box("Roof", (2.0, 2.0, 0.1), (0, 0.2, 2.7), "Teal"))
+    parts.append(cylinder("Mast", 0.05, 2.2, (0, 0.6, 3.8), "Steel", vertices=6))
+    parts.append(box("Crossbar", (1.2, 0.05, 0.05), (0, 0.6, 4.4), "Steel"))
+    parts.append(box("Net Boom", (0.06, 3.0, 0.06), (0.4, 2.6, 2.3), "Steel", rotation=(math.radians(-25), 0, 0)))
+    parts.append(cylinder("Buoy", 0.18, 0.4, (1.2, 2.5, 1.4), "Yellow", vertices=8))
+    return join(name, parts)
+
+
+def jet_ski(name="JetSki"):
+    """A jet ski with a rider, nose toward -Y."""
+    parts = [hull("Hull", 3.0, 1.1, 0.55, "Yellow")]
+    parts.append(box("Top", (0.9, 1.6, 0.18), (0, 0.35, 0.62), "Navy"))
+    parts.append(box("Seat", (0.42, 1.0, 0.18), (0, 0.55, 0.78), "Charcoal"))
+    parts.append(box("Bars", (0.8, 0.06, 0.06), (0, -0.25, 1.05), "Charcoal"))
+    parts.append(box("Steer Post", (0.08, 0.08, 0.45), (0, -0.2, 0.82), "Charcoal"))
+    # rider
+    parts.append(box("Rider Legs", (0.36, 0.6, 0.25), (0, 0.35, 0.95), "Navy"))
+    parts.append(box("Rider Torso", (0.42, 0.26, 0.6), (0, 0.4, 1.35), "Coral", rotation=(math.radians(-20), 0, 0)))
+    parts.append(ico("Rider Head", 0.15, (0, 0.28, 1.8), "Tan"))
+    parts.append(ico("Rider Hair", 0.155, (0, 0.33, 1.84), "Charcoal"))
+    for side in (-1, 1):
+        parts.append(box("Rider Arm", (0.1, 0.55, 0.1), (side * 0.25, 0.0, 1.32), "Tan", rotation=(math.radians(25), 0, 0)))
+    return join(name, parts)
+
+
+def blimp(name="Blimp"):
+    """30 m blimp, long axis Y, nose toward -Y. The ad text is added in Unity."""
+    env = ico("Envelope", 1.0, (0, 0, 0), "White", subdivisions=3)
+    env.scale = (4.2, 15.0, 4.2)
+    bpy.context.view_layer.objects.active = env
+    bpy.ops.object.transform_apply(scale=True)
+    parts = [env]
+    band = cylinder("Band", 4.25, 1.4, (0, -2.0, 0), "Teal", vertices=24, rotation=(math.radians(90), 0, 0))
+    parts.append(band)
+    parts.append(cylinder("Nose Cap", 1.0, 0.4, (0, -14.9, 0), "Coral", vertices=12, rotation=(math.radians(90), 0, 0)))
+    for angle in (0, 90, 180, 270):
+        a = math.radians(angle)
+        cx, cz = math.cos(a), math.sin(a)
+        verts = [(cx * 1.6, 9.5, cz * 1.6), (cx * 5.2, 13.6, cz * 5.2), (cx * 5.2, 15.2, cz * 5.2), (cx * 1.0, 13.8, cz * 1.0)]
+        parts.append(mesh_object("Fin", verts, [(0, 1, 2, 3)], "Coral", double_sided=True))
+    parts.append(box("Gondola", (1.6, 4.6, 1.3), (0, -1.5, -4.6), "Navy"))
+    parts.append(box("Gondola Windows", (1.64, 3.6, 0.45), (0, -1.6, -4.4), "Glass"))
+    for side in (-1, 1):
+        parts.append(cylinder("Engine", 0.35, 1.0, (side * 1.4, 0.6, -4.3), "Steel", vertices=8, rotation=(math.radians(90), 0, 0)))
+    return join(name, parts)
+
+
+def helicopter(name="Helicopter"):
+    """Small news/tour helicopter, nose toward -Y; the main rotor is the separate HeliRotor model."""
+    body = ico("Body", 1.0, (0, -0.4, 1.4), "Coral", subdivisions=2)
+    body.scale = (1.0, 1.7, 0.95)
+    bpy.context.view_layer.objects.active = body
+    bpy.ops.object.transform_apply(scale=True)
+    parts = [body]
+    bubble = ico("Canopy", 0.85, (0, -1.3, 1.6), "Glass", subdivisions=2)
+    bubble.scale = (0.95, 0.9, 0.8)
+    bpy.context.view_layer.objects.active = bubble
+    bpy.ops.object.transform_apply(scale=True)
+    parts.append(bubble)
+    parts.append(cylinder("Tail Boom", 0.28, 4.6, (0, 2.8, 1.65), "Coral", vertices=8, rotation=(math.radians(90), 0, 0), radius_top=0.14))
+    parts.append(box("Tail Fin", (0.08, 0.8, 1.2), (0, 5.0, 2.2), "White"))
+    parts.append(box("Tail Wing", (1.4, 0.5, 0.06), (0, 4.7, 1.7), "White"))
+    parts.append(cylinder("Tail Rotor", 0.55, 0.05, (0.1, 5.1, 2.4), "Charcoal", vertices=10, rotation=(0, math.radians(90), 0)))
+    parts.append(cylinder("Mast", 0.12, 0.5, (0, -0.4, 2.55), "Steel", vertices=8))
+    for side in (-1, 1):
+        parts.append(box("Skid", (0.1, 3.2, 0.1), (side * 0.85, -0.4, 0.05), "Steel"))
+        for y in (-1.2, 0.4):
+            parts.append(box("Strut", (0.08, 0.08, 0.6), (side * 0.7, y, 0.35), "Steel", rotation=(0, math.radians(side * -20), 0)))
+    parts.append(box("Stripe", (2.02, 1.4, 0.18), (0, 0.2, 1.3), "White"))
+    return join(name, parts)
+
+
+def heli_rotor(name="HeliRotor"):
+    """Two long blades and a hub; pivot at the hub so Unity can spin it."""
+    parts = [cylinder("Hub", 0.2, 0.2, (0, 0, 0), "Steel", vertices=8)]
+    parts.append(box("Blade", (0.3, 8.6, 0.05), (0, 0, 0.08), "Charcoal"))
+    parts.append(box("Blade", (8.6, 0.3, 0.05), (0, 0, 0.08), "Charcoal"))
+    return join(name, parts)
+
+
+def park_arch(name="ParkArch"):
+    """The big entrance sign: two tall surfboard pillars and a sign board across the top (text added in Unity).
+    12 m wide inside the pillars; the board faces -Y (Unity +Z) and +Y."""
+    parts = []
+    for side, mat, stripe in ((-1, "Teal", "Yellow"), (1, "Coral", "Yellow")):
+        x = side * 6.6
+        pillar = board("Pillar Board", 7.6, 0.55, 0.22, True, 0.7, False, stripe, "Navy")
+        pillar.rotation_euler = (math.radians(90), 0, 0)
+        pillar.location = (x, 0, 3.9)
+        bpy.context.view_layer.objects.active = pillar
+        bpy.ops.object.select_all(action="DESELECT")
+        pillar.select_set(True)
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=False)
+        parts.append(pillar)
+        parts.append(box("Pillar Core", (0.5, 0.5, 7.0), (x, 0, 3.5), mat))
+        parts.append(box("Footing", (1.4, 1.4, 0.4), (x, 0, 0.2), "Concrete"))
+    parts.append(box("Sign Board", (14.4, 0.4, 2.4), (0, 0, 6.4), "Navy"))
+    parts.append(box("Trim Top", (14.8, 0.5, 0.22), (0, 0, 7.7), "Yellow"))
+    parts.append(box("Trim Bottom", (14.8, 0.5, 0.22), (0, 0, 5.1), "Yellow"))
+    for i in range(15):  # marquee bulbs along the trims
+        x = -7.0 + i * 1.0
+        for z in (7.85, 4.95):
+            parts.append(ico("Bulb", 0.11, (x, 0, z), "Bulb"))
+    # little wave crest on top
+    crest = [(-3.0, 0, 7.8), (-1.4, 0, 9.4), (0.6, 0, 9.9), (2.4, 0, 9.0), (1.1, 0, 8.8), (0.2, 0, 9.2), (-1.0, 0, 8.6), (-1.2, 0, 7.8)]
+    parts.append(mesh_object("Crest", [(x, y - 0.15, z) for x, y, z in crest] + [(x, y + 0.15, z) for x, y, z in crest],
+                             [tuple(range(8)), tuple(range(15, 7, -1))] + [(i, (i + 1) % 8, (i + 1) % 8 + 8, i + 8) for i in range(8)], "Teal"))
+    recalc_normals(parts[-1])
+    return join(name, parts)
+
+
+def sign_old(name="SignOld"):
+    """The sign you inherited: crooked posts and weathered plywood, a board missing. ~3.2 m wide."""
+    parts = [
+        box("Post L", (0.14, 0.14, 2.6), (-1.4, 0, 1.3), "DarkWood", rotation=(0, math.radians(4), 0)),
+        box("Post R", (0.14, 0.14, 2.4), (1.4, 0, 1.2), "DarkWood", rotation=(0, math.radians(-3), 0)),
+        box("Board Top", (3.3, 0.06, 0.42), (0, -0.1, 2.15), "Plywood", rotation=(0, math.radians(3), 0)),
+        box("Board Mid", (3.1, 0.06, 0.42), (0.05, -0.1, 1.68), "Plywood", rotation=(0, math.radians(-2), 0)),
+        box("Board Low Broken", (1.6, 0.06, 0.4), (-0.75, -0.1, 1.2), "DarkWood", rotation=(0, math.radians(8), 0)),
+        box("Plank", (1.9, 0.05, 0.26), (0.5, -0.16, 0.75), "White", rotation=(0, math.radians(-6), 0)),
+    ]
+    return join(name, parts)
+
+
+def sign_painted(name="SignPainted"):
+    """The fixed-up sign: straight white posts and a fresh teal board. ~3.6 m wide."""
+    parts = [
+        box("Post L", (0.16, 0.16, 2.8), (-1.6, 0, 1.4), "White"),
+        box("Post R", (0.16, 0.16, 2.8), (1.6, 0, 1.4), "White"),
+        box("Board", (3.6, 0.1, 1.2), (0, -0.05, 2.0), "Teal"),
+        box("Frame Top", (3.75, 0.14, 0.1), (0, -0.05, 2.62), "White"),
+        box("Frame Bottom", (3.75, 0.14, 0.1), (0, -0.05, 1.38), "White"),
+        box("Plank", (2.4, 0.08, 0.32), (0, -0.05, 0.95), "Coral"),
+    ]
+    return join(name, parts)
+
+
+def pa_speaker(name="PaSpeaker"):
+    """A 5 m pole with two horn speakers (one each way along -Y / +Y)."""
+    parts = [cylinder("Pole", 0.07, 5.0, (0, 0, 2.5), "Steel", vertices=8)]
+    parts.append(box("Arm", (0.08, 0.9, 0.08), (0, 0, 4.7), "Steel"))
+    for side in (-1, 1):
+        parts.append(cylinder("Horn", 0.32, 0.6, (0, side * 0.7, 4.55), "White", vertices=10,
+                              rotation=(math.radians(90 * side + 0), 0, 0), radius_top=0.08))
+        parts.append(cylinder("Driver", 0.12, 0.25, (0, side * 0.32, 4.55), "Charcoal", vertices=8, rotation=(math.radians(90), 0, 0)))
+    return join(name, parts)
+
+
+def flag_pole(name="FlagPole"):
+    parts = [cylinder("Pole", 0.06, 6.0, (0, 0, 3.0), "White", vertices=8)]
+    parts.append(ico("Top", 0.12, (0, 0, 6.05), "Yellow"))
+    parts.append(cylinder("Base", 0.25, 0.2, (0, 0, 0.1), "Concrete", vertices=8))
+    return join(name, parts)
+
+
+def flag(name, mat):
+    """1.6 x 1 m flag with a gentle wave, hoist edge on the pivot, flying toward +X (Unity -X)."""
+    cols = 6
+    verts = []
+    for i in range(cols + 1):
+        x = 1.6 * i / cols
+        y = 0.12 * math.sin(i / cols * math.pi * 1.5) * (i / cols)
+        verts += [(x, y, 0.0), (x, y, -1.0)]
+    faces = [(i * 2, i * 2 + 2, i * 2 + 3, i * 2 + 1) for i in range(cols)]
+    return mesh_object(name, verts, faces, mat, double_sided=True)
+
+
+def bunting(name="Bunting"):
+    """An 8 m string of pennants in park colors, hanging between two points at its ends (x = -4 .. 4)."""
+    parts = []
+    count = 13
+    colors = ("Coral", "Yellow", "Teal", "White")
+    rope = []
+    for i in range(25):
+        t = i / 24
+        rope.append((-4 + 8 * t, 0, catenary(t, 0.6)))
+    for i in range(24):
+        (x0, _, z0), (x1, _, z1) = rope[i], rope[i + 1]
+        mid = ((x0 + x1) / 2, 0, (z0 + z1) / 2)
+        seg = box("Rope", (math.hypot(x1 - x0, z1 - z0) + 0.02, 0.02, 0.02), mid, "White",
+                  rotation=(0, -math.atan2(z1 - z0, x1 - x0), 0))
+        parts.append(seg)
+    for i in range(count):
+        t = (i + 0.5) / count
+        x = -4 + 8 * t
+        z = catenary(t, 0.6)
+        w = 0.24
+        parts.append(mesh_object("Pennant", [(x - w, 0, z), (x + w, 0, z), (x, 0, z - 0.55)], [(0, 2, 1)], colors[i % len(colors)], double_sided=True))
+    return join(name, parts)
+
+
+def string_lights(name="StringLights"):
+    """An 8 m sagging wire of round bulbs (the Bulb material is swapped for a glowing one in Unity)."""
+    parts = []
+    pts = []
+    for i in range(25):
+        t = i / 24
+        pts.append((-4 + 8 * t, 0, catenary(t, 0.5)))
+    for i in range(24):
+        (x0, _, z0), (x1, _, z1) = pts[i], pts[i + 1]
+        parts.append(box("Wire", (math.hypot(x1 - x0, z1 - z0) + 0.02, 0.015, 0.015), ((x0 + x1) / 2, 0, (z0 + z1) / 2), "Charcoal",
+                         rotation=(0, -math.atan2(z1 - z0, x1 - x0), 0)))
+    for i in range(12):
+        t = (i + 0.5) / 12
+        x, z = -4 + 8 * t, catenary(t, 0.5)
+        parts.append(cylinder("Socket", 0.03, 0.08, (x, 0, z - 0.04), "Charcoal", vertices=6))
+        parts.append(ico("Bulb", 0.07, (x, 0, z - 0.13), "Bulb"))
+    return join(name, parts)
+
+
+def light_pole(name="LightPole"):
+    """A 4.2 m wooden pole that string lights and bunting hang from."""
+    parts = [box("Pole", (0.16, 0.16, 4.2), (0, 0, 2.1), "DarkWood"), box("Cap", (0.24, 0.24, 0.08), (0, 0, 4.24), "White")]
+    return join(name, parts)
+
+
+def flower_planter(name="FlowerPlanter"):
+    rng = random.Random(11)
+    parts = [box("Box", (1.6, 0.6, 0.5), (0, 0, 0.25), "Wood"), box("Rim", (1.7, 0.7, 0.06), (0, 0, 0.5), "White"),
+             box("Soil", (1.5, 0.5, 0.04), (0, 0, 0.5), "Coconut")]
+    for i in range(9):
+        x, y = rng.uniform(-0.65, 0.65), rng.uniform(-0.18, 0.18)
+        parts.append(ico("Leaves", rng.uniform(0.16, 0.22), (x, y, 0.62), "Leaf"))
+    for i in range(10):
+        x, y = rng.uniform(-0.68, 0.68), rng.uniform(-0.2, 0.2)
+        parts.append(ico("Bloom", rng.uniform(0.07, 0.1), (x, y, rng.uniform(0.75, 0.85)), ("Flower", "Yellow", "White", "Coral")[i % 4]))
+    return join(name, parts)
+
+
+def weeds(name="Weeds"):
+    """A scruffy clump of weeds and dry grass growing out of the cracks."""
+    rng = random.Random(5)
+    parts = []
+    for i in range(14):
+        a = rng.uniform(0, math.tau)
+        r = rng.uniform(0, 0.25)
+        x, y = math.cos(a) * r, math.sin(a) * r
+        h = rng.uniform(0.25, 0.6)
+        lean = rng.uniform(-0.15, 0.15)
+        w = 0.05
+        parts.append(mesh_object("Blade", [(x - w, y, 0), (x + w, y, 0), (x + lean, y + lean * 0.5, h)], [(0, 1, 2)],
+                                 "LeafDark" if i % 3 else "DeadGrass", double_sided=True))
+    return join(name, parts)
+
+
+def trash_bags(name="TrashBags"):
+    parts = []
+    for i, (x, y, r) in enumerate(((0, 0, 0.42), (0.6, 0.25, 0.34), (-0.2, 0.55, 0.3))):
+        bag = ico("Bag", r, (x, y, r * 0.85), "Charcoal", subdivisions=1)
+        bag.scale = (1, 1, 0.9)
+        parts.append(bag)
+        parts.append(cylinder("Tie", 0.06, 0.16, (x, y, r * 1.7), "Yellow", vertices=5))
+    return join(name, parts)
+
+
+def rusty_barrel(name="RustyBarrel"):
+    parts = [cylinder("Barrel", 0.3, 0.9, (0, 0, 0.45), "Rust", vertices=10)]
+    for z in (0.18, 0.72):
+        parts.append(cylinder("Ring", 0.315, 0.05, (0, 0, z), "DarkWood", vertices=10))
+    parts.append(cylinder("Lid", 0.28, 0.03, (0, 0, 0.91), "Steel", vertices=10))
+    return join(name, parts)
+
+
+AMBIENCE_MODELS = (
+    seagull, sailboat, fishing_boat, jet_ski, blimp, helicopter, heli_rotor, park_arch, sign_old, sign_painted,
+    pa_speaker, flag_pole, lambda: flag("FlagCoral", "Coral"), lambda: flag("FlagTeal", "Teal"),
+    lambda: flag("FlagYellow", "Yellow"), bunting, string_lights, light_pole, flower_planter, weeds, trash_bags, rusty_barrel,
+)
+
+
+def build_all(only_new=False):
     clear_scene()
     built = []
-    for factory in (
+    factories = AMBIENCE_MODELS if only_new else (
         lambda: palm_tree("PalmTree", 6.5, seed=1),
         lambda: palm_tree("PalmTreeTall", 8.0, seed=7),
         lambda: kiosk("KioskTeal", "Teal"),
@@ -731,7 +1063,8 @@ def build_all():
         board_foamie, board_fun, board_short,
         cash_register, computer, wave_console, price_stand, car, counter, board_rack, return_crate, bench,
         char_torso, char_shorts, char_head, char_hair_short, char_hair_long, char_arm, char_leg,
-    ):
+    ) + AMBIENCE_MODELS
+    for factory in factories:
         obj = factory()
         if obj.location.length > 0:  # single-mesh models: make sure the pivot is the base center too
             bpy.context.scene.cursor.location = (0, 0, 0)
@@ -742,4 +1075,5 @@ def build_all():
     return built
 
 
-result = {"exported": build_all()}
+# Set ONLY_NEW = True before exec() to rebuild just the ambience-step models.
+result = {"exported": build_all(globals().get("ONLY_NEW", False))}

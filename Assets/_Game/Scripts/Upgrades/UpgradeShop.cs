@@ -159,6 +159,9 @@ namespace SurfPool
         bool open;
         int openedFrame;
 
+        /// <summary>Fires when the player buys an upgrade (not when a save restores it).</summary>
+        public static event Action<Upgrade> Bought;
+
         public string Prompt => "Use computer (upgrades)";
         public bool IsOpen => open;
         public IReadOnlyList<Upgrade> Upgrades => upgrades;
@@ -233,9 +236,9 @@ namespace SurfPool
             Apply(upgrade.id);
             Message = $"Bought {upgrade.title}!";
             ParkLevel.Add(ParkLevel.XpUpgrade);
-            Sfx.Play(upgrade.category == UpgradeCategory.Pools ? Sound.Mission : Sound.Buy);
-            if (upgrade.category == UpgradeCategory.Pools) Sfx.Duck();
-            Notifications.Post($"Bought {upgrade.title}!");
+            if (upgrade.category != UpgradeCategory.Pools) Sfx.Play(Sound.Buy); // pools get a whole celebration (Celebration)
+            Notifications.Post($"Bought {upgrade.title}!", Notice.Good);
+            Bought?.Invoke(upgrade);
             return true;
         }
 

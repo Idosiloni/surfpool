@@ -51,6 +51,11 @@ namespace SurfPool
         Label challengeReward;
         float nextChallengeRefresh;
         ParkLevel subscribedLevel;
+        VisualElement celebration;
+        Label celebrationTitle, celebrationSubtitle;
+        // Big banners (missions, level-ups, new pools) take turns instead of covering each other.
+        readonly Queue<System.Action> banners = new();
+        float bannerFreeAt;
         float shownMoney;
         readonly Queue<(float time, int amount)> recentIncome = new();
         int incomeLastMinute;
@@ -108,16 +113,22 @@ namespace SurfPool
             missionHint = root.Q<Label>("missionHint");
             markerDistance = root.Q<Label>("markerDistance");
             missionBanner = root.Q<Label>("missionBanner");
+            celebration = root.Q("celebrationBanner");
+            celebrationTitle = root.Q<Label>("celebrationTitle");
+            celebrationSubtitle = root.Q<Label>("celebrationSubtitle");
 
             stars = new StarRating();
             root.Q("ratingStarsSlot").Add(stars);
 
             Notifications.Posted += ShowToast;
+            Celebration.Shown += ShowCelebration;
         }
 
         void OnDisable()
         {
             Notifications.Posted -= ShowToast;
+            Celebration.Shown -= ShowCelebration;
+            banners.Clear();
             if (wallet != null) wallet.Changed -= ShowPopup;
             wallet = null;
             if (subscribedMissions != null) subscribedMissions.Completed -= ShowMissionBanner;
@@ -129,6 +140,11 @@ namespace SurfPool
 
         void Update()
         {
+            if (banners.Count > 0 && Time.unscaledTime >= bannerFreeAt)
+            {
+                bannerFreeAt = Time.unscaledTime + 3.4f;
+                banners.Dequeue()();
+            }
             if (wallet == null && Wallet.Instance != null)
             {
                 wallet = Wallet.Instance;
@@ -214,10 +230,8 @@ namespace SurfPool
         {
             if (shop == null) shop = FindAnyObjectByType<UpgradeShop>();
             var unlocked = shop != null ? shop.UnlockedAt(level) : new List<string>();
-            ShowBanner($"PARK LEVEL {level}!" + (unlocked.Count > 0 ? "\nNew: " + string.Join(", ", unlocked) : ""));
-            Notifications.Post(unlocked.Count > 0 ? $"Park level {level}: unlocked {string.Join(", ", unlocked)}" : $"Park level {level}!");
-            Sfx.Play(Sound.Mission);
-            Sfx.Duck();
+            // The banner, fanfare and fireworks come from Celebration; the toast keeps a record of what unlocked.
+            Notifications.Post(unlocked.Count > 0 ? $"Park level {level}: unlocked {string.Join(", ", unlocked)}" : $"Park level {level}!", Notice.Reward);
         }
 
         float DistanceToPool(PoolArea pool)
@@ -499,13 +513,30 @@ namespace SurfPool
         void ShowMissionBanner(Mission mission) =>
             ShowBanner("MISSION COMPLETE!\n" + mission.title + (mission.reward > 0 ? "   +" + MoneyText.Format(mission.reward) : ""));
 
-        void ShowBanner(string text)
+        void ShowBanner(string text) => banners.Enqueue(() => PlayBanner(text));
+
+        void PlayBanner(string text)
         {
             missionBanner.text = text;
             missionBanner.RemoveFromClassList("mission-banner--leaving");
             missionBanner.RemoveFromClassList("hidden");
             missionBanner.schedule.Execute(() => missionBanner.AddToClassList("mission-banner--leaving")).StartingIn(2500);
             missionBanner.schedule.Execute(() => missionBanner.AddToClassList("hidden")).StartingIn(3200);
+        }
+
+        void ShowCelebration(string title, string subtitle, bool big) => banners.Enqueue(() => PlayCelebration(title, subtitle, big));
+
+        /// <summary>The big party banner: a bouncing title over a ribbon (teal for new pools, coral for level-ups).</summary>
+        void PlayCelebration(string title, string subtitle, bool big)
+        {
+            if (celebration == null) return;
+            celebrationTitle.text = title;
+            celebrationSubtitle.text = subtitle;
+            celebration.EnableInClassList("celebration--big", big);
+            celebration.RemoveFromClassList("celebration--leaving");
+            UiMotion.Enter(celebration, "celebration--enter");
+            celebration.schedule.Execute(() => celebration.AddToClassList("celebration--leaving")).StartingIn(2900);
+            celebration.schedule.Execute(() => celebration.AddToClassList("hidden")).StartingIn(3400);
         }
 
         Bubble CreateBubble(WaveLevel skill)

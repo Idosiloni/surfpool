@@ -568,6 +568,7 @@ namespace SurfPool.EditorTools
             TreasureBuilder.Build();
             Set(shop, "fishingPier", ParkExtras.FishingPier(panelSettings));
             ParkExtras.ParkingLot();
+            GlowUpBuilder.Build(shop, reef.built, lagoon.built, deckMat, copingMat, tileMat);
             WorldArt.Lighting(GameObject.Find("Directional Light").GetComponent<Light>(), cam);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -1256,7 +1257,7 @@ namespace SurfPool.EditorTools
         /// Assembles a low-poly person from the Blender character parts under root: Model > Hips > (Shorts, Torso >
         /// (Head > hair, shoulders > arms), hips > legs). The CharacterRig animates the joints.
         /// </summary>
-        static CharacterRig BuildCharacter(Transform root)
+        internal static CharacterRig BuildCharacter(Transform root)
         {
             Transform Joint(string name, Transform parent, Vector3 localPosition)
             {

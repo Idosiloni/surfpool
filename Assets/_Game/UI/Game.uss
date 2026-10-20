@@ -2131,3 +2131,66 @@
 .icon--coin {
     background-image: url("project://database/Assets/_Game/UI/Icons/coin.png");
 }
+
+/* Celebration banner */
+
+.celebration {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 28%;
+    align-items: center;
+    transition-property: opacity, scale, translate;
+    transition-duration: 0.45s, 0.45s, 0.45s;
+    transition-timing-function: ease-out-back, ease-out-back, ease-out-back;
+}
+
+.celebration--enter {
+    opacity: 0;
+    scale: 0.4 0.4;
+    translate: 0 40px;
+}
+
+.celebration--leaving {
+    opacity: 0;
+    translate: 0 -40px;
+    transition-timing-function: ease-in, ease-in, ease-in;
+}
+
+.celebration-title {
+    font-size: 84px;
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    -unity-font-style: normal;
+    -unity-text-align: middle-center;
+    color: var(--sun);
+    -unity-text-outline-width: 3px;
+    -unity-text-outline-color: var(--ink);
+    text-shadow: 0 6px 0 rgba(11, 46, 58, 0.85);
+    rotate: -3deg;
+}
+
+.celebration-ribbon {
+    margin-top: 2px;
+    padding: 8px 34px 10px 34px;
+    max-width: 70%;
+    white-space: normal;
+    font-size: 26px;
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    -unity-font-style: normal;
+    -unity-text-align: middle-center;
+    color: var(--cream);
+    background-color: var(--coral);
+    border-width: 3px;
+    border-color: var(--ink);
+    border-radius: 10px;
+    rotate: -1.5deg;
+}
+
+.celebration--big .celebration-title {
+    font-size: 104px;
+}
+
+.celebration--big .celebration-ribbon {
+    background-color: var(--teal);
+    font-size: 30px;
+}

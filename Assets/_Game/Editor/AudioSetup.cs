@@ -42,10 +42,21 @@ namespace SurfPool.EditorTools
                 World(Sound.Cheer, 0.45f, 8f, 50f, 1.5f, "cheer_1", "cheer_2"),
                 World(Sound.Whistle, 0.5f, 6f, 50f, 3f, "whistle"),
                 World(Sound.Seagull, 0.3f, 10f, 60f, 2f, "seagull_1", "seagull_2", "seagull_3"),
+                World(Sound.PaChime, 0.55f, 6f, 70f, 2f, "pa_chime"),
+                World(Sound.PaVoice, 0.6f, 6f, 70f, 2f, "pa_voice_1", "pa_voice_2", "pa_voice_3"),
+                Ui(Sound.FanfareLevel, 0.85f, "fanfare_level"),
+                Ui(Sound.FanfarePool, 0.9f, "fanfare_pool"),
+                World(Sound.FireworkLaunch, 0.5f, 15f, 140f, 0.05f, "firework_launch_1", "firework_launch_2"),
+                World(Sound.FireworkBang, 0.9f, 30f, 260f, 0.05f, "firework_bang_1", "firework_bang_2", "firework_bang_3"),
             };
             bank.surfLoop = Clip("amb_surf_loop");
             bank.crowdLoop = Clip("amb_crowd_loop");
+            bank.crowdBigLoop = Clip("amb_crowd_big_loop");
+            bank.windLoop = Clip("amb_wind_loop");
             bank.music = new[] { Clip("music_sunny"), Clip("music_lazy"), Clip("music_sunset") };
+            bank.partyMusic = new[] { Clip("music_party") };
+            bank.jetSkiLoop = Clip("loop_jetski");
+            bank.heliLoop = Clip("loop_heli");
             EditorUtility.SetDirty(bank);
             AssetDatabase.SaveAssets();
             return bank;

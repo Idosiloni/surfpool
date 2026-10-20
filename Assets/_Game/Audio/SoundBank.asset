@@ -163,9 +163,74 @@ MonoBehaviour:
     maxDistance: 60
     pitchJitter: 0.06
     minGap: 2
+  - id: 16
+    clips:
+    - {fileID: 8300000, guid: a2eae77b2c4fb43b881f1034df0ccdbb, type: 3}
+    volume: 0.55
+    spatial: 1
+    minDistance: 6
+    maxDistance: 70
+    pitchJitter: 0.06
+    minGap: 2
+  - id: 17
+    clips:
+    - {fileID: 8300000, guid: 1d422c5f47bac4e45a077f6a5c555ae7, type: 3}
+    - {fileID: 8300000, guid: 1994e1e18661f404ab53fdd5e5059e98, type: 3}
+    - {fileID: 8300000, guid: fa0c6f55dc366480e9a4f6b57ad77bea, type: 3}
+    volume: 0.6
+    spatial: 1
+    minDistance: 6
+    maxDistance: 70
+    pitchJitter: 0.06
+    minGap: 2
+  - id: 18
+    clips:
+    - {fileID: 8300000, guid: e1c0b3b15648f40ec9503a5baf18c540, type: 3}
+    volume: 0.85
+    spatial: 0
+    minDistance: 5
+    maxDistance: 60
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 19
+    clips:
+    - {fileID: 8300000, guid: 36c8564530a804f1fabd5133b4f8a80a, type: 3}
+    volume: 0.9
+    spatial: 0
+    minDistance: 5
+    maxDistance: 60
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 20
+    clips:
+    - {fileID: 8300000, guid: dd614e943c013422dbe125504ed05bbe, type: 3}
+    - {fileID: 8300000, guid: 739ae26dbcbd64c599fae3c152721dae, type: 3}
+    volume: 0.5
+    spatial: 1
+    minDistance: 15
+    maxDistance: 140
+    pitchJitter: 0.06
+    minGap: 0.05
+  - id: 21
+    clips:
+    - {fileID: 8300000, guid: 6a13b51e45ba5457aa66efc695e9b7df, type: 3}
+    - {fileID: 8300000, guid: 82db95769e3834aa49a17a98c67ca24b, type: 3}
+    - {fileID: 8300000, guid: 2400ce093face4d638922c7c11bd15a1, type: 3}
+    volume: 0.9
+    spatial: 1
+    minDistance: 30
+    maxDistance: 260
+    pitchJitter: 0.06
+    minGap: 0.05
   surfLoop: {fileID: 8300000, guid: e5c8464ac255e4245b322d510a71562a, type: 3}
   crowdLoop: {fileID: 8300000, guid: fab8e188244f540feba0dc6d1916069e, type: 3}
+  crowdBigLoop: {fileID: 8300000, guid: bb43706cd213f408394c671ed198a63c, type: 3}
+  windLoop: {fileID: 8300000, guid: 10358f5c8b062481fbc5d6962d88fc20, type: 3}
   music:
   - {fileID: 8300000, guid: a44eb205c61024999bd45aa05a36d768, type: 3}
   - {fileID: 8300000, guid: 04c7854807c604e46bd2b814c7dd46d8, type: 3}
   - {fileID: 8300000, guid: 8b14f11967b7a4775a2fd950f53cca2c, type: 3}
+  partyMusic:
+  - {fileID: 8300000, guid: d351a588a554b4a0c803c3bb14b0281a, type: 3}
+  jetSkiLoop: {fileID: 8300000, guid: 208be5f4fc08c4b99bf52513382e8029, type: 3}
+  heliLoop: {fileID: 8300000, guid: a7f62be3bc5aa46629f5253ac0516201, type: 3}

@@ -9,6 +9,7 @@ namespace SurfPool
         Click, Error, Buy, Coin, CashBig, Mission, DayEnd,
         WaveMachine, CrashSmall, CrashMedium, CrashBig,
         Splash, SplashBig, Cheer, Whistle, Seagull,
+        PaChime, PaVoice, FanfareLevel, FanfarePool, FireworkLaunch, FireworkBang,
     }
 
     /// <summary>
@@ -37,7 +38,14 @@ namespace SurfPool
         public List<Entry> entries = new();
         public AudioClip surfLoop;
         public AudioClip crowdLoop;
+        [Tooltip("A packed park: fades in on top of the crowd bed as the park level grows.")]
+        public AudioClip crowdBigLoop;
+        public AudioClip windLoop;
         public AudioClip[] music;
+        [Tooltip("Upbeat songs that join the rotation once the park is busy (and the speakers are up).")]
+        public AudioClip[] partyMusic;
+        public AudioClip jetSkiLoop;
+        public AudioClip heliLoop;
 
         public Entry Get(Sound id) => entries.Find(e => e.id == id);
     }
