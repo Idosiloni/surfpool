@@ -61,7 +61,7 @@ namespace SurfPool
 
         void OnApplicationQuit()
         {
-            if (enabled) Save();
+            if (enabled && !MainMenu.Showing) Save(); // quitting from the title screen changes nothing
         }
 
         public void Save()

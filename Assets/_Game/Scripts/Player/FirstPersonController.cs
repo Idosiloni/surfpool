@@ -45,8 +45,9 @@ namespace SurfPool
 
         void Look(Vector2 delta)
         {
-            transform.Rotate(0f, delta.x * mouseSensitivity, 0f);
-            pitch = Mathf.Clamp(pitch - delta.y * mouseSensitivity, -85f, 85f);
+            float sensitivity = mouseSensitivity * GameSettings.MouseSensitivity;
+            transform.Rotate(0f, delta.x * sensitivity, 0f);
+            pitch = Mathf.Clamp(pitch - delta.y * sensitivity * (GameSettings.InvertY ? -1f : 1f), -85f, 85f);
             cameraPivot.localEulerAngles = new Vector3(pitch, 0f, 0f);
         }
 

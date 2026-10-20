@@ -41,6 +41,8 @@ namespace SurfPool
                 Notifications.Post("Game saved.");
             };
             doc.Q<Button>("pauseNew").clicked += NewGame;
+            doc.Q<Button>("pauseSettings").clicked += SettingsScreen.Open;
+            doc.Q<Button>("pauseMenu").clicked += QuitToMenu;
 
             var music = doc.Q<Slider>("volMusic");
             var effects = doc.Q<Slider>("volEffects");
@@ -123,7 +125,22 @@ namespace SurfPool
             MachineService.ResetStatics();
             saveSystem.enabled = false; // don't save the old park on the way out
             Time.timeScale = 1f;
-            InputBlocker.Release();
+            InputBlocker.ResetAll();
+            MainMenu.SkipNextTime = true;
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+
+        /// <summary>Saves and goes back to the title screen.</summary>
+        void QuitToMenu()
+        {
+            saveSystem.Save();
+            saveSystem.enabled = false; // already saved
+            GameStats.Reset();
+            ParkEffects.ResetStatics();
+            DailyEvents.ResetStatics();
+            MachineService.ResetStatics();
+            Time.timeScale = 1f;
+            InputBlocker.ResetAll();
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
     }

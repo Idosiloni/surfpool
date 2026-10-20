@@ -911,7 +911,8 @@
 }
 
 .pause-button {
-    margin-right: 10px;
+    width: 128px;
+    margin-right: 8px;
 }
 
 /* ---------- Pause menu: sound sliders ---------- */
@@ -1083,4 +1084,162 @@
     padding: 2px 10px;
     margin-top: 6px;
     align-self: flex-start;
+}
+
+/* ---------- Main menu ---------- */
+
+.menu-root {
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Fredoka.ttf");
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    justify-content: center;
+    padding-left: 90px;
+}
+
+.menu-panel {
+    width: 520px;
+    background-color: rgba(255, 247, 236, 0.96);
+    border-radius: 28px;
+    border-width: 3px;
+    border-color: #EBD9BF;
+    border-top-width: 12px;
+    border-top-color: #14B8A6;
+    padding: 34px 40px 26px 40px;
+}
+
+.menu-logo {
+    font-size: 70px;
+    -unity-font-style: bold;
+    color: #0B2E3A;
+    -unity-text-outline-width: 1px;
+    -unity-text-outline-color: #0B2E3A;
+    letter-spacing: 2px;
+}
+
+.menu-tagline {
+    font-size: 26px;
+    color: #FF6B57;
+    margin-top: -10px;
+    letter-spacing: 6px;
+}
+
+.menu-wave {
+    height: 8px;
+    border-radius: 4px;
+    background-color: #14B8A6;
+    margin: 18px 120px 20px 0;
+}
+
+.menu-save {
+    font-size: 17px;
+    color: #5B6B73;
+    margin-bottom: 10px;
+}
+
+.menu-button {
+    flex-grow: 0;
+    width: 100%;
+    height: 62px;
+    margin: 0 0 12px 0;
+    font-size: 24px;
+}
+
+.menu-button--light {
+    height: 54px;
+    font-size: 21px;
+}
+
+.menu-button--danger {
+    border-color: #FF6B57;
+    color: #FF6B57;
+}
+
+.menu-footer {
+    font-size: 14px;
+    color: #9AA5AB;
+    margin-top: 10px;
+}
+
+/* ---------- Settings ---------- */
+
+.settings-window {
+    width: 720px;
+    height: auto;
+}
+
+.settings-window .report-column {
+    margin-right: 0;
+    flex-grow: 0;
+    flex-basis: auto;
+}
+
+.settings-slider,
+.settings-toggle {
+    margin: 6px 0;
+}
+
+.settings-slider > .unity-label,
+.settings-toggle > .unity-label,
+.settings-label {
+    font-size: 18px;
+    color: #0B2E3A;
+    min-width: 200px;
+}
+
+.settings-slider .unity-base-slider__tracker {
+    height: 8px;
+    margin-top: -4px;
+    border-radius: 4px;
+    border-width: 0;
+    background-color: #EBD9BF;
+}
+
+.settings-slider .unity-base-slider__dragger {
+    width: 20px;
+    height: 20px;
+    margin-top: -10px;
+    border-radius: 10px;
+    border-width: 0;
+    background-color: #14B8A6;
+}
+
+.settings-toggle .unity-toggle__checkmark {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border-color: #EBD9BF;
+    background-color: white;
+}
+
+.settings-toggle:checked .unity-toggle__checkmark {
+    background-color: #14B8A6;
+    border-color: #14B8A6;
+}
+
+.quality-row {
+    flex-direction: row;
+    align-items: center;
+    margin: 6px 0;
+}
+
+.quality-button {
+    flex-grow: 1;
+    height: 40px;
+    margin: 0 8px 0 0;
+    font-size: 17px;
+    border-width: 2px;
+    border-color: #EBD9BF;
+    border-radius: 10px;
+    background-color: white;
+    color: #0B2E3A;
+}
+
+.quality-button--active,
+.quality-button--active:hover {
+    background-color: #14B8A6;
+    border-color: #14B8A6;
+    color: white;
 }

@@ -470,6 +470,18 @@ namespace SurfPool.EditorTools
             Set(pause, "saveSystem", saveSystem);
             Set(pause, "spawner", spawner);
 
+            // Title screen over everything at start, and the settings window above it (also opened from pause).
+            var menuDoc = new GameObject("Main Menu").AddComponent<UnityEngine.UIElements.UIDocument>();
+            menuDoc.panelSettings = panelSettings;
+            menuDoc.visualTreeAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.VisualTreeAsset>("Assets/_Game/UI/MainMenu.uxml");
+            menuDoc.sortingOrder = 40;
+            menuDoc.gameObject.AddComponent<MainMenu>();
+            var settingsDoc = new GameObject("Settings").AddComponent<UnityEngine.UIElements.UIDocument>();
+            settingsDoc.panelSettings = panelSettings;
+            settingsDoc.visualTreeAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.VisualTreeAsset>("Assets/_Game/UI/Settings.uxml");
+            settingsDoc.sortingOrder = 50;
+            settingsDoc.gameObject.AddComponent<SettingsScreen>();
+
             // Sound: beach ambience, music and every effect (clips made by tools/audio/make_sounds.py).
             var sfx = new GameObject("Audio").AddComponent<Sfx>();
             Set(sfx, "bank", AudioSetup.Bank());

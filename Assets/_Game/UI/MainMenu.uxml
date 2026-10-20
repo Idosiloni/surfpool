@@ -1,0 +1,16 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="Game.uss" />
+    <ui:VisualElement name="menuRoot" class="menu-root">
+        <ui:VisualElement class="menu-panel">
+            <ui:Label text="SURF POOL" class="menu-logo" />
+            <ui:Label text="wave park tycoon" class="menu-tagline" />
+            <ui:VisualElement class="menu-wave" />
+            <ui:Label name="menuSave" class="menu-save" />
+            <ui:Button name="menuContinue" text="Continue" class="send-button menu-button" />
+            <ui:Button name="menuNew" text="New game" class="close-button menu-button menu-button--light" />
+            <ui:Button name="menuSettings" text="Settings" class="close-button menu-button menu-button--light" />
+            <ui:Button name="menuQuit" text="Quit" class="close-button menu-button menu-button--light" />
+            <ui:Label text="Made with Uncle Kai's blessing  ·  v0.6" class="menu-footer" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

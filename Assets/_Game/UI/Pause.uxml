@@ -23,6 +23,8 @@
             <ui:VisualElement class="screen-footer section-gap">
                 <ui:Button name="pauseResume" text="Resume (Tab)" class="send-button" />
                 <ui:Button name="pauseSave" text="Save game" class="close-button pause-button" />
+                <ui:Button name="pauseSettings" text="Settings" class="close-button pause-button" />
+                <ui:Button name="pauseMenu" text="Main menu" class="close-button pause-button" />
                 <ui:Button name="pauseNew" text="New game" class="close-button pause-button" />
             </ui:VisualElement>
         </ui:VisualElement>

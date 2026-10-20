@@ -1,0 +1,34 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="Game.uss" />
+    <ui:VisualElement name="settingsRoot" class="screen-overlay hidden">
+        <ui:VisualElement class="screen-window settings-window">
+            <ui:Label text="Settings" class="screen-title" />
+            <ui:Label text="Saved automatically." class="screen-subtitle" />
+            <ui:VisualElement class="report-column section-gap">
+                <ui:Label text="CONTROLS" class="section-title" />
+                <ui:Slider name="setSensitivity" label="Mouse sensitivity" low-value="0.25" high-value="3" class="settings-slider" />
+                <ui:Toggle name="setInvert" label="Invert mouse Y" class="settings-toggle" />
+            </ui:VisualElement>
+            <ui:VisualElement class="report-column section-gap">
+                <ui:Label text="SOUND" class="section-title" />
+                <ui:Slider name="setMusic" label="Music" low-value="0" high-value="1" class="settings-slider" />
+                <ui:Slider name="setEffects" label="Effects" low-value="0" high-value="1" class="settings-slider" />
+                <ui:Slider name="setAmbience" label="Beach" low-value="0" high-value="1" class="settings-slider" />
+            </ui:VisualElement>
+            <ui:VisualElement class="report-column section-gap">
+                <ui:Label text="GRAPHICS" class="section-title" />
+                <ui:VisualElement class="quality-row">
+                    <ui:Label text="Quality" class="settings-label" />
+                    <ui:Button name="qualityLow" text="Fast" class="quality-button" />
+                    <ui:Button name="qualityMid" text="Balanced" class="quality-button" />
+                    <ui:Button name="qualityHigh" text="Pretty" class="quality-button" />
+                </ui:VisualElement>
+                <ui:Toggle name="setFullscreen" label="Fullscreen" class="settings-toggle" />
+            </ui:VisualElement>
+            <ui:VisualElement class="screen-footer section-gap">
+                <ui:Label />
+                <ui:Button name="settingsClose" text="Done" class="close-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

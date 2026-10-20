@@ -21,6 +21,9 @@ namespace SurfPool
             releasedFrame = Time.frameCount;
         }
 
+        /// <summary>Clears every block (before reloading the scene, where the new menus block again).</summary>
+        public static void ResetAll() => ResetStatics();
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics()
         {
