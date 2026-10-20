@@ -4,4 +4,8 @@ Date: 2026-10-20
 - [sim-games.md](sim-games.md): what makes CaseOh-style first-person job sims fun, how they do money/progression, review complaints, scope.
 - [wave-pools.md](wave-pools.md): real wave pool tech, session formats, prices, extra revenue, staff, real-world problems.
 - [rentals-and-chores.md](rentals-and-chores.md): real board/wetsuit rental prices, flow, damage and shop retail; how sim games make carry/restock chores satisfying and when they add staff.
+- [sim-ui.md](sim-ui.md): how CaseOh-style sims lay out HUD, prompts, in-world computer screens, customer bubbles, notifications, streamer readability, UI complaints; Unity 6 UI Toolkit (screen + world-space).
+- [lowpoly-assets.md](lowpoly-assets.md): free low-poly characters, animations, palms/props, buildings, textures, skyboxes, stylized water/foam tutorials, icon packs (with licenses), what to model in Blender, color palette.
+- [wave-physics.md](wave-physics.md): wave anatomy, breaking depth rule, breaker types, speed vs depth, how pools make waves, how to fake waves in Unity, surfer positions.
+- [boards-and-tricks.md](boards-and-tricks.md): board styles (size, rider, ride feel, guess prices), maneuvers by skill and wave, wipeout types, unlock ideas.
 - [surfing-basics.md](surfing-basics.md): skill levels, boards, gear, etiquette, wipeouts, lessons, surf culture for NPCs.

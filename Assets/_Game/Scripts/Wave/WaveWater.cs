@@ -16,15 +16,14 @@ namespace SurfPool
         [SerializeField] float width = 24f;
         [SerializeField] float verticesPerMeter = 3f;
 
-        [Header("Wave shape")]
-        [Tooltip("How tall the wave gets above the calm water.")]
-        [SerializeField] float waveHeight = 2.0f;
-        [Tooltip("How fast the wave travels down the pool (m/s).")]
-        [SerializeField] float waveSpeed = 7f;
-        [Tooltip("Width of the steep front face. Smaller = steeper.")]
-        [SerializeField] float frontWidth = 2.0f;
-        [Tooltip("Width of the gentle back of the wave.")]
-        [SerializeField] float backWidth = 8f;
+        [Header("Wave types")]
+        [Tooltip("Shape of each wave type the machine can send. Tune these to change how each wave looks and feels.")]
+        [SerializeField] WaveType[] waveTypes =
+        {
+            new() { level = WaveLevel.Beginner, height = 1.0f, speed = 5f, frontWidth = 3.2f, backWidth = 6f },
+            new() { level = WaveLevel.Intermediate, height = 2.0f, speed = 7f, frontWidth = 2.0f, backWidth = 8f },
+            new() { level = WaveLevel.Pro, height = 2.8f, speed = 8.5f, frontWidth = 1.4f, backWidth = 9f },
+        };
         [Tooltip("How much smaller the wave is at the pool walls than in the middle (0 to 1).")]
         [Range(0f, 1f)] [SerializeField] float edgeDrop = 0.2f;
 
@@ -37,35 +36,47 @@ namespace SurfPool
         [Header("Calm water")]
         [SerializeField] float rippleHeight = 0.04f;
 
-        readonly List<float> waveStartTimes = new();
+        struct ActiveWave
+        {
+            public float start;
+            public WaveType type;
+        }
+
+        readonly List<ActiveWave> waves = new();
         Mesh mesh;
         Vector3[] baseVertices;
         Vector3[] vertices;
 
-        public int ActiveWaves => waveStartTimes.Count;
+        public int ActiveWaves => waves.Count;
         public float Length => length;
-
-        public float WaveHeight
-        {
-            get => waveHeight;
-            set => waveHeight = Mathf.Max(0f, value);
-        }
         public float Width => width;
 
-        /// <summary>Waves currently in the pool, identified by the time they were sent.</summary>
-        public IReadOnlyList<float> WaveStartTimes => waveStartTimes;
+        /// <summary>A wave in the pool right now: its id (the time it was sent) and its type.</summary>
+        public (float id, WaveLevel level) GetWave(int index) => (waves[index].start, waves[index].type.level);
 
         /// <summary>Local x position of a wave's crest right now.</summary>
-        public float CurrentWaveCenter(float waveStartTime) => WaveCenter(waveStartTime, Time.time);
+        public float CurrentWaveCenter(float waveId)
+        {
+            foreach (var wave in waves)
+                if (wave.start == waveId) return WaveCenter(wave, Time.time);
+            return length * 2f; // gone: treat as past the beach
+        }
+
+        public WaveType TypeOf(WaveLevel level)
+        {
+            foreach (var type in waveTypes)
+                if (type.level == level) return type;
+            return waveTypes[0];
+        }
 
         void Awake()
         {
             BuildMesh();
         }
 
-        public void SpawnWave()
+        public void SpawnWave(WaveLevel level)
         {
-            waveStartTimes.Add(Time.time);
+            waves.Add(new ActiveWave { start = Time.time, type = TypeOf(level) });
         }
 
         /// <summary>World-space height of the water surface at a world position.</summary>
@@ -78,7 +89,7 @@ namespace SurfPool
         void Update()
         {
             float t = Time.time;
-            waveStartTimes.RemoveAll(start => WaveCenter(start, t) > length + backWidth * 3f);
+            waves.RemoveAll(wave => WaveCenter(wave, t) > length + wave.type.backWidth * 3f);
 
             for (int i = 0; i < vertices.Length; i++)
             {
@@ -98,24 +109,25 @@ namespace SurfPool
             float edge = z / (width * 0.5f);
             float edgeScale = 1f - edgeDrop * edge * edge;
 
-            foreach (float start in waveStartTimes)
+            foreach (var wave in waves)
             {
-                float center = WaveCenter(start, t);
+                var type = wave.type;
+                float center = WaveCenter(wave, t);
                 float progress = center / length;
 
                 float rise = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-0.05f, 0.15f, progress));
                 float breaking = Mathf.InverseLerp(breakStart, 1f, progress);
-                float amplitude = waveHeight * rise * Mathf.Lerp(1f, breakEndScale, breaking);
-                float back = backWidth * (1f + breaking);
+                float amplitude = type.height * rise * Mathf.Lerp(1f, breakEndScale, breaking);
+                float back = type.backWidth * (1f + breaking);
 
                 float d = x - center;
-                float w = d > 0f ? frontWidth : back;
+                float w = d > 0f ? type.frontWidth : back;
                 h += amplitude * edgeScale * Mathf.Exp(-(d / w) * (d / w));
             }
             return h;
         }
 
-        float WaveCenter(float startTime, float t) => -backWidth + (t - startTime) * waveSpeed;
+        static float WaveCenter(ActiveWave wave, float t) => -wave.type.backWidth + (t - wave.start) * wave.type.speed;
 
         void BuildMesh()
         {

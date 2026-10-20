@@ -8,7 +8,7 @@ namespace SurfPool
     /// </summary>
     public class PriceBoard : MonoBehaviour
     {
-        [SerializeField] int price = 25;
+        [SerializeField] int price = 20;
         [Tooltip("What an average surfer thinks a session is worth. Upgrades raise it.")]
         [SerializeField] int fairPrice = 25;
         [SerializeField] int step = 5;

@@ -17,7 +17,7 @@ namespace SurfPool.EditorTools
 
         // Pool interior: x 0..60 (machine -> beach), z -12..12, deck top at y = 0, floor at y = -4.
         // Water sits low so the biggest waves crest just below the deck instead of spilling over it.
-        const float PoolLength = 60f, PoolWidth = 24f, PoolDepth = 4f, WaterLevel = -2.2f;
+        const float PoolLength = 60f, PoolWidth = 24f, PoolDepth = 5f, WaterLevel = -3f;
         const float DeckThickness = PoolDepth + 1f;
 
         [MenuItem("Surf Pool/Build Greybox Scene")]
@@ -90,11 +90,11 @@ namespace SurfPool.EditorTools
             // Control console with the big button, on the deck by the deep end.
             var console = new GameObject("Wave Console").transform;
             console.position = new Vector3(5, 0, -halfW - 1.5f);
-            Box("Pedestal", console, console.position + new Vector3(0, 0.5f, 0), new Vector3(0.8f, 1f, 0.6f), consoleMat);
+            Box("Pedestal", console, console.position + new Vector3(0, 0.5f, 0), new Vector3(1.2f, 1f, 0.7f), consoleMat);
             var buttonGo = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             buttonGo.name = "Button";
             buttonGo.transform.SetParent(console, false);
-            buttonGo.transform.localPosition = new Vector3(0, 1.04f, 0);
+            buttonGo.transform.localPosition = new Vector3(0, 1.04f, 0.12f);
             buttonGo.transform.localScale = new Vector3(0.32f, 0.04f, 0.32f);
             Object.DestroyImmediate(buttonGo.GetComponent<Collider>());
             buttonGo.AddComponent<BoxCollider>();
@@ -102,6 +102,19 @@ namespace SurfPool.EditorTools
             var button = console.gameObject.AddComponent<WaveButton>();
             Set(button, "machine", machine);
             Set(button, "buttonRenderer", buttonGo.GetComponent<MeshRenderer>());
+
+            // Wave type buttons in front of the big button: Beginner, Intermediate, Pro (left to right).
+            var levels = new[] { WaveLevel.Beginner, WaveLevel.Intermediate, WaveLevel.Pro };
+            var levelColors = new[] { new Color(0.35f, 0.85f, 1f), new Color(0.2f, 0.4f, 1f), new Color(0.85f, 0.2f, 0.95f) };
+            for (int i = 0; i < levels.Length; i++)
+            {
+                var select = Box($"Select {levels[i]}", console, console.position + new Vector3((i - 1) * 0.35f, 1.03f, -0.2f), new Vector3(0.24f, 0.06f, 0.16f), buttonMat);
+                var selectButton = select.AddComponent<WaveSelectButton>();
+                Set(selectButton, "machine", machine);
+                Set(selectButton, "buttonRenderer", select.GetComponent<MeshRenderer>());
+                SetInt(selectButton, "level", (int)levels[i]);
+                SetColor(selectButton, "color", levelColors[i]);
+            }
 
             // First-person player.
             var player = new GameObject("Player");
@@ -267,6 +280,7 @@ namespace SurfPool.EditorTools
 
             Set(hud, "pricing", pricing);
             Set(hud, "spawner", spawner);
+            Set(hud, "machine", machine);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
@@ -323,7 +337,16 @@ namespace SurfPool.EditorTools
         static void SetInt(Object target, string field, int value)
         {
             var so = new SerializedObject(target);
-            so.FindProperty(field).intValue = value;
+            var prop = so.FindProperty(field);
+            if (prop.propertyType == SerializedPropertyType.Enum) prop.enumValueIndex = value;
+            else prop.intValue = value;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        static void SetColor(Object target, string field, Color value)
+        {
+            var so = new SerializedObject(target);
+            so.FindProperty(field).colorValue = value;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

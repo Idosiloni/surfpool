@@ -35,8 +35,12 @@ namespace SurfPool
                 description = "Four more boards and slots on the rental rack." },
             new Upgrade { id = "auto_waves", title = "Auto Wave Timer", cost = 150,
                 description = "The machine sends a wave by itself every 12 seconds. A yellow light turns on." },
-            new Upgrade { id = "bigger_waves", title = "Bigger Waves", cost = 250,
-                description = "Waves get 40 cm taller. Surfers will pay about $10 more per session." },
+            new Upgrade { id = "wave_sets", title = "Wave Sets", cost = 180,
+                description = "Each press sends a set of 2 waves, 2.5 s apart. More rides, less waiting." },
+            new Upgrade { id = "pro_waves", title = "Pro Wave Program", cost = 200,
+                description = "Unlocks steep, fast Pro waves (select them on the wave console). Pro surfers pay the most and do tricks." },
+            new Upgrade { id = "smart_auto", title = "Smart Wave Timer", cost = 220, requires = "auto_waves",
+                description = "Auto waves pick the wave type most waiting surfers want." },
         };
 
         [Header("Things upgrades change")]
@@ -127,9 +131,15 @@ namespace SurfPool
                     machine.AutoInterval = 12f;
                     if (autoWaveLight != null) autoWaveLight.SetActive(true);
                     break;
-                case "bigger_waves":
-                    water.WaveHeight += 0.4f;
-                    pricing.FairPrice += 10;
+                case "wave_sets":
+                    machine.WavesPerSet = 2;
+                    break;
+                case "pro_waves":
+                    machine.Unlock(WaveLevel.Pro);
+                    pricing.FairPrice += 5;
+                    break;
+                case "smart_auto":
+                    machine.SmartAuto = true;
                     break;
             }
         }

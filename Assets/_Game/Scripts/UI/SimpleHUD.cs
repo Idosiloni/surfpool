@@ -12,6 +12,7 @@ namespace SurfPool
         [SerializeField] FirstPersonController player;
         [SerializeField] PriceBoard pricing;
         [SerializeField] SurferSpawner spawner;
+        [SerializeField] WaveMachine machine;
         [SerializeField] float labelDistance = 40f;
 
         static readonly Color Green = new(0.3f, 1f, 0.4f);
@@ -74,6 +75,7 @@ namespace SurfPool
             }
 
             string stats = "";
+            if (machine != null) stats += $"Wave: {machine.Selected}     ";
             if (pricing != null) stats += $"Ticket price: ${pricing.Price}";
             if (pricing != null && spawner != null && spawner.RenterChance > 0f) stats += $"     Board rental: ${pricing.RentalPrice}";
             if (spawner != null) stats += $"     Happy surfers: {spawner.Served}     Lost customers: {spawner.Lost}";

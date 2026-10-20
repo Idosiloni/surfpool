@@ -110,7 +110,11 @@ MonoBehaviour:
   wavePatience: 30
   wavesPerSession: 3
   maxTipShare: 0.3
-  rideOffset: 1
+  beginnerRideOffset: 2.2
+  intermediateRideOffset: 1.2
+  proRideOffset: 0.6
+  trickInterval: {x: 1.2, y: 2.2}
+  tipPerTrick: 1
   carveWidth: 5
   carveSpeed: 0.9
   rideEndProgress: 0.88
