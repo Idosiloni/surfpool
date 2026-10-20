@@ -133,7 +133,9 @@ namespace SurfPool.EditorTools
             var desk = new GameObject("Ticket Desk").transform;
             desk.position = new Vector3(20, 0, -22.5f);
             WorldArt.Model("KioskTeal", desk, desk.position);
-            Box("Counter", desk, desk.position + new Vector3(0, 0.55f, 0), new Vector3(3, 1.1f, 1), deskMat);
+            Signs.Kiosk("TICKETS", desk, desk.position, 0f);
+            Hidden(Box("Counter", desk, desk.position + new Vector3(0, 0.55f, 0), new Vector3(3, 1.1f, 1), deskMat));
+            WorldArt.Model("Counter", desk, desk.position);
             var registerGo = Box("Register", desk, desk.position + new Vector3(0.6f, 1.32f, 0), new Vector3(0.5f, 0.44f, 0.42f), consoleMat);
             registerGo.GetComponent<MeshRenderer>().enabled = false; // keeps its collider; the model is the look
             WorldArt.Model("CashRegister", desk, desk.position + new Vector3(0.6f, 1.1f, 0), 180f);
@@ -165,20 +167,26 @@ namespace SurfPool.EditorTools
             SetInt(downButton, "direction", -1);
 
             // Upgrade visuals, hidden until bought.
-            var bench = Box("Surfer Bench", env, new Vector3(30, 0.25f, -15), new Vector3(3, 0.5f, 0.8f), deskMat);
+            var bench = new GameObject("Surfer Bench");
+            bench.transform.SetParent(env, false);
+            Hidden(Box("Bench Collider", bench.transform, new Vector3(30, 0.25f, -15), new Vector3(3, 0.5f, 0.8f), deskMat));
+            WorldArt.Model("Bench", bench.transform, new Vector3(30, 0, -15), 180f);
             bench.SetActive(false);
 
             // Board rental stand east of the ticket desk, hidden until bought.
             var stand = new GameObject("Rental Stand").transform;
             stand.position = new Vector3(30, 0, -22.5f);
-            Box("Rental Counter", stand, stand.position + new Vector3(0, 0.55f, 0), new Vector3(3, 1.1f, 1), deskMat);
+            Hidden(Box("Rental Counter", stand, stand.position + new Vector3(0, 0.55f, 0), new Vector3(3, 1.1f, 1), deskMat));
+            WorldArt.Model("Counter", stand, stand.position);
             WorldArt.Model("KioskCoral", stand, stand.position);
+            Signs.Kiosk("BOARD RENTALS", stand, stand.position, 0f);
 
             const int boardSlots = 10;
             var rackRoot = new GameObject("Board Rack").transform;
             rackRoot.SetParent(stand, false);
             rackRoot.position = new Vector3(32.6f, 0, -20.6f);
-            Box("Rack Frame", rackRoot, rackRoot.position + new Vector3(0, 0.6f, 0), new Vector3(0.4f, 1.2f, 2.4f), consoleMat);
+            Hidden(Box("Rack Frame", rackRoot, rackRoot.position + new Vector3(0, 0.6f, 0), new Vector3(0.4f, 1.2f, 2.4f), consoleMat));
+            WorldArt.Model("BoardRack", rackRoot, rackRoot.position);
             var rackSlots = new Object[boardSlots];
             for (int i = 0; i < boardSlots; i++)
             {
@@ -192,11 +200,13 @@ namespace SurfPool.EditorTools
             var binRoot = new GameObject("Return Bin").transform;
             binRoot.SetParent(stand, false);
             binRoot.position = new Vector3(34.5f, 0, -24.6f);
-            Box("Bin", binRoot, binRoot.position + new Vector3(0, 0.3f, 0), new Vector3(2.0f, 0.6f, 1.0f), consoleMat);
+            Hidden(Box("Bin", binRoot, binRoot.position + new Vector3(0, 0.3f, 0), new Vector3(2.0f, 0.6f, 1.0f), consoleMat));
+            WorldArt.Model("ReturnCrate", binRoot, binRoot.position);
+            Signs.Text("RETURNS", binRoot, binRoot.position + new Vector3(0, 0.38f, -0.53f), 0f, 0.16f, new Color(0.06f, 0.18f, 0.23f), 1.4f);
             var binPile = new Object[boardSlots];
             for (int i = 0; i < boardSlots; i++)
             {
-                var pileBoard = Board($"Returned Board {i + 1}", binRoot, binRoot.position + new Vector3((i % 2) * 0.1f - 0.05f, 0.62f + i * 0.11f, 0), Quaternion.Euler(0, 90, 0), 0.9f, rentalBoardMat);
+                var pileBoard = Board($"Returned Board {i + 1}", binRoot, binRoot.position + new Vector3((i % 2) * 0.1f - 0.05f, 0.15f + i * 0.11f, 0), Quaternion.Euler(0, 90, 0), 0.9f, rentalBoardMat);
                 binPile[i] = pileBoard;
             }
             var bin = binRoot.gameObject.AddComponent<ReturnBin>();
@@ -319,10 +329,12 @@ namespace SurfPool.EditorTools
             // Snack bar by the main pool's exit, hidden until bought. Customers line up on its west side.
             var snack = new GameObject("Snack Bar").transform;
             snack.position = new Vector3(57.5f, 0, -24f);
-            WorldArt.Model("KioskCoral", snack, snack.position, -90f);
+            WorldArt.Model("KioskCoral", snack, snack.position, 90f);
+            Signs.Kiosk("SNACKS", snack, snack.position, 90f);
             var snackRoute = new GameObject("Snack Route").transform;
             snackRoute.SetParent(snack, false);
-            Box("Snack Counter", snack, snack.position + new Vector3(-0.9f, 0.55f, 0), new Vector3(0.9f, 1.1f, 3f), deskMat);
+            Hidden(Box("Snack Counter", snack, snack.position + new Vector3(-0.9f, 0.55f, 0), new Vector3(0.9f, 1.1f, 3f), deskMat));
+            WorldArt.Model("Counter", snack, snack.position + new Vector3(-0.9f, 0f, 0f), 90f);
             var grill = Box("Grill", snack, snack.position + new Vector3(-0.8f, 1.16f, 0.7f), new Vector3(0.6f, 0.12f, 0.9f), consoleMat);
             Box("Grill Top", snack, grill.transform.position + new Vector3(0, 0.07f, 0), new Vector3(0.55f, 0.02f, 0.85f), Mat("GrillHot", new Color(0.25f, 0.2f, 0.18f), 0.6f, new Color(0.6f, 0.15f, 0.05f)));
             var cupMat = Mat("SmoothieCup", new Color(1f, 0.55f, 0.65f), 0.4f);
@@ -336,7 +348,16 @@ namespace SurfPool.EditorTools
                 cup.transform.localScale = new Vector3(0.11f, 0.12f, 0.11f);
                 cup.GetComponent<MeshRenderer>().sharedMaterial = i % 2 == 0 ? cupMat : mats.sign;
             }
-            Box("Menu Board", snack, snack.position + new Vector3(0.2f, 2.3f, 0), new Vector3(0.08f, 0.8f, 2.4f), Mat("MenuBoard", new Color(0.12f, 0.16f, 0.2f), 0.3f));
+            // A chalkboard menu standing out front, facing the line.
+            var menuAt = snack.position + new Vector3(-2.2f, 0f, 2.1f);
+            var chalk = Mat("MenuBoard", new Color(0.12f, 0.16f, 0.2f), 0.3f);
+            Box("Menu Board", snack, menuAt + new Vector3(0f, 1.05f, 0f), new Vector3(0.06f, 0.9f, 1.1f), chalk);
+            Box("Menu Leg", snack, menuAt + new Vector3(0f, 0.3f, -0.45f), new Vector3(0.06f, 0.6f, 0.06f), mats.coping).GetComponent<Collider>().enabled = false;
+            Box("Menu Leg", snack, menuAt + new Vector3(0f, 0.3f, 0.45f), new Vector3(0.06f, 0.6f, 0.06f), mats.coping).GetComponent<Collider>().enabled = false;
+            Signs.Text("MENU", snack, menuAt + new Vector3(-0.04f, 1.37f, 0f), 90f, 0.16f, Color.white, 1f);
+            Signs.Text("FISH TACOS", snack, menuAt + new Vector3(-0.04f, 1.12f, 0f), 90f, 0.13f, new Color(1f, 0.82f, 0.35f), 1f);
+            Signs.Text("SMOOTHIES", snack, menuAt + new Vector3(-0.04f, 0.92f, 0f), 90f, 0.13f, new Color(1f, 0.6f, 0.7f), 1f);
+            Signs.Text("ACAI BOWLS", snack, menuAt + new Vector3(-0.04f, 0.72f, 0f), 90f, 0.13f, new Color(0.6f, 0.9f, 0.8f), 1f);
             var snackBar = snack.gameObject.AddComponent<SnackBar>();
             Set(snackBar, "lineSpot", Point("Snack Line Front", snackRoute, new Vector3(56.0f, 0, -24f)));
             Set(snackBar, "approach", Point("Snack Approach", snackRoute, new Vector3(56.0f, 0, -17.5f)));
@@ -393,7 +414,9 @@ namespace SurfPool.EditorTools
             var surfShop = new GameObject("Surf Shop").transform;
             surfShop.position = new Vector3(40, 0, -33);
             WorldArt.Model("KioskTeal", surfShop, surfShop.position, 90f);
-            Box("Shop Counter", surfShop, surfShop.position + new Vector3(0, 0.55f, 0), new Vector3(1, 1.1f, 3), deskMat);
+            Signs.Kiosk("SURF SHOP", surfShop, surfShop.position, 90f);
+            Hidden(Box("Shop Counter", surfShop, surfShop.position + new Vector3(0, 0.55f, 0), new Vector3(1, 1.1f, 3), deskMat));
+            WorldArt.Model("Counter", surfShop, surfShop.position, 90f);
             for (int i = 0; i < 4; i++)
                 Board($"Display Board {i + 1}", surfShop, surfShop.position + new Vector3(1.6f, 1.0f, -1.2f + i * 0.8f), Quaternion.Euler(-80, 90, 0), 0.9f, i % 2 == 0 ? rentalBoardMat : mats.sign);
             var clerkShop = Person("Shop Clerk", surfShop.position + new Vector3(-1.0f, 0, 0), 90f, coachMat, skinMat);
@@ -632,6 +655,7 @@ namespace SurfPool.EditorTools
             var machineGo = Box("Wave Machine", built, new Vector3(-9, 2.5f, zc), new Vector3(10, 5, PoolWidth - 2), mats.machine);
             machineGo.GetComponent<MeshRenderer>().enabled = false; // keeps its collider; the model is the look
             WorldArt.Model("WaveMachineHouse", built, new Vector3(-9, 0, zc));
+            Signs.Text(spec.display.ToUpperInvariant(), built, new Vector3(-3.92f, 1.75f, zc), -90f, 0.75f, new Color(0.06f, 0.18f, 0.23f), 16f);
             var machine = machineGo.AddComponent<WaveMachine>();
             Set(machine, "water", water);
             var autoLight = Box("Auto Wave Light", built, new Vector3(-6, 4.85f, zc - 9), new Vector3(0.6f, 0.5f, 0.6f), mats.beacon);
@@ -698,6 +722,8 @@ namespace SurfPool.EditorTools
                 Box("Sign Post L", lot.transform, new Vector3(27.5f, 1.5f, zc - halfW - 2.3f), new Vector3(0.2f, 3f, 0.2f), mats.coping);
                 Box("Sign Post R", lot.transform, new Vector3(32.5f, 1.5f, zc - halfW - 2.3f), new Vector3(0.2f, 3f, 0.2f), mats.coping);
                 Box("Coming Soon Sign", lot.transform, new Vector3(30, 2.6f, zc - halfW - 2.4f), new Vector3(6f, 1.6f, 0.12f), mats.sign);
+                Signs.Text(spec.display.ToUpperInvariant(), lot.transform, new Vector3(30, 2.9f, zc - halfW - 2.47f), 0f, 0.42f, Color.white, 5.6f);
+                Signs.Text("COMING SOON", lot.transform, new Vector3(30, 2.3f, zc - halfW - 2.47f), 0f, 0.32f, new Color(1f, 0.92f, 0.7f), 5.6f);
             }
 
             var route = new GameObject("Route").transform;
@@ -948,6 +974,8 @@ namespace SurfPool.EditorTools
                 Box("Expansion Sign Post L", parent, sign + new Vector3(-2.2f, 1.2f, 0), new Vector3(0.18f, 2.4f, 0.18f), mats.coping);
                 Box("Expansion Sign Post R", parent, sign + new Vector3(2.2f, 1.2f, 0), new Vector3(0.18f, 2.4f, 0.18f), mats.coping);
                 Box("Expansion Sign", parent, sign + new Vector3(0, 2.1f, 0), new Vector3(5f, 1.2f, 0.12f), mats.sign);
+                Signs.Text("POOL EXPANSION", parent, sign + new Vector3(0, 2.3f, -0.07f), 0f, 0.32f, Color.white, 4.6f);
+                Signs.Text("COMING SOON", parent, sign + new Vector3(0, 1.85f, -0.07f), 0f, 0.24f, new Color(1f, 0.92f, 0.7f), 4.6f);
                 for (int i = 0; i < 6; i++)
                 {
                     var cone = Box("Cone", parent, sign + new Vector3(-6f + i * 2.4f, 0.3f, -1.4f), new Vector3(0.35f, 0.6f, 0.35f), mats.sign);
@@ -955,6 +983,9 @@ namespace SurfPool.EditorTools
                 }
             }
         }
+
+        /// <summary>Hides a placeholder box but keeps its collider (a model is the look).</summary>
+        static void Hidden(GameObject box) => box.GetComponent<MeshRenderer>().enabled = false;
 
         static void SetFloat(Object target, string field, float value)
         {

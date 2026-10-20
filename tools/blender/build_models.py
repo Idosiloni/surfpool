@@ -497,6 +497,71 @@ def price_stand(name="PriceStand"):
     return join(name, parts)
 
 
+def counter(name="Counter"):
+    """3 x 1 m service counter, 1.1 m tall. White front panel with a teal band toward the customer side (-Y)."""
+    parts = [
+        box("Kick", (2.9, 0.86, 0.12), (0, 0.02, 0.06), "Navy"),
+        box("Body", (3.0, 0.9, 0.96), (0, 0, 0.6), "Wood"),
+        box("Front Panel", (2.96, 0.04, 0.9), (0, -0.46, 0.6), "White"),
+        box("Front Band", (2.98, 0.05, 0.16), (0, -0.475, 0.82), "Teal"),
+        box("Front Stripe", (2.98, 0.05, 0.05), (0, -0.475, 0.68), "Coral"),
+        box("Top", (3.12, 1.04, 0.07), (0, 0, 1.115), "DarkWood"),
+        box("Shelf", (2.8, 0.3, 0.04), (0, 0.32, 0.55), "DarkWood"),
+    ]
+    for i in range(7):
+        x = -1.35 + i * 0.45
+        parts.append(box("Slat", (0.04, 0.06, 0.62), (x, -0.48, 0.38), "White"))
+    return join(name, parts)
+
+
+def board_rack(name="BoardRack"):
+    """Wooden A-frame rack for rental boards: 2.4 m long along Y, 0.5 m deep, 1.2 m tall."""
+    parts = [box("Base", (0.5, 2.4, 0.08), (0, 0, 0.04), "DarkWood")]
+    lean = math.degrees(math.atan(0.2 / 1.2))
+    for y in (-1.15, 1.15):  # inverted-V end frames, wide at the bottom
+        parts.append(box("Leg", (0.08, 0.1, 1.24), (-0.15, y, 0.62), "Wood", rotation=(0, math.radians(lean), 0)))
+        parts.append(box("Leg", (0.08, 0.1, 1.24), (0.15, y, 0.62), "Wood", rotation=(0, math.radians(-lean), 0)))
+    for z in (0.35, 0.85):
+        half = 0.25 - z * 0.2 / 1.2
+        for side in (-1, 1):
+            parts.append(box("Bar", (0.05, 2.4, 0.05), (side * half, 0, z), "Wood"))
+    parts.append(box("Top Rail", (0.12, 2.4, 0.08), (0, 0, 1.22), "DarkWood"))
+    parts.append(box("Sign Plate", (0.06, 0.9, 0.22), (0, 0, 1.38), "Teal"))
+    return join(name, parts)
+
+
+def return_crate(name="ReturnCrate"):
+    """Slatted wooden crate (2 x 1 m, 0.6 m tall) where renters drop their boards."""
+    parts = [box("Floor", (2.0, 1.0, 0.06), (0, 0, 0.05), "DarkWood")]
+    for x in (-0.97, 0.97):
+        for y in (-0.47, 0.47):
+            parts.append(box("Corner", (0.08, 0.08, 0.62), (x, y, 0.31), "DarkWood"))
+    for z in (0.15, 0.32, 0.49):
+        parts.append(box("Slat", (2.0, 0.04, 0.12), (0, -0.49, z), "Wood"))
+        parts.append(box("Slat", (2.0, 0.04, 0.12), (0, 0.49, z), "Wood"))
+        parts.append(box("Slat", (0.04, 1.0, 0.12), (-0.99, 0, z), "Wood"))
+        parts.append(box("Slat", (0.04, 1.0, 0.12), (0.99, 0, z), "Wood"))
+    for y in (-0.5, 0.5):
+        parts.append(box("Band", (2.02, 0.05, 0.07), (0, y, 0.6), "Teal"))
+    for x in (-1.0, 1.0):
+        parts.append(box("Band", (0.05, 1.02, 0.07), (x, 0, 0.6), "Teal"))
+    return join(name, parts)
+
+
+def bench(name="Bench"):
+    """3 m wooden slat bench, 0.5 m seat height, 0.8 m deep (along Y)."""
+    parts = []
+    for i in range(4):
+        parts.append(box("Seat Slat", (3.0, 0.16, 0.05), (0, -0.3 + i * 0.2, 0.47), "Wood"))
+    for x in (-1.3, 0, 1.3):
+        parts.append(box("Leg", (0.08, 0.7, 0.45), (x, 0, 0.22), "DarkWood"))
+    parts.append(box("Back Slat", (3.0, 0.05, 0.14), (0, 0.38, 0.72), "Wood"))
+    parts.append(box("Back Slat", (3.0, 0.05, 0.14), (0, 0.38, 0.9), "Teal"))
+    for x in (-1.3, 1.3):
+        parts.append(box("Back Post", (0.08, 0.06, 0.5), (x, 0.38, 0.72), "DarkWood"))
+    return join(name, parts)
+
+
 def car(name="Car"):
     """A small beach car with a surfboard on the roof. 4 m long along Y, nose toward -Y (Unity forward)."""
     parts = [
@@ -664,7 +729,7 @@ def build_all():
         lounge_chair,
         lambda: rock("Rock", 3),
         board_foamie, board_fun, board_short,
-        cash_register, computer, wave_console, price_stand, car,
+        cash_register, computer, wave_console, price_stand, car, counter, board_rack, return_crate, bench,
         char_torso, char_shorts, char_head, char_hair_short, char_hair_long, char_arm, char_leg,
     ):
         obj = factory()

@@ -50,7 +50,7 @@ namespace SurfPool
             int before = Stars;
             Experience += jobs;
             if (Stars > before)
-                Notifications.Post($"{jobTitle} reached {new string('★', Stars)}! Works {Mathf.RoundToInt((1f - TimeMultiplier) * 100f)}% faster.");
+                Notifications.Post($"{jobTitle} reached {Stars} stars! Works {Mathf.RoundToInt((1f - TimeMultiplier) * 100f)}% faster.");
         }
 
         public void RestoreExperience(int jobs) => Experience = Mathf.Max(0, jobs);
@@ -69,6 +69,6 @@ namespace SurfPool
             if (member != null) member.AddExperience();
         }
 
-        public static string StarText(int stars) => new string('★', stars) + new string('☆', MaxStars - stars);
+        public static string StarText(int stars) => $"{stars}/{MaxStars} stars";
     }
 }

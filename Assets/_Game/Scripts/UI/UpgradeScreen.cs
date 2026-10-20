@@ -79,9 +79,17 @@ namespace SurfPool
             cards.Clear();
             int cash = Wallet.Instance != null ? Wallet.Instance.Money : 0;
             VisualElement row = null;
+            // Buyable first, then too expensive, then locked, owned last (list order within each group).
+            var list = new System.Collections.Generic.List<Upgrade>();
             foreach (var upgrade in shop.Upgrades)
+                if (upgrade.category == tab) list.Add(upgrade);
+            int Rank(Upgrade u) => u.owned ? 3 : !shop.LevelMet(u) || !shop.RequirementMet(u) ? 2 : cash < u.cost ? 1 : 0;
+            var order = new System.Collections.Generic.List<int>();
+            for (int i = 0; i < list.Count; i++) order.Add(i);
+            order.Sort((a, b) => Rank(list[a]) != Rank(list[b]) ? Rank(list[a]).CompareTo(Rank(list[b])) : a.CompareTo(b));
+            foreach (int index in order)
             {
-                if (upgrade.category != tab) continue;
+                var upgrade = list[index];
                 if (row == null || row.childCount == 2)
                 {
                     row = new VisualElement();
@@ -93,9 +101,22 @@ namespace SurfPool
                 var card = new VisualElement();
                 card.AddToClassList("upgrade-card");
                 card.AddToClassList("upgrade-card--" + upgrade.category.ToString().ToLowerInvariant());
+                card.EnableInClassList("upgrade-card--owned", upgrade.owned);
 
                 var top = new VisualElement();
                 top.AddToClassList("card-top");
+                var icon = new VisualElement();
+                icon.AddToClassList("icon");
+                icon.AddToClassList("card-icon");
+                icon.AddToClassList("icon--" + upgrade.category switch
+                {
+                    UpgradeCategory.Waves => "wave",
+                    UpgradeCategory.Pools => "pool",
+                    UpgradeCategory.Park => "palm",
+                    UpgradeCategory.Rentals => "board",
+                    _ => "person",
+                });
+                top.Add(icon);
                 var title = new Label(upgrade.title);
                 title.AddToClassList("card-title");
                 var cost = new Label(MoneyText.Format(upgrade.cost));
@@ -128,10 +149,21 @@ namespace SurfPool
                 var worker = upgrade.owned ? shop.StaffFor(upgrade.id) : null;
                 if (worker != null)
                 {
-                    var stars = new Label($"{StaffMember.StarText(worker.Stars)}   {MoneyText.Format(worker.WagePerMinute)}/min" +
+                    var starRow = new VisualElement();
+                    starRow.AddToClassList("card-stars");
+                    for (int s = 1; s <= StaffMember.MaxStars; s++)
+                    {
+                        var star = new VisualElement();
+                        star.AddToClassList("icon");
+                        star.AddToClassList("icon--star");
+                        star.AddToClassList(s <= worker.Stars ? "staff-star" : "staff-star--empty");
+                        starRow.Add(star);
+                    }
+                    var stars = new Label($"{MoneyText.Format(worker.WagePerMinute)}/min" +
                         (worker.Stars < StaffMember.MaxStars ? $"   ·   {worker.JobsToNextStar} jobs to next star" : "   ·   top rated!"));
-                    stars.AddToClassList("card-stars");
-                    card.Add(stars);
+                    stars.AddToClassList("card-stars-text");
+                    starRow.Add(stars);
+                    card.Add(starRow);
                 }
                 if (upgrade.owned)
                 {

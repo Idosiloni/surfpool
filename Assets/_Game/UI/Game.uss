@@ -19,7 +19,7 @@
 
 .hud-root,
 .screen-overlay {
-    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Fredoka.ttf");
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Fredoka%20SDF.asset");
 }
 
 /* ---------- HUD ---------- */
@@ -177,6 +177,7 @@
 .stat-row {
     flex-direction: row;
     justify-content: space-between;
+    align-items: center;
     margin-top: 4px;
 }
 
@@ -326,7 +327,7 @@
     position: absolute;
     align-items: center;
     translate: -50% -100%;
-    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Fredoka.ttf");
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Fredoka%20SDF.asset");
 }
 
 .bubble-box {
@@ -495,6 +496,10 @@
     border-left-color: #3D6BE0;
 }
 
+.upgrade-card--pools {
+    border-left-color: #14B8A6;
+}
+
 .upgrade-card--park {
     border-left-color: #FFC857;
 }
@@ -517,6 +522,7 @@
     font-size: 22px;
     -unity-font-style: bold;
     color: #0B2E3A;
+    flex-grow: 1;
     flex-shrink: 1;
 }
 
@@ -1070,9 +1076,29 @@
 }
 
 .card-stars {
-    font-size: 16px;
-    color: #C9824F;
+    flex-direction: row;
+    align-items: center;
     margin-top: 6px;
+}
+
+.card-stars-text {
+    font-size: 15px;
+    color: #C9824F;
+    margin-left: 6px;
+}
+
+.card-stars > .staff-star {
+    width: 16px;
+    height: 16px;
+    margin: 0 2px 0 0;
+    -unity-background-image-tint-color: #FFC857;
+}
+
+.card-stars > .staff-star--empty {
+    width: 16px;
+    height: 16px;
+    margin: 0 2px 0 0;
+    -unity-background-image-tint-color: #E6DCCB;
 }
 
 .event-label {
@@ -1089,7 +1115,7 @@
 /* ---------- Main menu ---------- */
 
 .menu-root {
-    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Fredoka.ttf");
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Fredoka%20SDF.asset");
     position: absolute;
     left: 0;
     top: 0;
@@ -1247,7 +1273,7 @@
 /* ---------- Build mode ---------- */
 
 .build-root {
-    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Fredoka.ttf");
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Fredoka%20SDF.asset");
     position: absolute;
     left: 0;
     right: 0;
@@ -1329,7 +1355,7 @@
 /* ---------- Fishing ---------- */
 
 .fish-root {
-    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Fredoka.ttf");
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Fredoka%20SDF.asset");
     position: absolute;
     left: 0;
     right: 0;
@@ -1377,9 +1403,7 @@
 }
 
 .challenge-header {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
+    margin-bottom: 2px;
 }
 
 .challenge-title {
@@ -1390,4 +1414,142 @@
     font-size: 14px;
     -unity-font-style: bold;
     color: #0E9F7E;
+    margin: -2px 0 2px 25px;
+}
+
+/* Owned upgrades sink to the bottom and fade back. */
+.upgrade-card--owned {
+    background-color: #F6FBF8;
+    border-color: #CFEAE0;
+}
+
+.upgrade-card--owned .card-title,
+.upgrade-card--owned .card-desc {
+    opacity: 0.6;
+}
+
+.upgrade-card--owned .cost-chip {
+    background-color: #CFEAE0;
+    color: #0E9F7E;
+}
+
+.upgrade-card--owned .buy-button--owned {
+    color: #0E9F7E;
+    -unity-font-style: bold;
+    background-color: rgba(20, 184, 166, 0.08);
+}
+
+/* ---------- Icons (tools/ui/make_icons.py) ---------- */
+
+.title-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.icon {
+    width: 18px;
+    height: 18px;
+    margin: 0 7px 4px 0;
+    -unity-background-image-tint-color: #C9824F;
+}
+
+.icon--small {
+    width: 16px;
+    height: 16px;
+    margin: 0 8px 0 0;
+    -unity-background-image-tint-color: #8FA3AB;
+}
+
+.stat-row > .stat-name {
+    flex-grow: 1;
+}
+
+.goal-header > .icon {
+    margin-bottom: 0;
+}
+
+.icon--wave {
+    background-image: url("project://database/Assets/_Game/UI/Icons/wave.png");
+}
+
+.icon--palm {
+    background-image: url("project://database/Assets/_Game/UI/Icons/palm.png");
+}
+
+.icon--target {
+    background-image: url("project://database/Assets/_Game/UI/Icons/target.png");
+}
+
+.icon--pin {
+    background-image: url("project://database/Assets/_Game/UI/Icons/pin.png");
+}
+
+.icon--flag {
+    background-image: url("project://database/Assets/_Game/UI/Icons/flag.png");
+}
+
+.icon--pool {
+    background-image: url("project://database/Assets/_Game/UI/Icons/pool.png");
+}
+
+.icon--board {
+    background-image: url("project://database/Assets/_Game/UI/Icons/board.png");
+}
+
+.icon--person {
+    background-image: url("project://database/Assets/_Game/UI/Icons/person.png");
+}
+
+.icon--tag {
+    background-image: url("project://database/Assets/_Game/UI/Icons/tag.png");
+}
+
+.icon--smile {
+    background-image: url("project://database/Assets/_Game/UI/Icons/smile.png");
+}
+
+.icon--frown {
+    background-image: url("project://database/Assets/_Game/UI/Icons/frown.png");
+}
+
+.icon--trash {
+    background-image: url("project://database/Assets/_Game/UI/Icons/trash.png");
+}
+
+.icon--bolt {
+    background-image: url("project://database/Assets/_Game/UI/Icons/bolt.png");
+}
+
+.icon--star {
+    background-image: url("project://database/Assets/_Game/UI/Icons/star.png");
+}
+
+.icon--clock {
+    background-image: url("project://database/Assets/_Game/UI/Icons/clock.png");
+}
+
+.card-icon {
+    width: 22px;
+    height: 22px;
+    margin: 0 10px 0 0;
+}
+
+.upgrade-card--waves .card-icon {
+    -unity-background-image-tint-color: #3B6FE0;
+}
+
+.upgrade-card--pools .card-icon {
+    -unity-background-image-tint-color: #14B8A6;
+}
+
+.upgrade-card--park .card-icon {
+    -unity-background-image-tint-color: #2FA36B;
+}
+
+.upgrade-card--rentals .card-icon {
+    -unity-background-image-tint-color: #E8A33D;
+}
+
+.upgrade-card--staff .card-icon {
+    -unity-background-image-tint-color: #C9578C;
 }

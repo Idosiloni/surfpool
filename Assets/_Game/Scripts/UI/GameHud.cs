@@ -161,7 +161,7 @@ namespace SurfPool
             challengeCard.EnableInClassList("hidden", challenges == null || challenges.Today.Count == 0);
             if (challenges == null || Time.unscaledTime < nextChallengeRefresh) return;
             nextChallengeRefresh = Time.unscaledTime + 0.5f;
-            SetText(challengeReward, $"{MoneyText.Format(challenges.Reward)} each");
+            SetText(challengeReward, $"{MoneyText.Format(challenges.Reward)} + 30 XP each");
             challengeList.Clear();
             foreach (var challenge in challenges.Today)
             {

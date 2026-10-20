@@ -28,13 +28,19 @@
             </ui:VisualElement>
             <ui:VisualElement name="challengeCard" class="card mission-card challenge-card hidden" picking-mode="Ignore">
                 <ui:VisualElement class="challenge-header" picking-mode="Ignore">
-                    <ui:Label text="TODAY'S CHALLENGES" class="section-title challenge-title" picking-mode="Ignore" />
+                    <ui:VisualElement class="title-row" picking-mode="Ignore">
+                        <ui:VisualElement class="icon icon--target" picking-mode="Ignore" />
+                        <ui:Label text="TODAY'S CHALLENGES" class="section-title challenge-title" picking-mode="Ignore" />
+                    </ui:VisualElement>
                     <ui:Label name="challengeReward" class="challenge-reward" picking-mode="Ignore" />
                 </ui:VisualElement>
                 <ui:VisualElement name="challengeList" picking-mode="Ignore" />
             </ui:VisualElement>
             <ui:VisualElement name="missionCard" class="card mission-card hidden" picking-mode="Ignore">
-                <ui:Label name="missionChapter" class="section-title" picking-mode="Ignore" />
+                <ui:VisualElement class="title-row" picking-mode="Ignore">
+                    <ui:VisualElement class="icon icon--pin" picking-mode="Ignore" />
+                    <ui:Label name="missionChapter" class="section-title" picking-mode="Ignore" />
+                </ui:VisualElement>
                 <ui:Label name="missionTitle" class="mission-title" picking-mode="Ignore" />
                 <ui:Label name="missionStory" class="mission-story" picking-mode="Ignore" />
                 <ui:VisualElement name="missionObjectives" class="mission-objectives" picking-mode="Ignore" />
@@ -43,7 +49,10 @@
         </ui:VisualElement>
 
         <ui:VisualElement class="top-right card" picking-mode="Ignore">
-            <ui:Label text="WAVE MACHINE" class="section-title" picking-mode="Ignore" />
+            <ui:VisualElement class="title-row" picking-mode="Ignore">
+                <ui:VisualElement class="icon icon--wave" picking-mode="Ignore" />
+                <ui:Label text="WAVE MACHINE" class="section-title" picking-mode="Ignore" />
+            </ui:VisualElement>
             <ui:Label name="waveType" text="Intermediate" class="wave-type wave-type--intermediate" picking-mode="Ignore" />
             <ui:VisualElement class="bar" picking-mode="Ignore">
                 <ui:VisualElement name="waveBarFill" class="bar-fill" picking-mode="Ignore" />
@@ -51,32 +60,42 @@
             <ui:Label name="waveStatus" text="Ready" class="small-text" picking-mode="Ignore" />
             <ui:Label name="waveAuto" text="Auto: off" class="small-text" picking-mode="Ignore" />
             <ui:VisualElement class="divider" picking-mode="Ignore" />
-            <ui:Label text="PARK" class="section-title" picking-mode="Ignore" />
+            <ui:VisualElement class="title-row" picking-mode="Ignore">
+                <ui:VisualElement class="icon icon--palm" picking-mode="Ignore" />
+                <ui:Label text="PARK" class="section-title" picking-mode="Ignore" />
+            </ui:VisualElement>
             <ui:VisualElement class="stat-row" picking-mode="Ignore">
+                <ui:VisualElement class="icon icon--small icon--tag" picking-mode="Ignore" />
                 <ui:Label text="Session prices" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="ticketValue" text="$20" class="stat-value" picking-mode="Ignore" />
             </ui:VisualElement>
             <ui:VisualElement name="rentalRow" class="stat-row" picking-mode="Ignore">
+                <ui:VisualElement class="icon icon--small icon--board" picking-mode="Ignore" />
                 <ui:Label text="Board rental" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="rentalValue" text="$10" class="stat-value" picking-mode="Ignore" />
             </ui:VisualElement>
             <ui:VisualElement class="stat-row" picking-mode="Ignore">
+                <ui:VisualElement class="icon icon--small icon--smile" picking-mode="Ignore" />
                 <ui:Label text="Happy surfers" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="servedValue" text="0" class="stat-value" picking-mode="Ignore" />
             </ui:VisualElement>
             <ui:VisualElement class="stat-row" picking-mode="Ignore">
+                <ui:VisualElement class="icon icon--small icon--frown" picking-mode="Ignore" />
                 <ui:Label text="Lost customers" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="lostValue" text="0" class="stat-value" picking-mode="Ignore" />
             </ui:VisualElement>
             <ui:VisualElement name="trashRow" class="stat-row hidden" picking-mode="Ignore">
+                <ui:VisualElement class="icon icon--small icon--trash" picking-mode="Ignore" />
                 <ui:Label text="Trash on the ground" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="trashValue" text="0" class="stat-value" picking-mode="Ignore" />
             </ui:VisualElement>
             <ui:VisualElement name="billsRow" class="stat-row" picking-mode="Ignore">
+                <ui:VisualElement class="icon icon--small icon--bolt" picking-mode="Ignore" />
                 <ui:Label text="Today's bills" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="billsValue" text="$0" class="stat-value stat-value--bill" picking-mode="Ignore" />
             </ui:VisualElement>
             <ui:VisualElement name="wagesRow" class="stat-row" picking-mode="Ignore">
+                <ui:VisualElement class="icon icon--small icon--person" picking-mode="Ignore" />
                 <ui:Label text="Staff wages" class="stat-name" picking-mode="Ignore" />
                 <ui:Label name="wagesValue" text="$0/min" class="stat-value" picking-mode="Ignore" />
             </ui:VisualElement>
@@ -93,6 +112,7 @@
 
         <ui:VisualElement name="goalStrip" class="goal-strip card hidden" picking-mode="Ignore">
             <ui:VisualElement class="goal-header" picking-mode="Ignore">
+                <ui:VisualElement class="icon icon--flag" picking-mode="Ignore" />
                 <ui:Label text="NEXT GOAL" class="section-title goal-kicker" picking-mode="Ignore" />
                 <ui:Label name="goalName" class="goal-name" picking-mode="Ignore" />
                 <ui:Label name="goalAmount" class="goal-amount" picking-mode="Ignore" />
