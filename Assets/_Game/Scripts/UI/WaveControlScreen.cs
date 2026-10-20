@@ -29,8 +29,8 @@ namespace SurfPool
             "Buy the Pro Wave Program on the upgrade computer.",
         };
 
-        VisualElement root, cards, directionSection, directionRow;
-        Label directionHint;
+        VisualElement root, cards, directionSection, directionRow, famousRow;
+        Label directionHint, famousHint;
         Button send;
         bool shown;
         float nextRefresh;
@@ -47,6 +47,8 @@ namespace SurfPool
             directionSection = doc.Q("directionSection");
             directionRow = doc.Q("directionRow");
             directionHint = doc.Q<Label>("directionHint");
+            famousRow = doc.Q("famousRow");
+            famousHint = doc.Q<Label>("famousHint");
             send = doc.Q<Button>("sendButton");
             send.clicked += () => panel?.Send();
             doc.Q<Button>("waveCloseButton").clicked += () => panel?.Close();
@@ -72,9 +74,11 @@ namespace SurfPool
             var machine = Machine;
             BuildWaveCards(machine);
             BuildDirections(machine);
+            BuildFamous(machine);
 
             bool ready = machine.Ready;
-            send.text = ready ? $"SEND {machine.Selected.ToString().ToUpperInvariant()} WAVE"
+            string waveName = machine.Preset != null ? machine.Preset.name.ToUpperInvariant() : machine.Selected.ToString().ToUpperInvariant() + " WAVE";
+            send.text = ready ? $"SEND {waveName}"
                 : $"Recharging... {Mathf.CeilToInt(machine.SecondsUntilReady)}s";
             send.EnableInClassList("send-button--charging", !ready);
         }
@@ -145,6 +149,28 @@ namespace SurfPool
             directionHint.text = machine.IsUnlocked(WaveDirection.Left)
                 ? "Regular-foot surfers love rights, goofy-foot surfers love lefts. A peak goes both ways but rides are shorter."
                 : "Lefts and Rights are locked. Buy Reef Shaper on the upgrade computer.";
+        }
+
+        void BuildFamous(WaveMachine machine)
+        {
+            famousRow.Clear();
+            if (!ParkEffects.FamousWavesUnlocked)
+            {
+                famousHint.text = "Locked. Buy the Famous Waves Pack on the upgrade computer (park level 12).";
+                return;
+            }
+            foreach (var wave in FamousWaves.All)
+            {
+                var famous = wave;
+                var button = new Button(() => { machine.SelectPreset(famous); Refresh(); }) { text = $"{wave.name}" };
+                button.AddToClassList("segment");
+                button.EnableInClassList("segment--selected", machine.Preset == wave);
+                button.SetEnabled(FamousWaves.Available(wave, machine));
+                famousRow.Add(button);
+            }
+            famousHint.text = machine.Preset != null
+                ? $"{machine.Preset.name}, {machine.Preset.place} ({machine.Preset.level}): {machine.Preset.description}"
+                : "Pick a famous wave. Surfers of the right level love them and tip 50% more.";
         }
 
         /// <summary>Surfers waiting in the water for this wave type (and, if given, preferring this direction).</summary>

@@ -23,7 +23,7 @@ namespace SurfPool
 
         readonly HashSet<WaveLevel> unlocked = new() { WaveLevel.Beginner };
         bool directionsUnlocked;
-        readonly List<(float time, WaveLevel level, WaveDirection direction)> pending = new();
+        readonly List<(float time, WaveLevel level, WaveDirection direction, FamousWave preset)> pending = new();
         float readyAt;
         float chargeDuration;
         float nextAutoWave;
@@ -95,6 +95,20 @@ namespace SurfPool
         {
             if (!IsUnlocked(direction)) return false;
             SelectedDirection = direction;
+            Preset = null;
+            return true;
+        }
+
+        /// <summary>The famous wave picked on the console (null = a plain wave).</summary>
+        public FamousWave Preset { get; private set; }
+
+        /// <summary>Picks a famous wave: its type and direction, plus its own size and peel.</summary>
+        public bool SelectPreset(FamousWave wave)
+        {
+            if (wave == null || !FamousWaves.Available(wave, this)) return false;
+            Selected = wave.level;
+            SelectedDirection = wave.direction;
+            Preset = wave;
             return true;
         }
 
@@ -102,6 +116,7 @@ namespace SurfPool
         {
             if (!IsUnlocked(level)) return false;
             Selected = level;
+            Preset = null;
             return true;
         }
 
@@ -110,14 +125,14 @@ namespace SurfPool
             for (int i = pending.Count - 1; i >= 0; i--)
             {
                 if (Time.time < pending[i].time) continue;
-                water.SpawnWave(pending[i].level, pending[i].direction);
+                water.SpawnWave(pending[i].level, pending[i].direction, pending[i].preset);
                 pending.RemoveAt(i);
             }
 
             if (autoInterval <= 0f || Time.time < nextAutoWave) return;
             var level = smartAuto ? MostWantedLevel() : Selected;
             var direction = smartAuto ? MostWantedDirection(level) : SelectedDirection;
-            if (TrySendSet(level, direction)) nextAutoWave = Time.time + autoInterval;
+            if (TrySendSet(level, direction, smartAuto ? null : Preset)) nextAutoWave = Time.time + autoInterval;
         }
 
         /// <summary>For the wave operator: send the wave most of this pool's waiting surfers want, if any are waiting.</summary>
@@ -132,13 +147,13 @@ namespace SurfPool
         }
 
         /// <summary>Sends the selected wave type and direction (a whole set if upgraded).</summary>
-        public bool TryTriggerWave() => TrySendSet(Selected, SelectedDirection);
+        public bool TryTriggerWave() => TrySendSet(Selected, SelectedDirection, Preset);
 
-        bool TrySendSet(WaveLevel level, WaveDirection direction)
+        bool TrySendSet(WaveLevel level, WaveDirection direction, FamousWave preset = null)
         {
             if (!Ready || Broken || !IsUnlocked(level) || !IsUnlocked(direction)) return false;
             for (int i = 0; i < wavesPerSet; i++)
-                pending.Add((Time.time + i * setSpacing, level, direction));
+                pending.Add((Time.time + i * setSpacing, level, direction, preset));
             GameStats.WavesSent += wavesPerSet;
             if (OperatingCosts.Instance != null) OperatingCosts.Instance.MeterWaves(level, Pool, wavesPerSet);
             Sfx.Play(Sound.WaveMachine, transform.position);

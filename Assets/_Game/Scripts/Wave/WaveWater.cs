@@ -60,6 +60,7 @@ namespace SurfPool
             public float start;
             public WaveType type;
             public WaveDirection direction;
+            public string famous; // name of the famous wave it imitates, or null
         }
 
         /// <summary>Everything about a wave that's the same for every vertex this frame.</summary>
@@ -181,9 +182,23 @@ namespace SurfPool
             BuildMesh();
         }
 
-        public void SpawnWave(WaveLevel level, WaveDirection direction = WaveDirection.Peak)
+        public void SpawnWave(WaveLevel level, WaveDirection direction = WaveDirection.Peak, FamousWave preset = null)
         {
-            waves.Add(new ActiveWave { start = Time.time, type = Scaled(TypeOf(level)), direction = direction });
+            var type = Scaled(TypeOf(level));
+            if (preset != null)
+            {
+                type.height *= preset.size;
+                type.peelSpeed *= preset.peel;
+            }
+            waves.Add(new ActiveWave { start = Time.time, type = type, direction = direction, famous = preset?.name });
+        }
+
+        /// <summary>The famous wave this wave imitates (null for plain waves or if it's gone).</summary>
+        public string FamousName(float waveId)
+        {
+            foreach (var wave in waves)
+                if (wave.start == waveId) return wave.famous;
+            return null;
         }
 
         /// <summary>World-space height of the water surface at a world position.</summary>

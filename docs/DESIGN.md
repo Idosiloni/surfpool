@@ -50,7 +50,7 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
   - [x] Park level + XP, mess & janitor, staff stars, random daily events, machine breakdowns
   - [x] Snack bar (line, grill, Snack Cook, Smoothie Bar)
   - [ ] Lessons area, more decoration you can place
-  - [ ] Wave presets inspired by famous waves; pool-specific wave menus
+  - [x] Famous wave presets (Waikiki, Malibu, Snapper Rocks, Pipeline, Teahupo'o in the Lagoon)
   - [ ] Characters: real rigs/animations (Quaternius / Mixamo, needs download OK)
   - [x] Main menu, settings (mouse sensitivity, volume, quality, fullscreen)
   - [ ] Steam build

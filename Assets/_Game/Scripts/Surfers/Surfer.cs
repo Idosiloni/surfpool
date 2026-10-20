@@ -73,7 +73,7 @@ namespace SurfPool
         readonly Queue<Vector3> path = new();
         State stateAfterPath;
         Vector3 lineupTarget;
-        bool wantsSnack, ateSnack;
+        bool wantsSnack, ateSnack, rodeFamous;
         float lane;            // sideways offset from the path (m), so surfers don't walk in single file on top of each other
         Vector3 segmentStart;  // where the current path segment began (lane direction)
 
@@ -526,6 +526,13 @@ namespace SurfPool
                                 && waveDirection != PreferredDirection;
                 if (backside) rideQuality *= 0.85f;
                 rideMatched = diff == 0;
+                string famous = water.FamousName(wave);
+                if (famous != null && diff == 0)
+                {
+                    rodeFamous = true;
+                    rideQuality = Mathf.Min(1f, rideQuality + 0.15f);
+                    Shout($"I'm surfing {famous}!!", 2.5f);
+                }
                 nextTrickAt = Time.time + Random.Range(trickInterval.x, trickInterval.y);
 
                 // Too-big waves often end in a wipeout; everyone wipes out sometimes.
@@ -662,7 +669,7 @@ namespace SurfPool
             }
 
             float happiness = (moodSamples == 0 ? 1f : moodTotal / moodSamples) - Trash.MoodPenalty;
-            int tip = happiness > 0.5f ? Mathf.RoundToInt(paidPrice * maxTipShare * happiness) + tricksLanded * tipPerTrick : 0;
+            int tip = happiness > 0.5f ? Mathf.RoundToInt(paidPrice * maxTipShare * happiness * (rodeFamous ? 1.5f : 1f)) + tricksLanded * tipPerTrick : 0;
             if (tip > 0) Wallet.Instance.Add(tip, "tip");
             if (Skill == WaveLevel.Beginner && ParkEffects.LessonFee > 0) Wallet.Instance.Add(SurfCoach.TeachLesson(), "surf lessons");
             if (happiness > 0.5f && ParkEffects.MerchPerHappySurfer > 0) Wallet.Instance.Add(ParkEffects.MerchPerHappySurfer, "surf shop");

@@ -59,6 +59,8 @@ namespace SurfPool
                 description = "Unlocks steep, fast, barreling Pro waves. Pro surfers start coming: they pay 6x the base price and do tricks." },
             new Upgrade { id = "heavy_duty_pumps", category = UpgradeCategory.Waves, title = "Heavy-Duty Pumps", cost = 3500, level = 9,
                 description = "Tougher pumps in every wave machine: they wear out half as fast, so they break down much less." },
+            new Upgrade { id = "famous_waves", category = UpgradeCategory.Waves, title = "Famous Waves Pack", cost = 6000, level = 12, requires = "pro_waves",
+                description = "Wave programs copied from real spots: Waikiki, Malibu, Snapper Rocks, Pipeline (and Teahupo'o in the Big Wave Lagoon). Surfers love them: happier rides and 50% bigger tips." },
             new Upgrade { id = "turbo_2", category = UpgradeCategory.Waves, title = "Turbo Pump II", cost = 4000, level = 12, requires = "faster_machine",
                 description = "Recharge time drops to 1 s. Auto waves every 8 s." },
 
@@ -304,6 +306,9 @@ namespace SurfPool
                     break;
                 case "mechanic":
                     if (mechanic != null) mechanic.SetActive(true);
+                    break;
+                case "famous_waves":
+                    ParkEffects.FamousWavesUnlocked = true;
                     break;
                 case "heavy_duty_pumps":
                     MachineService.WearMultiplier = 0.5f;

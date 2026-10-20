@@ -254,7 +254,7 @@ namespace SurfPool
             var selected = machine.Selected;
             string direction = selected == WaveLevel.Beginner ? "Whitewater"
                 : machine.SelectedDirection == WaveDirection.Peak ? "Peak" : machine.SelectedDirection.ToString();
-            SetText(waveType, $"{selected}  ·  {direction}");
+            SetText(waveType, machine.Preset != null ? $"{machine.Preset.name}  ·  {selected}" : $"{selected}  ·  {direction}");
             waveType.EnableInClassList("wave-type--beginner", selected == WaveLevel.Beginner);
             waveType.EnableInClassList("wave-type--intermediate", selected == WaveLevel.Intermediate);
             waveType.EnableInClassList("wave-type--pro", selected == WaveLevel.Pro);

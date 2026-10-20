@@ -18,6 +18,12 @@
                 <ui:Label name="directionHint" class="screen-subtitle" />
             </ui:VisualElement>
 
+            <ui:VisualElement name="famousSection">
+                <ui:Label text="FAMOUS WAVES" class="section-title section-gap" />
+                <ui:VisualElement name="famousRow" class="segment-row" />
+                <ui:Label name="famousHint" class="screen-subtitle" />
+            </ui:VisualElement>
+
             <ui:VisualElement class="screen-footer section-gap">
                 <ui:Button name="sendButton" text="SEND WAVE" class="send-button" />
                 <ui:Button name="waveCloseButton" text="Close (Esc)" class="close-button" />
