@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "unity-editor": {
+      "command": "/Users/ido/.unity/bin/unity",
+      "args": ["mcp", "--project-path", "/Users/ido/surf-pool-sim"],
+      "env": { "UNITY_NO_CONSENT_PROMPT": "1" }
+    }
+  }
+}
