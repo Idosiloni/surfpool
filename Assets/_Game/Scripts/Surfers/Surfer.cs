@@ -409,6 +409,14 @@ namespace SurfPool
         /// <summary>Moves to a horizontal position, dropping smoothly onto the water surface.</summary>
         void Float(Vector3 position, Vector3 facing)
         {
+            // Stay off the pool walls (being pushed apart by other surfers mustn't float anyone out of the pool).
+            Vector3 local = water.transform.InverseTransformPoint(position);
+            float limit = water.Width * 0.5f - 1f;
+            if (Mathf.Abs(local.z) > limit)
+            {
+                local.z = Mathf.Clamp(local.z, -limit, limit);
+                position = water.transform.TransformPoint(local);
+            }
             float surface = water.SurfaceHeightAt(position);
             position.y = Mathf.MoveTowards(transform.position.y, surface, 6f * Time.deltaTime);
             if (Mathf.Abs(position.y - surface) < 0.3f) position.y = surface;
@@ -653,7 +661,7 @@ namespace SurfPool
                 case Pose.Walk: // walking or standing, board carried on its edge under the right arm
                     rig.CurrentMode = CharacterRig.Mode.Locomotion;
                     rig.CarryingBoard = board.gameObject.activeSelf;
-                    Place(board, new Vector3(0.44f + 0.07f * board.localScale.x, 0.9f, 0.15f), new Vector3(-8f, 0f, 90f));
+                    Place(board, new Vector3(0.5f + 0.07f * board.localScale.x, 0.9f, 0.15f), new Vector3(-8f, 0f, 90f));
                     break;
                 case Pose.Paddle: // lying on the board, paddling
                     rig.CurrentMode = CharacterRig.Mode.Paddle;
