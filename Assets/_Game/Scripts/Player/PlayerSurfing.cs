@@ -402,11 +402,13 @@ namespace SurfPool
             // Carving builds up and bleeds off speed, so turns feel like turns, not sliding.
             rideVelocity = Mathf.MoveTowards(rideVelocity, steer * carveSpeed * (1f + flowSpeedBonus * flow), carveAcceleration * dt);
 
-            // A carve is a held turn one way, then the other: linking them is how you build flow.
+            // A carve is a turn held long enough to build speed one way, then switched: linking them builds flow.
+            // (Tapping A/D quickly doesn't count: the turn must have been held and fast.)
             if (steer != 0f && Mathf.Sign(steer) != carveSign)
             {
                 float held = Time.time - carveSince;
-                if (carveSign != 0f && held >= 0.35f && held <= 2.5f) Trick("CARVE", 50, 0.25f);
+                if (carveSign != 0f && held >= 0.6f && held <= 3f && Mathf.Abs(rideVelocity) >= 0.6f * carveSpeed)
+                    Trick("CARVE", 50, 0.25f);
                 carveSign = Mathf.Sign(steer);
                 carveSince = Time.time;
             }
@@ -496,7 +498,7 @@ namespace SurfPool
             BankCombo();
             float seconds = Time.time - rideStart;
             score += Mathf.RoundToInt(seconds * 40f);
-            int bonus = Mathf.Clamp(score / 60, 1, 50);
+            int bonus = Mathf.Clamp(score / SponsorScorePerDollar, 1, MaxSponsorBonus);
             Wallet.Instance.Add(bonus, "sponsor bonus");
             if (ParkReputation.Instance != null) ParkReputation.Instance.Record(1f);
             GameStats.PlayerRides++;
@@ -510,6 +512,10 @@ namespace SurfPool
         }
 
         const float HitPauseScale = 0.08f;
+
+        /// <summary>Sponsor bonus: $1 per this many points, capped. A good ride (~2,500 with flow and combos) pays about
+        /// $20, like before flow and combos raised scores; see docs/BALANCE.md.</summary>
+        const int SponsorScorePerDollar = 120, MaxSponsorBonus = 40;
 
         /// <summary>Wipeout: a split-second freeze and a jolt, then a muffled tumble under the water.</summary>
         void StartWipeout(string why)
