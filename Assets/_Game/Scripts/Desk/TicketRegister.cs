@@ -22,6 +22,7 @@ namespace SurfPool
                 return;
             }
             Wallet.Instance.Add(pricing.Price, "ticket");
+            GameStats.TicketsSold++;
             customer.Pay(pricing.Price);
         }
     }

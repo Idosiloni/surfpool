@@ -30,6 +30,10 @@ namespace SurfPool
             new() { level = WaveLevel.Pro, height = 2.8f, speed = 8.5f, frontWidth = 1.4f, backWidth = 9f,
                 breakAt = 0.22f, peelSpeed = 3.2f, whitewashHeight = 0.4f, barrel = true },
         };
+        [Tooltip("Scales every wave's height in this pool (bigger pools have bigger waves).")]
+        [SerializeField] float sizeMultiplier = 1f;
+        [Tooltip("Scales how fast waves peel. Below 1 = longer rides.")]
+        [SerializeField] float peelSpeedMultiplier = 1f;
         [Tooltip("Where a peeling wave starts breaking, measured from the middle of the pool (m).")]
         [SerializeField] float peakOffset = 4f;
         [Tooltip("How much smaller the wave is at the pool walls than in the middle (0 to 1).")]
@@ -104,6 +108,21 @@ namespace SurfPool
             return waveTypes[0];
         }
 
+        /// <summary>The wave type as this pool makes it (size and peel multipliers applied).</summary>
+        WaveType Scaled(WaveType type) => new()
+        {
+            level = type.level,
+            height = type.height * sizeMultiplier,
+            speed = type.speed,
+            frontWidth = type.frontWidth,
+            backWidth = type.backWidth,
+            breakAt = type.breakAt,
+            closeout = type.closeout,
+            peelSpeed = type.peelSpeed * peelSpeedMultiplier,
+            whitewashHeight = type.whitewashHeight,
+            barrel = type.barrel,
+        };
+
         /// <summary>
         /// Where a surfer should ride on a peeling wave: the break point ("pocket") on the side they're going.
         /// preferredDirection is -1 (toward -z, a right) or +1 (toward +z, a left); peaks let the surfer choose,
@@ -152,7 +171,7 @@ namespace SurfPool
 
         public void SpawnWave(WaveLevel level, WaveDirection direction = WaveDirection.Peak)
         {
-            waves.Add(new ActiveWave { start = Time.time, type = TypeOf(level), direction = direction });
+            waves.Add(new ActiveWave { start = Time.time, type = Scaled(TypeOf(level)), direction = direction });
         }
 
         /// <summary>World-space height of the water surface at a world position.</summary>

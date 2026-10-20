@@ -46,6 +46,21 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
+        <ui:VisualElement name="missionCard" class="card mission-card hidden" picking-mode="Ignore">
+            <ui:Label name="missionChapter" class="section-title" picking-mode="Ignore" />
+            <ui:Label name="missionTitle" class="mission-title" picking-mode="Ignore" />
+            <ui:Label name="missionStory" class="mission-story" picking-mode="Ignore" />
+            <ui:VisualElement name="missionObjectives" class="mission-objectives" picking-mode="Ignore" />
+            <ui:Label name="missionHint" class="mission-hint" picking-mode="Ignore" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="missionMarker" class="mission-marker hidden" picking-mode="Ignore">
+            <ui:VisualElement class="marker-diamond" picking-mode="Ignore" />
+            <ui:Label name="markerDistance" class="marker-distance" picking-mode="Ignore" />
+        </ui:VisualElement>
+
+        <ui:Label name="missionBanner" class="mission-banner hidden" picking-mode="Ignore" />
+
         <ui:VisualElement name="toasts" class="toasts" picking-mode="Ignore" />
 
         <ui:VisualElement name="crosshair" class="crosshair" picking-mode="Ignore" />

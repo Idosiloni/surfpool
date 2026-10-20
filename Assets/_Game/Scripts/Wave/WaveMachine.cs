@@ -104,6 +104,7 @@ namespace SurfPool
             if (!Ready || !IsUnlocked(level) || !IsUnlocked(direction)) return false;
             for (int i = 0; i < wavesPerSet; i++)
                 pending.Add((Time.time + i * setSpacing, level, direction));
+            GameStats.WavesSent += wavesPerSet;
             chargeDuration = cooldown + (wavesPerSet - 1) * setSpacing;
             readyAt = Time.time + chargeDuration;
             return true;
@@ -119,7 +120,7 @@ namespace SurfPool
             int lefts = 0, rights = 0;
             foreach (var surfer in Surfer.All)
             {
-                if (!surfer.WaitingForWave || surfer.Skill != level) continue;
+                if (!surfer.WaitingForWave || surfer.Skill != level || !IsMine(surfer)) continue;
                 if (surfer.PreferredDirection == WaveDirection.Left) lefts++;
                 else rights++;
             }
@@ -128,12 +129,14 @@ namespace SurfPool
             return WaveDirection.Peak;
         }
 
+        bool IsMine(Surfer surfer) => surfer.Pool != null && surfer.Pool.Machine == this;
+
         /// <summary>The unlocked wave type wanted by the most surfers waiting in the water.</summary>
         WaveLevel MostWantedLevel()
         {
             var counts = new int[3];
             foreach (var surfer in Surfer.All)
-                if (surfer.WaitingForWave) counts[(int)surfer.Skill]++;
+                if (surfer.WaitingForWave && IsMine(surfer)) counts[(int)surfer.Skill]++;
             WaveLevel best = Selected;
             int bestCount = 0;
             for (int i = 0; i < counts.Length; i++)

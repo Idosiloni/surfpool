@@ -46,88 +46,26 @@ namespace SurfPool.EditorTools
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
             Object.DestroyImmediate(GameObject.Find("Main Camera"));
 
-            // Deck slabs around the pool. Their inner faces form the pool walls.
             var env = new GameObject("Environment").transform;
             float halfW = PoolWidth / 2f;
-            Box("Deck North", env, new Vector3(30, -DeckThickness / 2, halfW + 14), new Vector3(100, DeckThickness, 28), deckMat);
-            Box("Deck South", env, new Vector3(30, -DeckThickness / 2, -halfW - 14), new Vector3(100, DeckThickness, 28), deckMat);
-            Box("Deck West", env, new Vector3(-10, -DeckThickness / 2, 0), new Vector3(20, DeckThickness, PoolWidth), deckMat);
-            Box("Deck East", env, new Vector3(PoolLength + 10, -DeckThickness / 2, 0), new Vector3(20, DeckThickness, PoolWidth), deckMat);
+            mats = new PoolMaterials
+            {
+                deck = deckMat, tile = tileMat, coping = copingMat, sand = sandMat, water = waterMat, foam = foamMat,
+                machine = machineMat, console = consoleMat, button = buttonMat, screen = screenMat, beacon = beaconMat,
+                sign = Mat("Sign", new Color(1f, 0.42f, 0.34f), 0.4f),
+            };
 
-            // Tiled pool lining, floor, and the sloped beach the waves run up.
-            var pool = new GameObject("Pool").transform;
-            pool.SetParent(env);
-            float wallY = -PoolDepth / 2f;
-            Box("Wall North", pool, new Vector3(PoolLength / 2, wallY, halfW - 0.05f), new Vector3(PoolLength, PoolDepth, 0.1f), tileMat);
-            Box("Wall South", pool, new Vector3(PoolLength / 2, wallY, -halfW + 0.05f), new Vector3(PoolLength, PoolDepth, 0.1f), tileMat);
-            Box("Wall Machine", pool, new Vector3(0.05f, wallY, 0), new Vector3(0.1f, PoolDepth, PoolWidth), tileMat);
-            Box("Floor", pool, new Vector3(PoolLength / 2, -PoolDepth - 0.5f, 0), new Vector3(PoolLength, 1, PoolWidth), tileMat);
-
-            const float rampStart = 45f;
-            float run = PoolLength - rampStart;
-            float rampLength = Mathf.Sqrt(run * run + PoolDepth * PoolDepth);
-            float rampAngle = Mathf.Atan2(PoolDepth, run) * Mathf.Rad2Deg;
-            var ramp = Box("Beach", pool, new Vector3(rampStart + run / 2, -PoolDepth / 2 - 0.15f, 0), new Vector3(rampLength, 0.3f, PoolWidth), sandMat);
-            ramp.transform.rotation = Quaternion.Euler(0, 0, rampAngle);
-
-            // White coping stones around the pool edge.
-            var coping = new GameObject("Coping").transform;
-            coping.SetParent(env);
-            Box("Coping North", coping, new Vector3(PoolLength / 2, 0.06f, halfW + 0.25f), new Vector3(PoolLength + 1f, 0.12f, 0.5f), copingMat);
-            Box("Coping South", coping, new Vector3(PoolLength / 2, 0.06f, -halfW - 0.25f), new Vector3(PoolLength + 1f, 0.12f, 0.5f), copingMat);
-            Box("Coping Machine", coping, new Vector3(-0.25f, 0.06f, 0), new Vector3(0.5f, 0.12f, PoolWidth), copingMat);
-
-            // Invisible railing so the player can't fall into the pool (the water has no collider yet).
-            var rails = new GameObject("Pool Edge Blockers").transform;
-            rails.SetParent(env);
-            Blocker("Blocker North", rails, new Vector3(PoolLength / 2, 0.75f, halfW + 0.1f), new Vector3(PoolLength, 1.5f, 0.2f));
-            Blocker("Blocker South", rails, new Vector3(PoolLength / 2, 0.75f, -halfW - 0.1f), new Vector3(PoolLength, 1.5f, 0.2f));
-            Blocker("Blocker Machine", rails, new Vector3(-0.1f, 0.75f, 0), new Vector3(0.2f, 1.5f, PoolWidth));
-            Blocker("Blocker Beach", rails, new Vector3(PoolLength + 0.1f, 0.75f, 0), new Vector3(0.2f, 1.5f, PoolWidth));
-
-            // Water surface.
-            var waterGo = new GameObject("Water", typeof(MeshFilter), typeof(MeshRenderer));
-            waterGo.transform.position = new Vector3(0, WaterLevel, 0);
-            waterGo.GetComponent<MeshRenderer>().sharedMaterial = waterMat;
-            var water = waterGo.AddComponent<WaveWater>();
-
-            // Barrel lip: a second mesh the water fills in each frame for barreling waves.
-            var lipGo = new GameObject("Barrel Lip", typeof(MeshFilter), typeof(MeshRenderer));
-            lipGo.transform.SetParent(waterGo.transform, false);
-            lipGo.GetComponent<MeshRenderer>().sharedMaterial = waterMat;
-            Set(water, "lipMesh", lipGo.GetComponent<MeshFilter>());
-
-            // Foam spray: cartoon white blobs thrown up where waves break.
-            Set(water, "spray", BuildSpray(foamMat));
-
-            // Wave machine housing behind the deep end.
-            var machineGo = Box("Wave Machine", null, new Vector3(-9, 2.5f, 0), new Vector3(10, 5, PoolWidth - 2), machineMat);
-            machineGo.GetComponent<MeshRenderer>().enabled = false; // keeps its collider; the model below is the look
-            WorldArt.Model("WaveMachineHouse", null, new Vector3(-9, 0, 0));
-            var machine = machineGo.AddComponent<WaveMachine>();
-            Set(machine, "water", water);
-
-            // Control console with the big button, on the deck by the deep end.
-            var console = new GameObject("Wave Console").transform;
-            console.position = new Vector3(5, 0, -halfW - 1.5f);
-            Box("Pedestal", console, console.position + new Vector3(0, 0.5f, 0), new Vector3(1.2f, 1f, 0.8f), consoleMat);
-            var buttonGo = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            buttonGo.name = "Button";
-            buttonGo.transform.SetParent(console, false);
-            buttonGo.transform.localPosition = new Vector3(0, 1.04f, -0.15f);
-            buttonGo.transform.localScale = new Vector3(0.32f, 0.04f, 0.32f);
-            Object.DestroyImmediate(buttonGo.GetComponent<Collider>());
-            buttonGo.AddComponent<BoxCollider>();
-            buttonGo.GetComponent<MeshRenderer>().sharedMaterial = buttonMat;
-            var button = console.gameObject.AddComponent<WaveButton>();
-            Set(button, "machine", machine);
-            Set(button, "buttonRenderer", buttonGo.GetComponent<MeshRenderer>());
-
-            // Wave control screen behind the big button: opens the Wave Control panel.
-            var waveScreen = Box("Wave Screen", console, console.position + new Vector3(0, 1.3f, 0.22f), new Vector3(0.7f, 0.42f, 0.05f), screenMat);
-            waveScreen.transform.rotation = Quaternion.Euler(-35f, 0, 0);
-            var wavePanel = waveScreen.AddComponent<WaveControlPanel>();
-            Set(wavePanel, "machine", machine);
+            // The main pool, open from the start. Two more pools are built later from the upgrade computer.
+            var main = BuildPool(new PoolSpec
+            {
+                name = "Main Pool", display = "Main Pool", z = 0, open = true, depth = PoolDepth, waterLevel = WaterLevel,
+                size = 1f, peel = 1f, mainDeck = true,
+                pathToPool = new[] { new Vector3(24, 0, -14), new Vector3(14, 0, -halfW - 0.6f) },
+                pathOut = new[] { new Vector3(PoolLength + 3, 0, -6), new Vector3(PoolLength + 6, 0, -30), new Vector3(45, 0, -40) },
+            });
+            var water = main.water;
+            var machine = main.machine;
+            var wavePanel = main.panel;
 
             // First-person player.
             var player = new GameObject("Player");
@@ -200,8 +138,6 @@ namespace SurfPool.EditorTools
             SetInt(downButton, "direction", -1);
 
             // Upgrade visuals, hidden until bought.
-            var autoLight = Box("Auto Wave Light", null, new Vector3(-6, 4.85f, -9), new Vector3(0.6f, 0.5f, 0.6f), beaconMat);
-            autoLight.SetActive(false);
             var bench = Box("Surfer Bench", env, new Vector3(30, 0.25f, -15), new Vector3(3, 0.5f, 0.8f), deskMat);
             bench.SetActive(false);
 
@@ -246,43 +182,49 @@ namespace SurfPool.EditorTools
             var deskApproach = Point("Desk Approach", route, new Vector3(20, 0, -28));
             var deskSpot = Point("Desk Spot", route, new Vector3(20, 0, -24.4f));
             var deskExit = Point("Desk Exit", route, new Vector3(24, 0, -24.4f));
-            var poolSide = Point("Pool Side", route, new Vector3(24, 0, -14));
-            var poolEntry = Point("Pool Entry", route, new Vector3(14, 0, -halfW - 0.6f));
-            var lineup = Point("Lineup", route, new Vector3(12, WaterLevel, -4));
-            float landingX = 57f;
-            var landing = Point("Beach Landing", route, new Vector3(landingX, -PoolDepth + PoolDepth * (landingX - rampStart) / run, 0));
-            var beachExit = Point("Beach Exit", route, new Vector3(PoolLength + 3, 0, -6));
-            var exitCorner = Point("Exit Corner", route, new Vector3(PoolLength + 6, 0, -30));
-            var exit = Point("Exit", route, new Vector3(45, 0, -40));
             var rentalApproach = Point("Rental Approach", route, new Vector3(30, 0, -27.5f));
             var rentalSpot = Point("Rental Spot", route, new Vector3(30, 0, -24.4f));
             var rentalExit = Point("Rental Exit", route, new Vector3(27.3f, 0, -24.4f));
             var rentalSide = Point("Rental Side", route, new Vector3(27.3f, 0, -19));
             var binSpot = Point("Return Bin Spot", route, new Vector3(35.8f, 0, -25.8f));
 
+            // Renters return their board past the bin on the way out of the main pool.
+            var mainOut = main.area.PathOut;
+            SetArray(main.area, "returnPathOut", mainOut[0], binSpot, mainOut[mainOut.Length - 1]);
+
+            // Two more pools to the north, built later. Surfers walk up the west side past the machine houses.
+            var reef = BuildPool(new PoolSpec
+            {
+                name = "Reef Pool", display = "Reef Pool", upgradeId = "pool_reef", z = 64, open = false, depth = PoolDepth,
+                waterLevel = WaterLevel, size = 1.08f, peel = 0.8f,
+                pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-2, 0, 46), new Vector3(14, 0, 64 - halfW - 0.6f) },
+                pathOut = new[] { new Vector3(PoolLength + 3, 0, 58), new Vector3(PoolLength + 40, 0, 58) },
+            });
+            var lagoon = BuildPool(new PoolSpec
+            {
+                name = "Big Wave Lagoon", display = "Big Wave Lagoon", upgradeId = "pool_lagoon", z = 116, open = false,
+                depth = PoolDepth + 1f, waterLevel = WaterLevel - 0.8f, size = 1.25f, peel = 0.9f,
+                pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-2, 0, 98), new Vector3(14, 0, 116 - halfW - 0.6f) },
+                pathOut = new[] { new Vector3(PoolLength + 3, 0, 110), new Vector3(PoolLength + 40, 0, 110) },
+            });
+
             var spawnerGo = new GameObject("Surfer Spawner");
             var spawner = spawnerGo.AddComponent<SurferSpawner>();
             Set(spawner, "surferPrefab", BuildSurferPrefab(surferMat));
-            Set(spawner, "water", water);
             Set(spawner, "pricing", pricing);
+            Set(spawner, "mainPool", main.area);
             SetArray(spawner, "pathIn", entrance, deskApproach);
             Set(spawner, "deskSpot", deskSpot);
-            SetArray(spawner, "pathToPool", deskExit, poolSide, poolEntry);
-            Set(spawner, "lineup", lineup);
-            Set(spawner, "beachLanding", landing);
-            SetArray(spawner, "pathOut", beachExit, exitCorner, exit);
+            SetArray(spawner, "deskExitPath", deskExit);
             SetArray(spawner, "rentalPathIn", deskExit, rentalApproach);
             Set(spawner, "rentalSpot", rentalSpot);
-            SetArray(spawner, "rentalPathToPool", rentalExit, rentalSide, poolSide, poolEntry);
-            SetArray(spawner, "returnPathOut", beachExit, binSpot, exit);
+            SetArray(spawner, "rentalExitPath", rentalExit, rentalSide);
             Set(spawner, "returnBinSpot", binSpot);
             Set(spawner, "returnBin", bin);
             Set(register, "spawner", spawner);
 
-            Set(shop, "machine", machine);
             Set(shop, "spawner", spawner);
             Set(shop, "pricing", pricing);
-            Set(shop, "autoWaveLight", autoLight);
             Set(shop, "extraBench", bench);
             Set(shop, "rentalStand", stand.gameObject);
             Set(shop, "rentalRack", rack);
@@ -348,7 +290,6 @@ namespace SurfPool.EditorTools
             Set(hud, "player", fps);
             Set(hud, "pricing", pricing);
             Set(hud, "spawner", spawner);
-            Set(hud, "machine", machine);
             Set(hud, "payroll", payroll);
 
             var screenGo = new GameObject("Upgrade Screen");
@@ -363,7 +304,25 @@ namespace SurfPool.EditorTools
             waveDoc.panelSettings = panelSettings;
             waveDoc.visualTreeAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.VisualTreeAsset>("Assets/_Game/UI/WaveControl.uxml");
             waveDoc.sortingOrder = 10;
-            Set(waveUiGo.AddComponent<WaveControlScreen>(), "panel", wavePanel);
+            waveUiGo.AddComponent<WaveControlScreen>();
+
+            // Story and missions.
+            var missions = game.AddComponent<MissionManager>();
+            Set(missions, "ticketRegister", registerGo.transform);
+            Set(missions, "waveConsole", wavePanel.transform);
+            Set(missions, "upgradeComputer", computer);
+            Set(missions, "pool", water.transform);
+            Set(missions, "rentalRack", rackRoot);
+            Set(missions, "shop", shop);
+            Set(missions, "spawner", spawner);
+            Set(missions, "player", interactor);
+
+            var storyGo = new GameObject("Story Screen");
+            var storyDoc = storyGo.AddComponent<UnityEngine.UIElements.UIDocument>();
+            storyDoc.panelSettings = panelSettings;
+            storyDoc.visualTreeAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.VisualTreeAsset>("Assets/_Game/UI/Story.uxml");
+            storyDoc.sortingOrder = 20;
+            storyGo.AddComponent<StoryScreen>();
 
             var eventSystem = new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem));
             eventSystem.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
@@ -374,6 +333,182 @@ namespace SurfPool.EditorTools
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             Debug.Log("[GreyboxBuilder] Built " + ScenePath);
+        }
+
+        class PoolMaterials
+        {
+            public Material deck, tile, coping, sand, water, foam, machine, console, button, screen, beacon, sign;
+        }
+
+        class PoolSpec
+        {
+            public string name, display, upgradeId;
+            public float z, depth, waterLevel, size, peel;
+            public bool open, mainDeck;
+            public Vector3[] pathToPool, pathOut;
+        }
+
+        class PoolBuild
+        {
+            public PoolArea area;
+            public WaveWater water;
+            public WaveMachine machine;
+            public WaveControlPanel panel;
+        }
+
+        static PoolMaterials mats;
+
+        /// <summary>
+        /// One complete pool centered on z = spec.z: deck slabs (their inner faces are the walls), tiled lining, the
+        /// sloped beach, coping, invisible edge blockers, water with barrel lip and spray, the wave machine house and
+        /// its console, the surfer route, and a construction lot shown until the pool is built.
+        /// </summary>
+        static PoolBuild BuildPool(PoolSpec spec)
+        {
+            float halfW = PoolWidth / 2f, zc = spec.z, depth = spec.depth, thickness = depth + 1f;
+            var root = new GameObject(spec.name).transform;
+            var built = new GameObject("Built").transform;
+            built.SetParent(root, false);
+
+            // Deck. The main pool's deck is wide (desks and sunbathing live on it); the others have narrower strips.
+            float south = spec.mainDeck ? 28 : 12, north = spec.mainDeck ? 28 : 16;
+            Box("Deck North", built, new Vector3(30, -thickness / 2, zc + halfW + north / 2), new Vector3(100, thickness, north), mats.deck);
+            Box("Deck South", built, new Vector3(30, -thickness / 2, zc - halfW - south / 2), new Vector3(100, thickness, south), mats.deck);
+            Box("Deck West", built, new Vector3(-10, -thickness / 2, zc), new Vector3(20, thickness, PoolWidth), mats.deck);
+            Box("Deck East", built, new Vector3(PoolLength + 10, -thickness / 2, zc), new Vector3(20, thickness, PoolWidth), mats.deck);
+
+            float wallY = -depth / 2f;
+            Box("Wall North", built, new Vector3(PoolLength / 2, wallY, zc + halfW - 0.05f), new Vector3(PoolLength, depth, 0.1f), mats.tile);
+            Box("Wall South", built, new Vector3(PoolLength / 2, wallY, zc - halfW + 0.05f), new Vector3(PoolLength, depth, 0.1f), mats.tile);
+            Box("Wall Machine", built, new Vector3(0.05f, wallY, zc), new Vector3(0.1f, depth, PoolWidth), mats.tile);
+            Box("Floor", built, new Vector3(PoolLength / 2, -depth - 0.5f, zc), new Vector3(PoolLength, 1, PoolWidth), mats.tile);
+
+            const float rampStart = 45f;
+            float run = PoolLength - rampStart;
+            float rampLength = Mathf.Sqrt(run * run + depth * depth);
+            float rampAngle = Mathf.Atan2(depth, run) * Mathf.Rad2Deg;
+            var ramp = Box("Beach", built, new Vector3(rampStart + run / 2, -depth / 2 - 0.15f, zc), new Vector3(rampLength, 0.3f, PoolWidth), mats.sand);
+            ramp.transform.rotation = Quaternion.Euler(0, 0, rampAngle);
+
+            Box("Coping North", built, new Vector3(PoolLength / 2, 0.06f, zc + halfW + 0.25f), new Vector3(PoolLength + 1f, 0.12f, 0.5f), mats.coping);
+            Box("Coping South", built, new Vector3(PoolLength / 2, 0.06f, zc - halfW - 0.25f), new Vector3(PoolLength + 1f, 0.12f, 0.5f), mats.coping);
+            Box("Coping Machine", built, new Vector3(-0.25f, 0.06f, zc), new Vector3(0.5f, 0.12f, PoolWidth), mats.coping);
+
+            Blocker("Blocker North", built, new Vector3(PoolLength / 2, 0.75f, zc + halfW + 0.1f), new Vector3(PoolLength, 1.5f, 0.2f));
+            Blocker("Blocker South", built, new Vector3(PoolLength / 2, 0.75f, zc - halfW - 0.1f), new Vector3(PoolLength, 1.5f, 0.2f));
+            Blocker("Blocker Machine", built, new Vector3(-0.1f, 0.75f, zc), new Vector3(0.2f, 1.5f, PoolWidth));
+            Blocker("Blocker Beach", built, new Vector3(PoolLength + 0.1f, 0.75f, zc), new Vector3(0.2f, 1.5f, PoolWidth));
+
+            var waterGo = new GameObject("Water", typeof(MeshFilter), typeof(MeshRenderer));
+            waterGo.transform.SetParent(built, false);
+            waterGo.transform.position = new Vector3(0, spec.waterLevel, zc);
+            waterGo.GetComponent<MeshRenderer>().sharedMaterial = mats.water;
+            var water = waterGo.AddComponent<WaveWater>();
+            SetFloat(water, "sizeMultiplier", spec.size);
+            SetFloat(water, "peelSpeedMultiplier", spec.peel);
+            var lipGo = new GameObject("Barrel Lip", typeof(MeshFilter), typeof(MeshRenderer));
+            lipGo.transform.SetParent(waterGo.transform, false);
+            lipGo.GetComponent<MeshRenderer>().sharedMaterial = mats.water;
+            Set(water, "lipMesh", lipGo.GetComponent<MeshFilter>());
+            var spray = BuildSpray(mats.foam);
+            spray.transform.SetParent(built, true);
+            Set(water, "spray", spray);
+
+            var machineGo = Box("Wave Machine", built, new Vector3(-9, 2.5f, zc), new Vector3(10, 5, PoolWidth - 2), mats.machine);
+            machineGo.GetComponent<MeshRenderer>().enabled = false; // keeps its collider; the model is the look
+            WorldArt.Model("WaveMachineHouse", built, new Vector3(-9, 0, zc));
+            var machine = machineGo.AddComponent<WaveMachine>();
+            Set(machine, "water", water);
+            var autoLight = Box("Auto Wave Light", built, new Vector3(-6, 4.85f, zc - 9), new Vector3(0.6f, 0.5f, 0.6f), mats.beacon);
+            autoLight.SetActive(false);
+
+            var console = new GameObject("Wave Console").transform;
+            console.SetParent(built, false);
+            console.position = new Vector3(5, 0, zc - halfW - 1.5f);
+            Box("Pedestal", console, console.position + new Vector3(0, 0.5f, 0), new Vector3(1.2f, 1f, 0.8f), mats.console);
+            var buttonGo = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            buttonGo.name = "Button";
+            buttonGo.transform.SetParent(console, false);
+            buttonGo.transform.localPosition = new Vector3(0, 1.04f, -0.15f);
+            buttonGo.transform.localScale = new Vector3(0.32f, 0.04f, 0.32f);
+            Object.DestroyImmediate(buttonGo.GetComponent<Collider>());
+            buttonGo.AddComponent<BoxCollider>();
+            buttonGo.GetComponent<MeshRenderer>().sharedMaterial = mats.button;
+            var button = console.gameObject.AddComponent<WaveButton>();
+            Set(button, "machine", machine);
+            Set(button, "buttonRenderer", buttonGo.GetComponent<MeshRenderer>());
+            var screen = Box("Wave Screen", console, console.position + new Vector3(0, 1.3f, 0.22f), new Vector3(0.7f, 0.42f, 0.05f), mats.screen);
+            screen.transform.rotation = Quaternion.Euler(-35f, 0, 0);
+            var panel = screen.AddComponent<WaveControlPanel>();
+            Set(panel, "machine", machine);
+
+            // Construction lot: sand, a fence of posts and a big coral sign, shown until the pool is built.
+            GameObject lot = null;
+            if (!spec.open)
+            {
+                lot = new GameObject("Construction Lot");
+                lot.transform.SetParent(root, false);
+                Box("Lot Sand", lot.transform, new Vector3(30, -0.6f, zc + (north - south) / 2), new Vector3(100, 1, PoolWidth + north + south), mats.sand);
+                for (int i = 0; i <= 20; i++)
+                {
+                    Box("Fence Post", lot.transform, new Vector3(-5 + i * 3.5f, 0.6f, zc - halfW - 2), new Vector3(0.15f, 1.2f, 0.15f), mats.coping);
+                    Box("Fence Post", lot.transform, new Vector3(-5 + i * 3.5f, 0.6f, zc + halfW + 2), new Vector3(0.15f, 1.2f, 0.15f), mats.coping);
+                }
+                Box("Fence Rail South", lot.transform, new Vector3(30, 1.0f, zc - halfW - 2), new Vector3(70, 0.12f, 0.08f), mats.sign);
+                Box("Fence Rail North", lot.transform, new Vector3(30, 1.0f, zc + halfW + 2), new Vector3(70, 0.12f, 0.08f), mats.sign);
+                Box("Sign Post L", lot.transform, new Vector3(27.5f, 1.5f, zc - halfW - 2.3f), new Vector3(0.2f, 3f, 0.2f), mats.coping);
+                Box("Sign Post R", lot.transform, new Vector3(32.5f, 1.5f, zc - halfW - 2.3f), new Vector3(0.2f, 3f, 0.2f), mats.coping);
+                Box("Coming Soon Sign", lot.transform, new Vector3(30, 2.6f, zc - halfW - 2.4f), new Vector3(6f, 1.6f, 0.12f), mats.sign);
+            }
+
+            var route = new GameObject("Route").transform;
+            route.SetParent(root, false);
+            var toPool = new Object[spec.pathToPool.Length];
+            for (int i = 0; i < toPool.Length; i++) toPool[i] = Point($"To Pool {i + 1}", route, spec.pathToPool[i]);
+            var outPoints = new Object[spec.pathOut.Length];
+            for (int i = 0; i < outPoints.Length; i++) outPoints[i] = Point($"Out {i + 1}", route, spec.pathOut[i]);
+            var lineup = Point("Lineup", route, new Vector3(12, spec.waterLevel, zc - 4));
+            const float landingX = 57f;
+            var landing = Point("Beach Landing", route, new Vector3(landingX, -depth + depth * (landingX - rampStart) / run, zc));
+
+            var area = root.gameObject.AddComponent<PoolArea>();
+            SetString(area, "displayName", spec.display);
+            SetString(area, "upgradeId", spec.upgradeId ?? "");
+            SetBool(area, "openAtStart", spec.open);
+            Set(area, "water", water);
+            Set(area, "machine", machine);
+            SetArray(area, "pathToPool", toPool);
+            Set(area, "lineup", lineup);
+            Set(area, "beachLanding", landing);
+            SetArray(area, "pathOut", outPoints);
+            SetArray(area, "returnPathOut", outPoints);
+            Set(area, "buildVisuals", built.gameObject);
+            if (lot != null) Set(area, "lotVisuals", lot);
+            Set(area, "autoWaveLight", autoLight);
+            if (!spec.open) built.gameObject.SetActive(false);
+
+            return new PoolBuild { area = area, water = water, machine = machine, panel = panel };
+        }
+
+        static void SetFloat(Object target, string field, float value)
+        {
+            var so = new SerializedObject(target);
+            so.FindProperty(field).floatValue = value;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        static void SetBool(Object target, string field, bool value)
+        {
+            var so = new SerializedObject(target);
+            so.FindProperty(field).boolValue = value;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        static void SetString(Object target, string field, string value)
+        {
+            var so = new SerializedObject(target);
+            so.FindProperty(field).stringValue = value;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         static GameObject Box(string name, Transform parent, Vector3 center, Vector3 size, Material mat)

@@ -66,6 +66,7 @@ namespace SurfPool
         [Range(0f, 1f)] [SerializeField] float rideEndProgress = 0.88f;
 
         SurferSpawner spawner;
+        PoolArea pool;
         WaveWater water;
         State state;
         readonly Queue<Vector3> path = new();
@@ -102,6 +103,9 @@ namespace SurfPool
         public bool WaitingToPay => state == State.InDeskLine && atFront;
         public bool WaitingForBoard => state == State.InRentalLine && atFront;
         public bool WaitingForWave => state == State.WaitingForWave;
+
+        /// <summary>The pool this surfer was sent to.</summary>
+        public PoolArea Pool => pool;
 
         /// <summary>The wave type this surfer is good at.</summary>
         public WaveLevel Skill { get; private set; }
@@ -163,19 +167,21 @@ namespace SurfPool
         {
             if (!WaitingForBoard) return;
             Wallet.Instance.Add(spawner.Pricing.RentalPrice, "board rental");
+            GameStats.BoardsRented++;
             RecordMood(patience);
             hasRentalBoard = true;
             board.gameObject.SetActive(true);
             Paint(board, RentalBoardColor);
             spawner.LeaveLines(this);
             Shout("Thanks!", 2f);
-            Walk(State.WalkingToPool, spawner.RentalPathToPool, State.Paddling);
+            Walk(State.WalkingToPool, spawner.RentalPathToPool(pool), State.Paddling);
         }
 
         public void Init(SurferSpawner owner, bool renter)
         {
             spawner = owner;
-            water = owner.Water;
+            pool = owner.ChoosePool(renter);
+            water = pool.Water;
             Skill = owner.RollSkill();
             PreferredDirection = Random.value < 0.6f ? WaveDirection.Right : WaveDirection.Left;
             float skillPay = Skill switch { WaveLevel.Beginner => 0.85f, WaveLevel.Pro => 1.4f, _ => 1f };
@@ -202,7 +208,7 @@ namespace SurfPool
             paidPrice = price;
             RecordMood(patience);
             spawner.LeaveLines(this);
-            lineupTarget = spawner.Lineup + new Vector3(0f, 0f, Random.Range(-4f, 4f));
+            lineupTarget = pool.Lineup.position + new Vector3(0f, 0f, Random.Range(-4f, 4f));
             if (isRenter)
             {
                 patience = 1f;
@@ -210,7 +216,7 @@ namespace SurfPool
             }
             else
             {
-                Walk(State.WalkingToPool, spawner.PathToPool, State.Paddling);
+                Walk(State.WalkingToPool, spawner.PathToPool(pool), State.Paddling);
             }
         }
 
@@ -253,7 +259,7 @@ namespace SurfPool
                     break;
                 case State.SwimmingToBeach:
                     SetPose(Pose.Paddle);
-                    var beach = spawner.BeachLanding;
+                    var beach = pool.BeachLanding.position;
                     PaddleTo(new Vector3(beach.x - 4f, 0f, transform.position.z), paddleSpeed * 1.5f, State.WalkingOut);
                     break;
             }
@@ -326,10 +332,10 @@ namespace SurfPool
 
             if (whenArrived == State.WalkingOut)
             {
-                var landing = spawner.BeachLanding;
+                var landing = pool.BeachLanding.position;
                 landing.z = transform.position.z;
                 var route = new List<Vector3> { landing };
-                route.AddRange(hasRentalBoard ? spawner.ReturnPathOut : spawner.PathOut);
+                route.AddRange(System.Array.ConvertAll(hasRentalBoard ? pool.ReturnPathOut : pool.PathOut, t => t.position));
                 Walk(State.WalkingOut, route.ToArray(), State.WalkingOut);
                 return;
             }
@@ -459,7 +465,12 @@ namespace SurfPool
                 _ => IntermediateTricks,
             };
             string trick = tricks[Random.Range(0, tricks.Length)];
-            if (inBarrel) trick = Random.value < 0.6f ? "Tube ride!" : "Getting barreled!";
+            if (inBarrel)
+            {
+                trick = Random.value < 0.6f ? "Tube ride!" : "Getting barreled!";
+                GameStats.TubeRides++;
+            }
+            GameStats.TricksLanded++;
             if (trick == "AIR!") airStart = Time.time;
             tricksLanded++;
             Shout(trick, 1.3f);
@@ -472,6 +483,7 @@ namespace SurfPool
             wipeoutStart = Time.time;
             tumbleAxis = Random.onUnitSphere;
             RecordMood(ParkEffects.WipeoutMood);
+            GameStats.Wipeouts++;
             Shout("WIPEOUT!", 2.5f);
         }
 
@@ -507,6 +519,7 @@ namespace SurfPool
             int tip = happiness > 0.5f ? Mathf.RoundToInt(paidPrice * maxTipShare * happiness) + tricksLanded * tipPerTrick : 0;
             if (tip > 0) Wallet.Instance.Add(tip, "tip");
             spawner.ReportServed(happiness);
+            GameStats.SurfersServed++;
             string line = happiness > 0.75f ? HappyShouts[Random.Range(0, HappyShouts.Length)]
                 : happiness > 0.5f ? "Pretty fun!"
                 : "Meh. Wrong waves for me.";

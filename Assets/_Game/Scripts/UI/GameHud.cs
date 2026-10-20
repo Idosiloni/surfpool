@@ -15,7 +15,6 @@ namespace SurfPool
         [SerializeField] FirstPersonController player;
         [SerializeField] PriceBoard pricing;
         [SerializeField] SurferSpawner spawner;
-        [SerializeField] WaveMachine machine;
         [SerializeField] StaffPayroll payroll;
         [Tooltip("Surfers farther than this (meters) get no speech bubble.")]
         [SerializeField] float bubbleDistance = 45f;
@@ -35,6 +34,11 @@ namespace SurfPool
         Label money, ratingLabel, waveType, waveStatus, waveAuto, ticketValue, rentalValue, servedValue, lostValue,
             wagesValue, promptLabel, clickToPlay, hint;
         StarRating stars;
+        VisualElement missionCard, missionObjectives, missionMarker;
+        Label missionChapter, missionTitle, missionStory, missionHint, markerDistance, missionBanner;
+        Mission shownMission;
+        float nextMissionRefresh;
+        MissionManager subscribedMissions;
         readonly Dictionary<Surfer, Bubble> bubbles = new();
         readonly List<Surfer> staleBubbles = new();
         Wallet wallet;
@@ -64,6 +68,16 @@ namespace SurfPool
             clickToPlay = root.Q<Label>("clickToPlay");
             hint = root.Q<Label>("hint");
 
+            missionCard = root.Q("missionCard");
+            missionObjectives = root.Q("missionObjectives");
+            missionMarker = root.Q("missionMarker");
+            missionChapter = root.Q<Label>("missionChapter");
+            missionTitle = root.Q<Label>("missionTitle");
+            missionStory = root.Q<Label>("missionStory");
+            missionHint = root.Q<Label>("missionHint");
+            markerDistance = root.Q<Label>("markerDistance");
+            missionBanner = root.Q<Label>("missionBanner");
+
             stars = new StarRating();
             root.Q("ratingStarsSlot").Add(stars);
 
@@ -75,6 +89,8 @@ namespace SurfPool
             Notifications.Posted -= ShowToast;
             if (wallet != null) wallet.Changed -= ShowPopup;
             wallet = null;
+            if (subscribedMissions != null) subscribedMissions.Completed -= ShowMissionBanner;
+            subscribedMissions = null;
             bubbles.Clear();
         }
 
@@ -91,6 +107,7 @@ namespace SurfPool
             UpdateStats();
             UpdatePrompt();
             UpdateBubbles();
+            UpdateMission();
             hint.EnableInClassList("hint--hidden", Time.timeSinceLevelLoad > hintSeconds);
         }
 
@@ -108,8 +125,28 @@ namespace SurfPool
             }
         }
 
+        /// <summary>The wave machine of the open pool closest to the player.</summary>
+        WaveMachine NearestMachine()
+        {
+            WaveMachine best = null;
+            float bestDistance = float.MaxValue;
+            Vector3 from = player != null ? player.transform.position : Vector3.zero;
+            foreach (var pool in PoolRegistry.All)
+            {
+                if (!pool.IsOpen || pool.Machine == null) continue;
+                float distance = (pool.Lineup.position - from).sqrMagnitude;
+                if (distance < bestDistance)
+                {
+                    best = pool.Machine;
+                    bestDistance = distance;
+                }
+            }
+            return best;
+        }
+
         void UpdateWavePanel()
         {
+            var machine = NearestMachine();
             if (machine == null) return;
             var selected = machine.Selected;
             string direction = selected == WaveLevel.Beginner ? "Whitewater"
@@ -211,6 +248,71 @@ namespace SurfPool
                 bubble.patienceFill.EnableInClassList("patience-fill--mid", patience < 0.6f && patience >= 0.3f);
                 bubble.patienceFill.EnableInClassList("patience-fill--low", patience < 0.3f);
             }
+        }
+
+        void UpdateMission()
+        {
+            var missions = MissionManager.Instance;
+            if (missions != null && subscribedMissions == null)
+            {
+                subscribedMissions = missions;
+                missions.Completed += ShowMissionBanner;
+            }
+            var mission = missions != null ? missions.Current : null;
+            bool menuOpen = InputBlocker.Blocked;
+            missionCard.EnableInClassList("hidden", mission == null);
+
+            // Marker over where the mission wants you to go (clamped to the screen edge when off screen).
+            var target = mission?.marker?.Invoke();
+            var cam = Camera.main;
+            bool showMarker = target != null && cam != null && !menuOpen && target.gameObject.activeInHierarchy;
+            missionMarker.EnableInClassList("hidden", !showMarker);
+            if (showMarker)
+            {
+                Vector3 world = target.position + Vector3.up * (2.6f + Mathf.Sin(Time.time * 3f) * 0.15f);
+                Vector3 view = cam.WorldToViewportPoint(world);
+                if (view.z < 0f) view = new Vector3(1f - view.x, 0.02f, 0f); // behind you: show along the bottom edge
+                view.x = Mathf.Clamp(view.x, 0.04f, 0.96f);
+                view.y = Mathf.Clamp(view.y, 0.06f, 0.94f);
+                Vector3 clamped = cam.ViewportToWorldPoint(new Vector3(view.x, view.y, Mathf.Max(view.z, 1f)));
+                Vector2 panelPos = RuntimePanelUtils.CameraTransformWorldToPanel(root.panel, clamped, cam);
+                missionMarker.style.left = panelPos.x;
+                missionMarker.style.top = panelPos.y;
+                float distance = player != null ? Vector3.Distance(player.transform.position, target.position) : 0f;
+                SetText(markerDistance, $"{distance:0} m");
+            }
+
+            if (mission == null || Time.unscaledTime < nextMissionRefresh && mission == shownMission) return;
+            nextMissionRefresh = Time.unscaledTime + 0.25f;
+            shownMission = mission;
+            SetText(missionChapter, mission.chapter.ToUpperInvariant());
+            SetText(missionTitle, mission.title);
+            SetText(missionStory, mission.story);
+            SetText(missionHint, "Tip: " + mission.hint + (mission.reward > 0 ? $"   Reward: ${mission.reward}" : ""));
+            missionObjectives.Clear();
+            foreach (var objective in mission.objectives)
+            {
+                var row = new VisualElement { pickingMode = PickingMode.Ignore };
+                row.AddToClassList("objective-row");
+                var check = new VisualElement { pickingMode = PickingMode.Ignore };
+                check.AddToClassList("objective-check");
+                check.EnableInClassList("objective-check--done", objective.Done);
+                var text = new Label(objective.text + objective.Progress) { pickingMode = PickingMode.Ignore };
+                text.AddToClassList("objective-text");
+                text.EnableInClassList("objective-text--done", objective.Done);
+                row.Add(check);
+                row.Add(text);
+                missionObjectives.Add(row);
+            }
+        }
+
+        void ShowMissionBanner(Mission mission)
+        {
+            missionBanner.text = "MISSION COMPLETE!\n" + mission.title + (mission.reward > 0 ? $"   +${mission.reward}" : "");
+            missionBanner.RemoveFromClassList("mission-banner--leaving");
+            missionBanner.RemoveFromClassList("hidden");
+            missionBanner.schedule.Execute(() => missionBanner.AddToClassList("mission-banner--leaving")).StartingIn(2500);
+            missionBanner.schedule.Execute(() => missionBanner.AddToClassList("hidden")).StartingIn(3200);
         }
 
         Bubble CreateBubble(WaveLevel skill)

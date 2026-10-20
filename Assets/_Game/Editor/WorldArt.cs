@@ -43,13 +43,13 @@ namespace SurfPool.EditorTools
         {
             var root = new GameObject("World").transform;
 
-            // Sand all around the park's deck (deck covers x -20..80, z -40..40), leaving the pool hole open.
+            // Sand all around the park (pools and their lots cover x -20..80, z -40..144), leaving the pool holes open.
             var sand = new GameObject("Sand Island").transform;
             sand.SetParent(root, false);
-            SandSlab(sand, "North", new Vector3(30, -0.6f, 70), new Vector3(220, 1, 60), sandMat);
+            SandSlab(sand, "North", new Vector3(30, -0.6f, 174), new Vector3(220, 1, 60), sandMat);
             SandSlab(sand, "South", new Vector3(30, -0.6f, -70), new Vector3(220, 1, 60), sandMat);
-            SandSlab(sand, "West", new Vector3(-50, -0.6f, 0), new Vector3(60, 1, 80), sandMat);
-            SandSlab(sand, "East", new Vector3(110, -0.6f, 0), new Vector3(60, 1, 80), sandMat);
+            SandSlab(sand, "West", new Vector3(-50, -0.6f, 52), new Vector3(60, 1, 184), sandMat);
+            SandSlab(sand, "East", new Vector3(110, -0.6f, 52), new Vector3(60, 1, 184), sandMat);
 
             var ocean = new GameObject("Ocean", typeof(MeshFilter), typeof(MeshRenderer));
             ocean.transform.SetParent(root, false);
@@ -69,7 +69,7 @@ namespace SurfPool.EditorTools
                 new(-18, 0, 14), new(-18, 0, -14), new(-3, 0, 16), new(12, 0, 15), new(26, 0, 16.5f), new(44, 0, 15),
                 new(58, 0, 16), new(72, 0, 12), new(76, 0, -6), new(74, 0, -20), new(66, 0, -36), new(8, 0, -38),
                 new(-14, 0, -34), new(36, 0, -38), new(52, 0, -30), new(-24, 0, 0),
-                new(88, 0, 30), new(95, 0, -10), new(-35, 0, 25), new(-38, 0, -30), new(20, 0, 48), new(60, 0, 48),
+                new(88, 0, 30), new(95, 0, -10), new(-35, 0, 25), new(-38, 0, -30), new(88, 0, 60), new(-30, 0, 70), new(90, 0, 110), new(-32, 0, 125),
                 new(20, 0, -52), new(70, 0, -55), new(105, 0, 20), new(-45, 0, 5),
             };
             for (int i = 0; i < palmSpots.Length; i++)
@@ -95,11 +95,13 @@ namespace SurfPool.EditorTools
 
             var rocks = new GameObject("Rocks").transform;
             rocks.SetParent(root, false);
-            for (int i = 0; i < 18; i++)
+            for (int i = 0; i < 30; i++)
             {
                 float angle = Range(0, Mathf.PI * 2);
-                float radius = Range(95, 110);
-                var spot = new Vector3(30 + Mathf.Cos(angle) * radius, -0.3f, Mathf.Sin(angle) * radius * 0.9f);
+                float radius = Range(100, 120);
+                var spot = new Vector3(30 + Mathf.Cos(angle) * radius, -0.3f, 52 + Mathf.Sin(angle) * radius * 1.3f);
+                bool inPark = spot.x > -25 && spot.x < 85 && spot.z > -45 && spot.z < 150;
+                if (inPark || spot.z < -95 || spot.z > 200) continue;
                 Model("Rock", rocks, spot, Range(0, 360), Range(0.8f, 2.4f));
             }
         }

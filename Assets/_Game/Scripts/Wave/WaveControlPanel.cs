@@ -13,6 +13,9 @@ namespace SurfPool
 
         int openedFrame;
 
+        /// <summary>The console whose panel is open right now (one at a time), or null.</summary>
+        public static WaveControlPanel OpenPanel { get; private set; }
+
         public bool IsOpen { get; private set; }
         public WaveMachine Machine => machine;
 
@@ -22,6 +25,7 @@ namespace SurfPool
         {
             if (IsOpen) return;
             IsOpen = true;
+            OpenPanel = this;
             openedFrame = Time.frameCount;
             InputBlocker.Block();
             FirstPersonController.LockCursor(false);
@@ -31,6 +35,7 @@ namespace SurfPool
         {
             if (!IsOpen) return;
             IsOpen = false;
+            if (OpenPanel == this) OpenPanel = null;
             InputBlocker.Release();
             FirstPersonController.LockCursor(true);
         }

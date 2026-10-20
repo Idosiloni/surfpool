@@ -6,13 +6,12 @@ namespace SurfPool
 {
     /// <summary>
     /// The Wave Control panel (UI Toolkit, Assets/_Game/UI/WaveControl.uxml + Game.uss), shown while
-    /// <see cref="WaveControlPanel.IsOpen"/>: a card per wave type with how many surfers want it, a Left / Peak / Right
+    /// <see cref="WaveControlPanel.OpenPanel"/> is set (any pool's console): a card per wave type with how many surfers want it, a Left / Peak / Right
     /// switch, and a SEND WAVE button.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class WaveControlScreen : MonoBehaviour
     {
-        [SerializeField] WaveControlPanel panel;
         [Tooltip("Seconds between refreshes of the cards while open (waiting counts change as surfers move).")]
         [SerializeField] float refreshInterval = 0.25f;
 
@@ -36,6 +35,8 @@ namespace SurfPool
         bool shown;
         float nextRefresh;
 
+        WaveControlPanel panel;
+
         WaveMachine Machine => panel.Machine;
 
         void OnEnable()
@@ -47,15 +48,17 @@ namespace SurfPool
             directionRow = doc.Q("directionRow");
             directionHint = doc.Q<Label>("directionHint");
             send = doc.Q<Button>("sendButton");
-            send.clicked += () => panel.Send();
-            doc.Q<Button>("waveCloseButton").clicked += panel.Close;
+            send.clicked += () => panel?.Send();
+            doc.Q<Button>("waveCloseButton").clicked += () => panel?.Close();
         }
 
         void Update()
         {
-            if (panel.IsOpen != shown)
+            bool open = WaveControlPanel.OpenPanel != null;
+            if (open) panel = WaveControlPanel.OpenPanel;
+            if (open != shown)
             {
-                shown = panel.IsOpen;
+                shown = open;
                 root.EnableInClassList("hidden", !shown);
                 nextRefresh = 0f;
             }
@@ -103,7 +106,7 @@ namespace SurfPool
 
                 if (unlocked)
                 {
-                    int waiting = WaitingFor(level, null);
+                    int waiting = WaitingFor(machine, level, null);
                     var count = new Label(waiting == 1 ? "1 surfer waiting" : $"{waiting} surfers waiting");
                     count.AddToClassList("wave-card-waiting");
                     card.Add(count);
@@ -130,7 +133,7 @@ namespace SurfPool
                 string label = direction == WaveDirection.Peak ? "Peak (both ways)" : direction + "s";
                 if (direction != WaveDirection.Peak)
                 {
-                    int fans = WaitingFor(machine.Selected, direction);
+                    int fans = WaitingFor(machine, machine.Selected, direction);
                     if (fans > 0) label += $"  ({fans})";
                 }
                 var button = new Button(() => { machine.Select(direction); Refresh(); }) { text = label };
@@ -145,12 +148,12 @@ namespace SurfPool
         }
 
         /// <summary>Surfers waiting in the water for this wave type (and, if given, preferring this direction).</summary>
-        static int WaitingFor(WaveLevel level, WaveDirection? direction)
+        static int WaitingFor(WaveMachine machine, WaveLevel level, WaveDirection? direction)
         {
             int count = 0;
             foreach (var surfer in Surfer.All)
             {
-                if (!surfer.WaitingForWave || surfer.Skill != level) continue;
+                if (!surfer.WaitingForWave || surfer.Skill != level || surfer.Pool == null || surfer.Pool.Machine != machine) continue;
                 if (direction.HasValue && surfer.PreferredDirection != direction.Value) continue;
                 count++;
             }

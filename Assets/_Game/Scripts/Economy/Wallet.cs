@@ -32,6 +32,7 @@ namespace SurfPool
         {
             if (amount <= 0) return;
             Money += amount;
+            GameStats.TotalEarned += amount;
             audioSource.PlayOneShot(chime, chimeVolume);
             Changed?.Invoke(amount, reason);
         }

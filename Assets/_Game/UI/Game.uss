@@ -700,3 +700,136 @@
     background-color: rgba(11, 46, 58, 0.08);
     color: rgba(11, 46, 58, 0.45);
 }
+
+/* ---------- Missions ---------- */
+
+.mission-card {
+    position: absolute;
+    left: 32px;
+    top: 200px;
+    width: 380px;
+}
+
+.mission-title {
+    font-size: 24px;
+    -unity-font-style: bold;
+    color: #0B2E3A;
+}
+
+.mission-story {
+    font-size: 15px;
+    color: #5B6B73;
+    white-space: normal;
+    margin-top: 4px;
+}
+
+.mission-objectives {
+    margin-top: 8px;
+}
+
+.objective-row {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.objective-check {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    border-width: 2px;
+    border-color: #14B8A6;
+    margin-right: 8px;
+}
+
+.objective-check--done {
+    background-color: #14B8A6;
+}
+
+.objective-text {
+    font-size: 17px;
+    color: #0B2E3A;
+    white-space: normal;
+    flex-shrink: 1;
+}
+
+.objective-text--done {
+    color: #8FA3AB;
+}
+
+.mission-hint {
+    font-size: 15px;
+    color: #C9824F;
+    white-space: normal;
+    margin-top: 8px;
+}
+
+.mission-marker {
+    position: absolute;
+    align-items: center;
+    translate: -50% -100%;
+}
+
+.marker-diamond {
+    width: 22px;
+    height: 22px;
+    rotate: 45deg;
+    background-color: #FFC857;
+    border-width: 3px;
+    border-color: #0B2E3A;
+    border-radius: 4px;
+}
+
+.marker-distance {
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: white;
+    -unity-text-outline-width: 1px;
+    -unity-text-outline-color: rgba(11, 46, 58, 0.8);
+    margin-top: 6px;
+}
+
+.mission-banner {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 22%;
+    -unity-text-align: middle-center;
+    font-size: 44px;
+    -unity-font-style: bold;
+    color: white;
+    -unity-text-outline-width: 2px;
+    -unity-text-outline-color: rgba(11, 46, 58, 0.7);
+    transition-duration: 0.6s;
+}
+
+.mission-banner--leaving {
+    opacity: 0;
+    translate: 0 -30px;
+}
+
+/* ---------- Story letter ---------- */
+
+.story-window {
+    width: 820px;
+    height: auto;
+}
+
+.story-body {
+    font-size: 20px;
+    color: #0B2E3A;
+    white-space: normal;
+    margin-top: 16px;
+}
+
+.story-signature {
+    font-size: 22px;
+    -unity-font-style: bold;
+    color: #C9824F;
+    margin-top: 16px;
+}
+
+.story-button {
+    margin: 22px 0 0 0;
+    flex-grow: 0;
+}

@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 
 namespace SurfPool
 {
-    public enum UpgradeCategory { Waves, Park, Rentals, Staff }
+    public enum UpgradeCategory { Waves, Pools, Park, Rentals, Staff }
 
     [Serializable]
     public class Upgrade
@@ -46,6 +46,12 @@ namespace SurfPool
             new Upgrade { id = "turbo_2", category = UpgradeCategory.Waves, title = "Turbo Pump II", cost = 350, requires = "faster_machine",
                 description = "Recharge time drops to 1 s. Auto waves every 8 s." },
 
+            // Pools
+            new Upgrade { id = "pool_reef", category = UpgradeCategory.Pools, title = "Build the Reef Pool", cost = 3000,
+                description = "A second pool north of the main one. Longer peeling waves, a little bigger. Room for 3 more surfers, and surfers will pay $10 more." },
+            new Upgrade { id = "pool_lagoon", category = UpgradeCategory.Pools, title = "Build the Big Wave Lagoon", cost = 12000, requires = "pool_reef",
+                description = "The biggest, deepest pool in the park. Huge waves for the best surfers. Room for 4 more surfers, and surfers will pay $15 more." },
+
             // Park
             new Upgrade { id = "more_surfers", category = UpgradeCategory.Park, title = "Bigger Lineup", cost = 60,
                 description = "Two more surfers can be in the park at once. Adds a bench by the pool." },
@@ -76,10 +82,8 @@ namespace SurfPool
         };
 
         [Header("Things upgrades change")]
-        [SerializeField] WaveMachine machine;
         [SerializeField] SurferSpawner spawner;
         [SerializeField] PriceBoard pricing;
-        [SerializeField] GameObject autoWaveLight;
         [SerializeField] GameObject extraBench;
         [SerializeField] GameObject rentalStand;
         [SerializeField] RentalRack rentalRack;
@@ -152,39 +156,27 @@ namespace SurfPool
 
         public string TitleOf(string id) => upgrades.Find(u => u.id == id)?.title ?? id;
 
+        static readonly string[] WaveUpgrades =
+            { "faster_machine", "auto_waves", "wave_sets", "intermediate_waves", "pro_waves", "wave_shaper", "smart_auto", "turbo_2" };
+
         void Apply(string id)
         {
+            if (Array.IndexOf(WaveUpgrades, id) >= 0)
+                foreach (var pool in PoolRegistry.All) ApplyWaveUpgrade(id, pool);
+
             switch (id)
             {
-                case "faster_machine":
-                    machine.Cooldown = 2f;
-                    break;
-                case "auto_waves":
-                    machine.AutoInterval = IsOwned("turbo_2") ? 8f : 12f;
-                    if (autoWaveLight != null) autoWaveLight.SetActive(true);
-                    break;
                 case "intermediate_waves":
-                    machine.Unlock(WaveLevel.Intermediate);
-                    machine.Select(WaveLevel.Intermediate);
+                    foreach (var pool in PoolRegistry.All) pool.Machine.Select(WaveLevel.Intermediate);
                     spawner.UnlockSkill(WaveLevel.Intermediate);
                     break;
-                case "wave_shaper":
-                    machine.UnlockDirections();
-                    break;
-                case "wave_sets":
-                    machine.WavesPerSet = 2;
-                    break;
                 case "pro_waves":
-                    machine.Unlock(WaveLevel.Pro);
                     spawner.UnlockSkill(WaveLevel.Pro);
                     pricing.FairPrice += 5;
                     break;
-                case "smart_auto":
-                    machine.SmartAuto = true;
-                    break;
-                case "turbo_2":
-                    machine.Cooldown = 1f;
-                    if (IsOwned("auto_waves")) machine.AutoInterval = 8f;
+                case "pool_reef":
+                case "pool_lagoon":
+                    OpenPool(id);
                     break;
                 case "more_surfers":
                     spawner.MaxSurfers += 2;
@@ -221,6 +213,57 @@ namespace SurfPool
                     deskClerk.SetActive(true);
                     break;
             }
+        }
+
+        /// <summary>Wave machine upgrades apply to every pool, including pools built later.</summary>
+        void ApplyWaveUpgrade(string id, PoolArea pool)
+        {
+            var machine = pool.Machine;
+            if (machine == null) return;
+            bool turbo2 = IsOwned("turbo_2");
+            switch (id)
+            {
+                case "faster_machine":
+                    machine.Cooldown = turbo2 ? 1f : 2f;
+                    break;
+                case "auto_waves":
+                    machine.AutoInterval = turbo2 ? 8f : 12f;
+                    if (pool.AutoWaveLight != null) pool.AutoWaveLight.SetActive(true);
+                    break;
+                case "wave_sets":
+                    machine.WavesPerSet = 2;
+                    break;
+                case "intermediate_waves":
+                    machine.Unlock(WaveLevel.Intermediate);
+                    break;
+                case "pro_waves":
+                    machine.Unlock(WaveLevel.Pro);
+                    break;
+                case "wave_shaper":
+                    machine.UnlockDirections();
+                    break;
+                case "smart_auto":
+                    machine.SmartAuto = true;
+                    break;
+                case "turbo_2":
+                    machine.Cooldown = 1f;
+                    if (IsOwned("auto_waves")) machine.AutoInterval = 8f;
+                    break;
+            }
+        }
+
+        void OpenPool(string upgradeId)
+        {
+            foreach (var pool in PoolRegistry.All)
+            {
+                if (pool.UpgradeId != upgradeId) continue;
+                pool.Open();
+                foreach (var wave in WaveUpgrades)
+                    if (IsOwned(wave)) ApplyWaveUpgrade(wave, pool);
+                if (IsOwned("intermediate_waves")) pool.Machine.Select(WaveLevel.Intermediate);
+            }
+            spawner.MaxSurfers += upgradeId == "pool_lagoon" ? 4 : 3;
+            pricing.FairPrice += upgradeId == "pool_lagoon" ? 15 : 10;
         }
     }
 }
