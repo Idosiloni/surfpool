@@ -127,6 +127,7 @@ namespace SurfPool.EditorTools
             game.AddComponent<Wallet>();
             var pricing = game.AddComponent<PriceBoard>();
             game.AddComponent<ParkReputation>();
+            game.AddComponent<Highlights>();
             var payroll = game.AddComponent<StaffPayroll>();
 
             // Ticket desk on the south deck. The player stands on the pool side, customers on the far side.

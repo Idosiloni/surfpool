@@ -799,6 +799,9 @@ namespace SurfPool
             }
             GameStats.TricksLanded++;
             if (inBarrel || Skill == WaveLevel.Pro || Random.value < 0.3f) Sfx.Play(Sound.Cheer, transform.position, inBarrel ? 1f : 0.7f);
+            // Tube rides and pro airs are the moments people come to see.
+            if (inBarrel) Highlights.Moment(transform.position, 1f);
+            else if (trick == "AIR!" && Skill == WaveLevel.Pro) Highlights.Moment(transform.position, 0.8f);
             if (trick == "AIR!")
             {
                 airStart = Time.time;

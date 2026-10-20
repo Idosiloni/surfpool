@@ -1,10 +1,12 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SurfPool
 {
     /// <summary>
     /// A spectator (in the grandstand, or standing at the pool rail): gets random colors, and now and then throws their
-    /// arms up to cheer. <see cref="CheerAll"/> makes the whole crowd cheer at once (level-ups, new pools).
+    /// arms up to cheer. <see cref="CheerAll"/> makes the whole crowd cheer at once (level-ups, new pools);
+    /// <see cref="CheerNear"/> only those near a big moment in the water (Highlights).
     /// </summary>
     [RequireComponent(typeof(CharacterRig))]
     public class Spectator : MonoBehaviour
@@ -13,12 +15,24 @@ namespace SurfPool
         [SerializeField] bool standing;
 
         static float crowdCheerUntil;
+        static readonly List<Spectator> All = new();
 
         CharacterRig rig;
         float nextCheer, cheerUntil;
 
         /// <summary>Every spectator cheers for a few seconds.</summary>
         public static void CheerAll(float seconds) => crowdCheerUntil = Time.time + seconds;
+
+        /// <summary>Spectators within radius of a point cheer for a few seconds (after a short reaction delay).</summary>
+        public static void CheerNear(Vector3 position, float radius, float seconds)
+        {
+            foreach (var s in All)
+                if ((s.transform.position - position).sqrMagnitude < radius * radius)
+                    s.cheerUntil = Time.time + Random.Range(0.1f, 0.5f) + seconds;
+        }
+
+        void OnEnable() => All.Add(this);
+        void OnDisable() => All.Remove(this);
 
         void Start()
         {

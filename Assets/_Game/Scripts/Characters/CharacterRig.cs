@@ -52,7 +52,7 @@ namespace SurfPool
         /// <summary>Walking with a board under the right arm: that arm stays still, hugging the board.</summary>
         public bool CarryingBoard { get; set; }
 
-        /// <summary>While sitting: throw both arms up and wave (grandstand cheering).</summary>
+        /// <summary>Throw both arms up and wave (cheering spectators, sitting or standing still).</summary>
         public bool CheerArms { get; set; }
 
         // ---- riding inputs, set by whoever is surfing ----
@@ -274,6 +274,15 @@ namespace SurfPool
             phase += dt * Mathf.Lerp(1.2f, 7.5f, blend);
             float swing = Mathf.Sin(phase);
             float idle = Mathf.Sin(phase) * 2f * (1 - blend);
+            if (CheerArms && blend < 0.5f)
+            {
+                // Standing and cheering: both arms up, waving, a little bounce.
+                float wave = Mathf.Sin(Time.time * 9f) * 15f;
+                return Pose(Vector3.zero, Vector3.zero, hipsHeight + Mathf.Abs(Mathf.Sin(Time.time * 6f)) * 0.03f,
+                    new Vector3(-4f, 0, 0), new Vector3(-12f, 0, 0),
+                    new Vector3(0, 0, -150f - wave), new Vector3(0, 0, 150f + wave),
+                    Vector3.zero, Vector3.zero).Bend(20f, 20f, 6f, 6f);
+            }
             return Pose(Vector3.zero, Vector3.zero,
                 hipsHeight + Mathf.Abs(Mathf.Cos(phase)) * 0.04f * blend,
                 new Vector3(3f * blend, 0, 0),
