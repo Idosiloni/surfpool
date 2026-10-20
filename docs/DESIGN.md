@@ -31,11 +31,11 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
   - [x] **More waves:** wave menu (Beginner / Intermediate / Pro), surfer skill levels, wipeouts, wave upgrades
   - [x] **More upgrades:** upgrade tree with tabs, staff that automate chores (with wages), park rating, more capacity
   - [x] **Better UI:** real HUD, upgrade computer screen with tabs/icons, wave control panel (UI Toolkit)
-  - [ ] **Better world:** low-poly models (Blender + CC0 packs), stylized water with foam, lighting, sky
+  - [x] **Better world:** low-poly models (Blender + CC0 packs), stylized water with foam, lighting, sky
   - [ ] **Player surfing:** grab a board, paddle out and ride waves yourself in first person (after Better world)
   - [ ] **Different pools + scaling:** unlockable pool types/tiers (real surf-park layouts), each earning more;
         economy rebalanced for the incremental curve (big numbers, automation, offline-style growth feel)
-  - [ ] **Premium UI restyle:** beach-surf vibe pass on HUD, bubbles and SurfOS (with the world art)
+  - [x] **Premium UI restyle:** beach-surf vibe pass on HUD, bubbles and SurfOS (with the world art)
   - [ ] Later: snack bar, surf shop, lessons, cleaning, day/night
 
 ## Ideas parking lot

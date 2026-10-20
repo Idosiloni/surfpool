@@ -6,8 +6,8 @@ namespace SurfPool
     /// <summary>Five stars drawn with Painter2D: gold for the rating (half stars allowed), dark for the rest.</summary>
     public class StarRating : VisualElement
     {
-        static readonly Color Gold = new(1f, 0.82f, 0.4f);
-        static readonly Color Empty = new(1f, 1f, 1f, 0.18f);
+        static readonly Color Gold = new(1f, 0.74f, 0.2f);
+        static readonly Color Empty = new(0.04f, 0.18f, 0.23f, 0.15f);
 
         float stars;
 

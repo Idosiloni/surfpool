@@ -26,9 +26,10 @@ namespace SurfPool.EditorTools
             Directory.CreateDirectory(Path.GetDirectoryName(ScenePath)!);
             Directory.CreateDirectory(MaterialFolder);
 
-            var deckMat = Mat("Deck", new Color(0.72f, 0.72f, 0.72f));
-            var tileMat = Mat("PoolTile", new Color(0.82f, 0.9f, 0.95f));
-            var sandMat = Mat("Sand", new Color(0.9f, 0.83f, 0.62f));
+            var deckMat = Mat("Deck", new Color(0.86f, 0.83f, 0.76f));
+            var tileMat = Mat("PoolTile", new Color(0.6f, 0.86f, 0.9f));
+            var copingMat = Mat("Coping", new Color(0.97f, 0.96f, 0.92f), 0.3f);
+            var sandMat = Mat("Sand", new Color(0.93f, 0.84f, 0.64f));
             var waterMat = WaterMaterial();
             var foamMat = Mat("Foam", Color.white, 0.1f);
             var machineMat = Mat("Machine", new Color(0.35f, 0.37f, 0.4f));
@@ -69,6 +70,13 @@ namespace SurfPool.EditorTools
             var ramp = Box("Beach", pool, new Vector3(rampStart + run / 2, -PoolDepth / 2 - 0.15f, 0), new Vector3(rampLength, 0.3f, PoolWidth), sandMat);
             ramp.transform.rotation = Quaternion.Euler(0, 0, rampAngle);
 
+            // White coping stones around the pool edge.
+            var coping = new GameObject("Coping").transform;
+            coping.SetParent(env);
+            Box("Coping North", coping, new Vector3(PoolLength / 2, 0.06f, halfW + 0.25f), new Vector3(PoolLength + 1f, 0.12f, 0.5f), copingMat);
+            Box("Coping South", coping, new Vector3(PoolLength / 2, 0.06f, -halfW - 0.25f), new Vector3(PoolLength + 1f, 0.12f, 0.5f), copingMat);
+            Box("Coping Machine", coping, new Vector3(-0.25f, 0.06f, 0), new Vector3(0.5f, 0.12f, PoolWidth), copingMat);
+
             // Invisible railing so the player can't fall into the pool (the water has no collider yet).
             var rails = new GameObject("Pool Edge Blockers").transform;
             rails.SetParent(env);
@@ -94,6 +102,8 @@ namespace SurfPool.EditorTools
 
             // Wave machine housing behind the deep end.
             var machineGo = Box("Wave Machine", null, new Vector3(-9, 2.5f, 0), new Vector3(10, 5, PoolWidth - 2), machineMat);
+            machineGo.GetComponent<MeshRenderer>().enabled = false; // keeps its collider; the model below is the look
+            WorldArt.Model("WaveMachineHouse", null, new Vector3(-9, 0, 0));
             var machine = machineGo.AddComponent<WaveMachine>();
             Set(machine, "water", water);
 
@@ -142,11 +152,12 @@ namespace SurfPool.EditorTools
             // The board the player carries, held low on the right side of the view.
             var held = GameObject.CreatePrimitive(PrimitiveType.Cube);
             held.name = "Held Board";
+            held.GetComponent<MeshFilter>().sharedMesh = WorldArt.ModelMesh("Surfboard");
             Object.DestroyImmediate(held.GetComponent<Collider>());
             held.transform.SetParent(camGo.transform, false);
             held.transform.localPosition = new Vector3(0.45f, -0.42f, 0.75f);
             held.transform.localRotation = Quaternion.Euler(-10f, -20f, 75f);
-            held.transform.localScale = new Vector3(0.4f, 0.05f, 1.4f);
+            held.transform.localScale = Vector3.one * 0.75f;
             var heldRenderer = held.GetComponent<MeshRenderer>();
             heldRenderer.sharedMaterial = rentalBoardMat;
             heldRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -163,6 +174,7 @@ namespace SurfPool.EditorTools
             // Ticket desk on the south deck. The player stands on the pool side, customers on the far side.
             var desk = new GameObject("Ticket Desk").transform;
             desk.position = new Vector3(20, 0, -22.5f);
+            WorldArt.Model("KioskTeal", desk, desk.position);
             Box("Counter", desk, desk.position + new Vector3(0, 0.55f, 0), new Vector3(3, 1.1f, 1), deskMat);
             var registerGo = Box("Register", desk, desk.position + new Vector3(0.6f, 1.25f, 0), new Vector3(0.5f, 0.3f, 0.4f), consoleMat);
             var register = registerGo.AddComponent<TicketRegister>();
@@ -188,7 +200,7 @@ namespace SurfPool.EditorTools
             SetInt(downButton, "direction", -1);
 
             // Upgrade visuals, hidden until bought.
-            var autoLight = Box("Auto Wave Light", null, new Vector3(-6, 5.25f, -9), new Vector3(0.6f, 0.5f, 0.6f), beaconMat);
+            var autoLight = Box("Auto Wave Light", null, new Vector3(-6, 4.85f, -9), new Vector3(0.6f, 0.5f, 0.6f), beaconMat);
             autoLight.SetActive(false);
             var bench = Box("Surfer Bench", env, new Vector3(30, 0.25f, -15), new Vector3(3, 0.5f, 0.8f), deskMat);
             bench.SetActive(false);
@@ -197,9 +209,7 @@ namespace SurfPool.EditorTools
             var stand = new GameObject("Rental Stand").transform;
             stand.position = new Vector3(30, 0, -22.5f);
             Box("Rental Counter", stand, stand.position + new Vector3(0, 0.55f, 0), new Vector3(3, 1.1f, 1), deskMat);
-            Box("Rental Sign", stand, stand.position + new Vector3(0, 2.45f, -0.45f), new Vector3(2.4f, 0.5f, 0.08f), rentalBoardMat);
-            Box("Sign Post L", stand, stand.position + new Vector3(-1.1f, 1.2f, -0.45f), new Vector3(0.08f, 2.4f, 0.08f), consoleMat);
-            Box("Sign Post R", stand, stand.position + new Vector3(1.1f, 1.2f, -0.45f), new Vector3(0.08f, 2.4f, 0.08f), consoleMat);
+            WorldArt.Model("KioskCoral", stand, stand.position);
 
             const int boardSlots = 10;
             var rackRoot = new GameObject("Board Rack").transform;
@@ -210,8 +220,7 @@ namespace SurfPool.EditorTools
             for (int i = 0; i < boardSlots; i++)
             {
                 float z = -1.1f + i * (2.2f / (boardSlots - 1));
-                var slot = Box($"Rack Board {i + 1}", rackRoot, rackRoot.position + new Vector3(-0.3f, 0.95f, z), new Vector3(0.45f, 1.8f, 0.06f), rentalBoardMat);
-                Object.DestroyImmediate(slot.GetComponent<Collider>());
+                var slot = Board($"Rack Board {i + 1}", rackRoot, rackRoot.position + new Vector3(-0.32f, 0.95f, z), Quaternion.Euler(-90, 0, 0), 0.9f, rentalBoardMat);
                 rackSlots[i] = slot;
             }
             var rack = rackRoot.gameObject.AddComponent<RentalRack>();
@@ -224,8 +233,7 @@ namespace SurfPool.EditorTools
             var binPile = new Object[boardSlots];
             for (int i = 0; i < boardSlots; i++)
             {
-                var pileBoard = Box($"Returned Board {i + 1}", binRoot, binRoot.position + new Vector3((i % 2) * 0.1f - 0.05f, 0.64f + i * 0.07f, 0), new Vector3(1.9f, 0.06f, 0.45f), rentalBoardMat);
-                Object.DestroyImmediate(pileBoard.GetComponent<Collider>());
+                var pileBoard = Board($"Returned Board {i + 1}", binRoot, binRoot.position + new Vector3((i % 2) * 0.1f - 0.05f, 0.62f + i * 0.11f, 0), Quaternion.Euler(0, 90, 0), 0.9f, rentalBoardMat);
                 binPile[i] = pileBoard;
             }
             var bin = binRoot.gameObject.AddComponent<ReturnBin>();
@@ -305,10 +313,9 @@ namespace SurfPool.EditorTools
                 Point("Bin Side", runnerRoute, new Vector3(34.5f, 0, -23.7f)),
             };
             var runner = Person("Board Runner", new Vector3(31.9f, 0, -21.0f), 90f, staffMat, skinMat);
-            var carried = Box("Carried Board", runner.transform, runner.transform.position + new Vector3(0, 0.9f, 0.4f), new Vector3(0.06f, 0.45f, 1.8f), rentalBoardMat);
-            Object.DestroyImmediate(carried.GetComponent<Collider>());
+            var carried = Board("Carried Board", runner.transform, runner.transform.position, Quaternion.identity, 0.9f, rentalBoardMat);
             carried.transform.localPosition = new Vector3(0.35f, 0.9f, 0);
-            carried.transform.localRotation = Quaternion.identity;
+            carried.transform.localRotation = Quaternion.Euler(0, 0, 90);
             var runnerJob = runner.AddComponent<BoardRunner>();
             Set(runnerJob, "rack", rack);
             Set(runnerJob, "bin", bin);
@@ -318,13 +325,8 @@ namespace SurfPool.EditorTools
 
             var tower = new GameObject("Lifeguard Tower").transform;
             tower.position = new Vector3(30, 0, halfW + 1.8f);
-            for (int i = 0; i < 4; i++)
-            {
-                var leg = new Vector3(i % 2 == 0 ? -0.5f : 0.5f, 0.9f, i < 2 ? -0.5f : 0.5f);
-                Box($"Leg {i + 1}", tower, tower.position + leg, new Vector3(0.1f, 1.8f, 0.1f), deskMat);
-            }
-            Box("Platform", tower, tower.position + new Vector3(0, 1.85f, 0), new Vector3(1.3f, 0.1f, 1.3f), deskMat);
-            var guard = Person("Lifeguard", tower.position + new Vector3(0, 1.9f, 0), 180f, lifeguardMat, skinMat);
+            WorldArt.Model("LifeguardTower", tower, tower.position);
+            var guard = Person("Lifeguard", tower.position + new Vector3(0, 1.96f, 0), 180f, lifeguardMat, skinMat);
             guard.transform.SetParent(tower, true);
             tower.gameObject.AddComponent<Lifeguard>();
             Staff(tower.gameObject, "Lifeguard", 3);
@@ -366,6 +368,9 @@ namespace SurfPool.EditorTools
             var eventSystem = new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem));
             eventSystem.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
 
+            WorldArt.BuildEnvironment(sandMat, waterMat);
+            WorldArt.Lighting(GameObject.Find("Directional Light").GetComponent<Light>(), cam);
+
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             Debug.Log("[GreyboxBuilder] Built " + ScenePath);
@@ -378,6 +383,18 @@ namespace SurfPool.EditorTools
             if (parent != null) go.transform.SetParent(parent, true);
             go.transform.position = center;
             go.transform.localScale = size;
+            go.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            return go;
+        }
+
+        /// <summary>A surfboard model (no collider).</summary>
+        static GameObject Board(string name, Transform parent, Vector3 position, Quaternion rotation, float scale, Material mat)
+        {
+            var go = new GameObject(name, typeof(MeshFilter), typeof(MeshRenderer));
+            go.transform.SetParent(parent, true);
+            go.transform.SetPositionAndRotation(position, rotation);
+            go.transform.localScale = Vector3.one * scale;
+            go.GetComponent<MeshFilter>().sharedMesh = WorldArt.ModelMesh("Surfboard");
             go.GetComponent<MeshRenderer>().sharedMaterial = mat;
             return go;
         }
@@ -564,7 +581,8 @@ namespace SurfPool.EditorTools
             }
             var body = Part(PrimitiveType.Capsule, "Body", new Vector3(0.5f, 0.8f, 0.5f));
             var head = Part(PrimitiveType.Sphere, "Head", new Vector3(0.3f, 0.3f, 0.3f));
-            var board = Part(PrimitiveType.Cube, "Board", new Vector3(0.5f, 0.07f, 2f));
+            var board = Part(PrimitiveType.Cube, "Board", Vector3.one);
+            board.GetComponent<MeshFilter>().sharedMesh = WorldArt.ModelMesh("Surfboard");
             body.localPosition = new Vector3(0, 0.8f, 0);
             head.localPosition = new Vector3(0, 1.75f, 0);
 

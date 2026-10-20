@@ -183,9 +183,9 @@ namespace SurfPool
             // Beginners ride big foam boards, pros ride short narrow ones.
             board.localScale = Skill switch
             {
-                WaveLevel.Beginner => new Vector3(0.6f, 0.08f, 2.4f),
-                WaveLevel.Pro => new Vector3(0.42f, 0.06f, 1.7f),
-                _ => new Vector3(0.5f, 0.07f, 2f),
+                WaveLevel.Beginner => new Vector3(1.2f, 1.1f, 1.2f),
+                WaveLevel.Pro => new Vector3(0.85f, 0.85f, 0.85f),
+                _ => Vector3.one,
             };
             Paint(body, Random.ColorHSV(0f, 1f, 0.5f, 0.9f, 0.6f, 1f));
             Paint(head, Color.Lerp(new Color(0.45f, 0.3f, 0.2f), new Color(1f, 0.85f, 0.7f), Random.value));
