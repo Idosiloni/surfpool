@@ -36,6 +36,7 @@ namespace SurfPool.EditorTools
 
             var deckMat = Mat("Deck", new Color(0.86f, 0.83f, 0.76f));
             var tileMat = Mat("PoolTile", new Color(0.6f, 0.86f, 0.9f));
+            tileMat.SetTexture("_BaseMap", PoolTileTexture());
             var copingMat = Mat("Coping", new Color(0.97f, 0.96f, 0.92f), 0.3f);
             var sandMat = Mat("Sand", new Color(0.93f, 0.84f, 0.64f));
             var waterMat = WaterMaterial();
@@ -571,6 +572,12 @@ namespace SurfPool.EditorTools
             Set(shop, "fishingPier", ParkExtras.FishingPier(panelSettings));
             ParkExtras.ParkingLot();
             GlowUpBuilder.Build(shop, reef.built, lagoon.built, deckMat, copingMat, tileMat);
+            var wornTile = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/PoolTileWorn.mat");
+            if (wornTile != null)
+            {
+                wornTile.SetTexture("_BaseMap", PoolTileTexture());
+                EditorUtility.SetDirty(wornTile);
+            }
             WorldArt.Lighting(GameObject.Find("Directional Light").GetComponent<Light>(), cam);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -629,13 +636,13 @@ namespace SurfPool.EditorTools
             float southZ = zc - halfW;
             var stageObjects = new List<GameObject>();
             if (spec.stages == null)
-                BuildBasin(built, southZ, PoolLength, PoolWidth, depth, thickness);
+                BuildBasin(built, southZ, PoolLength, PoolWidth, depth, thickness, spec.waterLevel);
             else
                 for (int i = 0; i < spec.stages.Length; i++)
                 {
                     var stage = new GameObject($"Size {i + 1} ({spec.stages[i].x:0}x{spec.stages[i].y:0})");
                     stage.transform.SetParent(built, false);
-                    BuildBasin(stage.transform, southZ, spec.stages[i].x, spec.stages[i].y, depth, thickness);
+                    BuildBasin(stage.transform, southZ, spec.stages[i].x, spec.stages[i].y, depth, thickness, spec.waterLevel);
                     stage.SetActive(i == 0);
                     stageObjects.Add(stage);
                 }
@@ -938,13 +945,33 @@ namespace SurfPool.EditorTools
         /// Walls, floor, sloped beach, coping and blockers for a pool of the given size, from x = 0 (machine end) and
         /// z = southZ northward. Anything smaller than full size gets deck over the rest of the full footprint.
         /// </summary>
-        static void BuildBasin(Transform parent, float southZ, float length, float width, float depth, float thickness)
+        static void BuildBasin(Transform parent, float southZ, float length, float width, float depth, float thickness, float waterLevel)
         {
             float halfW = width / 2f, zc = southZ + halfW, wallY = -depth / 2f;
-            Box("Wall North", parent, new Vector3(length / 2, wallY, zc + halfW - 0.05f), new Vector3(length, depth, 0.1f), mats.tile);
-            Box("Wall South", parent, new Vector3(length / 2, wallY, zc - halfW + 0.05f), new Vector3(length, depth, 0.1f), mats.tile);
-            Box("Wall Machine", parent, new Vector3(0.05f, wallY, zc), new Vector3(0.1f, depth, width), mats.tile);
-            Box("Floor", parent, new Vector3(length / 2, -depth - 0.5f, zc), new Vector3(length, 1, width), mats.tile);
+            TiledBox("Wall North", parent, new Vector3(length / 2, wallY, zc + halfW - 0.05f), new Vector3(length, depth, 0.1f), mats.tile);
+            TiledBox("Wall South", parent, new Vector3(length / 2, wallY, zc - halfW + 0.05f), new Vector3(length, depth, 0.1f), mats.tile);
+            TiledBox("Wall Machine", parent, new Vector3(0.05f, wallY, zc), new Vector3(0.1f, depth, width), mats.tile);
+            TiledBox("Floor", parent, new Vector3(length / 2, -depth - 0.5f, zc), new Vector3(length, 1, width), mats.tile);
+
+            // A band of dark tiles along the waterline, like real pools have.
+            const float band = 0.4f;
+            float bandY = waterLevel + 0.08f;
+            var bandMat = PoolBandMaterial();
+            foreach (var b in new[]
+                     {
+                         TiledBox("Waterline North", parent, new Vector3(length / 2, bandY, zc + halfW - 0.11f), new Vector3(length, band, 0.02f), bandMat),
+                         TiledBox("Waterline South", parent, new Vector3(length / 2, bandY, zc - halfW + 0.11f), new Vector3(length, band, 0.02f), bandMat),
+                         TiledBox("Waterline Machine", parent, new Vector3(0.11f, bandY, zc), new Vector3(0.02f, band, width), bandMat),
+                     })
+                Object.DestroyImmediate(b.GetComponent<Collider>());
+
+            // Marker buoys bobbing on the water: coral at the lineup, yellow at the beginners' inside line.
+            foreach (var (x, color) in new[] { (12f, new Color(1f, 0.42f, 0.34f)), (length * 0.45f, new Color(1f, 0.78f, 0.25f)) })
+            {
+                if (x > length - 6f) continue;
+                AddBuoy(parent, new Vector3(x, waterLevel, southZ + 0.9f), color);
+                AddBuoy(parent, new Vector3(x, waterLevel, southZ + width - 0.9f), color);
+            }
 
             float rampStart = length * 0.75f;
             float run = length - rampStart;
@@ -985,6 +1012,101 @@ namespace SurfPool.EditorTools
                     Object.DestroyImmediate(cone.GetComponent<Collider>());
                 }
             }
+        }
+
+        /// <summary>A box whose UVs are in meters / tileSize on every face, so a tile texture keeps square tiles.</summary>
+        static GameObject TiledBox(string name, Transform parent, Vector3 center, Vector3 size, Material mat, float tileSize = 1f)
+        {
+            var go = Box(name, parent, center, size, mat);
+            var filter = go.GetComponent<MeshFilter>();
+            var mesh = Object.Instantiate(filter.sharedMesh);
+            mesh.name = name + " (tiled)";
+            var vertices = mesh.vertices;
+            var normals = mesh.normals;
+            var uv = new Vector2[vertices.Length];
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                Vector3 p = Vector3.Scale(vertices[i], size);
+                Vector3 n = normals[i];
+                Vector2 w = Mathf.Abs(n.x) > 0.5f ? new Vector2(p.z, p.y) : Mathf.Abs(n.y) > 0.5f ? new Vector2(p.x, p.z) : new Vector2(p.x, p.y);
+                uv[i] = w / tileSize;
+            }
+            mesh.uv = uv;
+            filter.sharedMesh = mesh;
+            return go;
+        }
+
+        /// <summary>A floating marker buoy: a ball with a white band and a little pole and flag.</summary>
+        static void AddBuoy(Transform parent, Vector3 position, Color color)
+        {
+            var root = new GameObject("Buoy").transform;
+            root.SetParent(parent, false);
+            root.position = position;
+            var colorMat = Mat("Buoy" + ColorUtility.ToHtmlStringRGB(color), color, 0.5f);
+            var white = Mat("BuoyWhite", new Color(0.97f, 0.96f, 0.92f), 0.5f);
+            void Part(PrimitiveType type, Vector3 local, Vector3 scale, Material mat)
+            {
+                var go = GameObject.CreatePrimitive(type);
+                Object.DestroyImmediate(go.GetComponent<Collider>());
+                go.transform.SetParent(root, false);
+                go.transform.localPosition = local;
+                go.transform.localScale = scale;
+                go.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            }
+            Part(PrimitiveType.Sphere, Vector3.zero, Vector3.one * 0.55f, colorMat);
+            Part(PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.57f, 0.04f, 0.57f), white);
+            Part(PrimitiveType.Cylinder, new Vector3(0, 0.45f, 0), new Vector3(0.04f, 0.3f, 0.04f), white);
+            Part(PrimitiveType.Cube, new Vector3(0.09f, 0.66f, 0), new Vector3(0.18f, 0.12f, 0.01f), colorMat);
+            root.gameObject.AddComponent<Buoy>();
+        }
+
+        /// <summary>Waterline band tiles: deep blue, with the same tile texture as the pool.</summary>
+        static Material PoolBandMaterial()
+        {
+            var mat = Mat("PoolBand", new Color(0.12f, 0.36f, 0.58f), 0.45f);
+            mat.SetTexture("_BaseMap", PoolTileTexture());
+            return mat;
+        }
+
+        /// <summary>
+        /// Pool tiles: 4 x 4 small square tiles per texture (25 cm each at 1 m per repeat), soft grout lines and a
+        /// slight shade difference per tile. White, so the material color tints it (fresh blue or worn green).
+        /// </summary>
+        internal static Texture2D PoolTileTexture()
+        {
+            const string path = "Assets/_Game/Materials/PoolTile.png";
+            if (!System.IO.File.Exists(path))
+            {
+                const int size = 256, tiles = 4, cell = size / tiles;
+                var rng = new System.Random(7);
+                var shade = new float[tiles, tiles];
+                for (int a = 0; a < tiles; a++)
+                for (int b = 0; b < tiles; b++)
+                    shade[a, b] = 0.93f + (float)rng.NextDouble() * 0.07f;
+                var tex = new Texture2D(size, size, TextureFormat.RGBA32, true);
+                for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    int cx = x % cell, cy = y % cell;
+                    float edge = Mathf.Min(Mathf.Min(cx, cell - 1 - cx), Mathf.Min(cy, cell - 1 - cy));
+                    float grout = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((edge - 1.5f) / 3f));
+                    float v = Mathf.Lerp(0.72f, shade[x / cell, y / cell], grout);
+                    // A soft highlight toward each tile's top-left corner gives a glazed look.
+                    v += 0.04f * grout * Mathf.Clamp01(1f - (cx + (cell - cy)) / (float)cell);
+                    tex.SetPixel(x, y, new Color(v, v, v, 1f));
+                }
+                tex.Apply();
+                System.IO.File.WriteAllBytes(path, tex.EncodeToPNG());
+                Object.DestroyImmediate(tex);
+                AssetDatabase.ImportAsset(path);
+                if (AssetImporter.GetAtPath(path) is TextureImporter importer)
+                {
+                    importer.wrapMode = TextureWrapMode.Repeat;
+                    importer.anisoLevel = 4;
+                    importer.SaveAndReimport();
+                }
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
         /// <summary>Hides a placeholder box but keeps its collider (a model is the look).</summary>
