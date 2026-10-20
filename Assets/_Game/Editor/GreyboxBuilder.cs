@@ -15,8 +15,10 @@ namespace SurfPool.EditorTools
         const string ScenePath = "Assets/_Game/Scenes/Pool.unity";
         const string MaterialFolder = "Assets/_Game/Materials";
 
-        // Pool interior: x 0..60 (machine -> beach), z -12..12, deck top at y = 0, floor at y = -3.
-        const float PoolLength = 60f, PoolWidth = 24f, PoolDepth = 3f, WaterLevel = -1.5f;
+        // Pool interior: x 0..60 (machine -> beach), z -12..12, deck top at y = 0, floor at y = -4.
+        // Water sits low so the biggest waves crest just below the deck instead of spilling over it.
+        const float PoolLength = 60f, PoolWidth = 24f, PoolDepth = 4f, WaterLevel = -2.2f;
+        const float DeckThickness = PoolDepth + 1f;
 
         [MenuItem("Surf Pool/Build Greybox Scene")]
         public static void Build()
@@ -38,10 +40,10 @@ namespace SurfPool.EditorTools
             // Deck slabs around the pool. Their inner faces form the pool walls.
             var env = new GameObject("Environment").transform;
             float halfW = PoolWidth / 2f;
-            Box("Deck North", env, new Vector3(30, -2, halfW + 14), new Vector3(100, 4, 28), deckMat);
-            Box("Deck South", env, new Vector3(30, -2, -halfW - 14), new Vector3(100, 4, 28), deckMat);
-            Box("Deck West", env, new Vector3(-10, -2, 0), new Vector3(20, 4, PoolWidth), deckMat);
-            Box("Deck East", env, new Vector3(PoolLength + 10, -2, 0), new Vector3(20, 4, PoolWidth), deckMat);
+            Box("Deck North", env, new Vector3(30, -DeckThickness / 2, halfW + 14), new Vector3(100, DeckThickness, 28), deckMat);
+            Box("Deck South", env, new Vector3(30, -DeckThickness / 2, -halfW - 14), new Vector3(100, DeckThickness, 28), deckMat);
+            Box("Deck West", env, new Vector3(-10, -DeckThickness / 2, 0), new Vector3(20, DeckThickness, PoolWidth), deckMat);
+            Box("Deck East", env, new Vector3(PoolLength + 10, -DeckThickness / 2, 0), new Vector3(20, DeckThickness, PoolWidth), deckMat);
 
             // Tiled pool lining, floor, and the sloped beach the waves run up.
             var pool = new GameObject("Pool").transform;

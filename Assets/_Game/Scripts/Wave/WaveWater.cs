@@ -18,13 +18,13 @@ namespace SurfPool
 
         [Header("Wave shape")]
         [Tooltip("How tall the wave gets above the calm water.")]
-        [SerializeField] float waveHeight = 1.3f;
+        [SerializeField] float waveHeight = 2.0f;
         [Tooltip("How fast the wave travels down the pool (m/s).")]
         [SerializeField] float waveSpeed = 7f;
         [Tooltip("Width of the steep front face. Smaller = steeper.")]
-        [SerializeField] float frontWidth = 2.5f;
+        [SerializeField] float frontWidth = 2.0f;
         [Tooltip("Width of the gentle back of the wave.")]
-        [SerializeField] float backWidth = 7f;
+        [SerializeField] float backWidth = 8f;
         [Tooltip("How much smaller the wave is at the pool walls than in the middle (0 to 1).")]
         [Range(0f, 1f)] [SerializeField] float edgeDrop = 0.2f;
 
