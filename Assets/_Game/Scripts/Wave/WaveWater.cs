@@ -43,6 +43,14 @@ namespace SurfPool
         Vector3[] vertices;
 
         public int ActiveWaves => waveStartTimes.Count;
+        public float Length => length;
+        public float Width => width;
+
+        /// <summary>Waves currently in the pool, identified by the time they were sent.</summary>
+        public IReadOnlyList<float> WaveStartTimes => waveStartTimes;
+
+        /// <summary>Local x position of a wave's crest right now.</summary>
+        public float CurrentWaveCenter(float waveStartTime) => WaveCenter(waveStartTime, Time.time);
 
         void Awake()
         {

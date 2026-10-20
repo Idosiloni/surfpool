@@ -33,6 +33,8 @@ namespace SurfPool.EditorTools
             var machineMat = Mat("Machine", new Color(0.35f, 0.37f, 0.4f));
             var consoleMat = Mat("Console", new Color(0.22f, 0.22f, 0.25f));
             var buttonMat = Mat("Button", Color.white, 0.6f);
+            var deskMat = Mat("Desk", new Color(0.6f, 0.45f, 0.3f));
+            var surferMat = Mat("Surfer", Color.white, 0.3f);
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
             Object.DestroyImmediate(GameObject.Find("Main Camera"));
@@ -119,6 +121,43 @@ namespace SurfPool.EditorTools
             Set(hud, "interactor", interactor);
             Set(hud, "player", fps);
 
+            // Money.
+            var game = new GameObject("Game");
+            game.AddComponent<Wallet>();
+
+            // Ticket desk on the south deck. The player stands on the pool side, customers on the far side.
+            var desk = new GameObject("Ticket Desk").transform;
+            desk.position = new Vector3(20, 0, -22.5f);
+            Box("Counter", desk, desk.position + new Vector3(0, 0.55f, 0), new Vector3(3, 1.1f, 1), deskMat);
+            Box("Register", desk, desk.position + new Vector3(0.6f, 1.25f, 0), new Vector3(0.5f, 0.3f, 0.4f), consoleMat);
+            var register = desk.gameObject.AddComponent<TicketRegister>();
+
+            // The route surfers walk. Move these points in the scene to change where they go.
+            var route = new GameObject("Surfer Route").transform;
+            var entrance = Point("Entrance", route, new Vector3(30, 0, -38));
+            var deskApproach = Point("Desk Approach", route, new Vector3(20, 0, -28));
+            var deskSpot = Point("Desk Spot", route, new Vector3(20, 0, -24.4f));
+            var deskExit = Point("Desk Exit", route, new Vector3(24, 0, -24.4f));
+            var poolSide = Point("Pool Side", route, new Vector3(24, 0, -14));
+            var poolEntry = Point("Pool Entry", route, new Vector3(14, 0, -halfW - 0.6f));
+            var lineup = Point("Lineup", route, new Vector3(12, WaterLevel, -4));
+            float landingX = 57f;
+            var landing = Point("Beach Landing", route, new Vector3(landingX, -PoolDepth + PoolDepth * (landingX - rampStart) / run, 0));
+            var beachExit = Point("Beach Exit", route, new Vector3(PoolLength + 3, 0, -6));
+            var exitCorner = Point("Exit Corner", route, new Vector3(PoolLength + 6, 0, -30));
+            var exit = Point("Exit", route, new Vector3(45, 0, -40));
+
+            var spawnerGo = new GameObject("Surfer Spawner");
+            var spawner = spawnerGo.AddComponent<SurferSpawner>();
+            Set(spawner, "surferPrefab", BuildSurferPrefab(surferMat));
+            Set(spawner, "water", water);
+            SetArray(spawner, "pathToDesk", entrance, deskApproach, deskSpot);
+            SetArray(spawner, "pathToPool", deskExit, poolSide, poolEntry);
+            Set(spawner, "lineup", lineup);
+            Set(spawner, "beachLanding", landing);
+            SetArray(spawner, "pathOut", beachExit, exitCorner, exit);
+            Set(register, "spawner", spawner);
+
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             Debug.Log("[GreyboxBuilder] Built " + ScenePath);
@@ -163,6 +202,57 @@ namespace SurfPool.EditorTools
             var so = new SerializedObject(target);
             so.FindProperty(field).objectReferenceValue = value;
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        static void SetArray(Object target, string field, params Object[] values)
+        {
+            var so = new SerializedObject(target);
+            var prop = so.FindProperty(field);
+            prop.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++)
+                prop.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        static Transform Point(string name, Transform parent, Vector3 position)
+        {
+            var t = new GameObject(name).transform;
+            t.SetParent(parent, false);
+            t.position = position;
+            return t;
+        }
+
+        /// <summary>Placeholder surfer: capsule body, sphere head, flat box board. Colors are randomized per surfer at runtime.</summary>
+        static Surfer BuildSurferPrefab(Material mat)
+        {
+            const string path = "Assets/_Game/Prefabs/Surfer.prefab";
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
+            var root = new GameObject("Surfer");
+            Transform Part(PrimitiveType type, string name, Vector3 scale)
+            {
+                var go = GameObject.CreatePrimitive(type);
+                go.name = name;
+                Object.DestroyImmediate(go.GetComponent<Collider>());
+                go.transform.SetParent(root.transform, false);
+                go.transform.localScale = scale;
+                go.GetComponent<MeshRenderer>().sharedMaterial = mat;
+                return go.transform;
+            }
+            var body = Part(PrimitiveType.Capsule, "Body", new Vector3(0.5f, 0.8f, 0.5f));
+            var head = Part(PrimitiveType.Sphere, "Head", new Vector3(0.3f, 0.3f, 0.3f));
+            var board = Part(PrimitiveType.Cube, "Board", new Vector3(0.5f, 0.07f, 2f));
+            body.localPosition = new Vector3(0, 0.8f, 0);
+            head.localPosition = new Vector3(0, 1.75f, 0);
+
+            var surfer = root.AddComponent<Surfer>();
+            Set(surfer, "body", body);
+            Set(surfer, "head", head);
+            Set(surfer, "board", board);
+
+            var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
+            Object.DestroyImmediate(root);
+            return prefab.GetComponent<Surfer>();
         }
     }
 }
