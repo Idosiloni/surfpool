@@ -44,7 +44,7 @@ namespace SurfPool
         Wallet wallet;
         UpgradeShop shop;
         VisualElement goalStrip, goalFill, xpFill;
-        Label incomeRate, goalName, goalAmount, levelLabel, xpLabel, eventLabel, trashValue;
+        Label incomeRate, goalName, goalAmount, goalKicker, levelLabel, xpLabel, levelNext, eventLabel, trashValue;
         VisualElement trashRow, challengeCard, challengeList, wavePanel, lostRow;
         bool journalOpen;
         float missionShownAt;
@@ -102,6 +102,8 @@ namespace SurfPool
             challengeList = root.Q("challengeList");
             challengeReward = root.Q<Label>("challengeReward");
             xpLabel = root.Q<Label>("xpLabel");
+            levelNext = root.Q<Label>("levelNext");
+            goalKicker = root.Q<Label>("goalKicker");
             xpFill = root.Q("xpFill");
 
             missionCard = root.Q("missionCard");
@@ -224,6 +226,10 @@ namespace SurfPool
             SetText(levelLabel, park.Level.ToString());
             SetText(xpLabel, $"{park.XpToNext:#,0} XP to level {park.Level + 1}");
             xpFill.style.width = Length.Percent(park.Progress * 100f);
+            // What's coming: the next level that brings something (an upgrade or a perk pick).
+            if (shop == null) shop = FindAnyObjectByType<UpgradeShop>();
+            string next = LevelRoadmap.Next(shop, park.Level, out int at, 2);
+            SetText(levelNext, next == null ? "" : $"Level {at}: {next}");
         }
 
         void ShowLevelUp(int level)
@@ -232,6 +238,29 @@ namespace SurfPool
             var unlocked = shop != null ? shop.UnlockedAt(level) : new List<string>();
             // The banner, fanfare and fireworks come from Celebration; the toast keeps a record of what unlocked.
             Notifications.Post(unlocked.Count > 0 ? $"Park level {level}: unlocked {string.Join(", ", unlocked)}" : $"Park level {level}!", Notice.Reward);
+        }
+
+        /// <summary>The upgrade the current mission wants next (following "needs X first" to X), or null.</summary>
+        Upgrade PlanUpgrade()
+        {
+            var mission = MissionManager.Instance != null ? MissionManager.Instance.Current : null;
+            if (mission == null) return null;
+            foreach (var objective in mission.objectives)
+            {
+                if (objective.Done || string.IsNullOrEmpty(objective.upgradeId)) continue;
+                var upgrade = FindUpgrade(objective.upgradeId);
+                for (int guard = 0; upgrade != null && !upgrade.owned && !shop.RequirementMet(upgrade) && guard < 8; guard++)
+                    upgrade = FindUpgrade(upgrade.requires);
+                if (upgrade != null && !upgrade.owned) return upgrade;
+            }
+            return null;
+        }
+
+        Upgrade FindUpgrade(string id)
+        {
+            foreach (var upgrade in shop.Upgrades)
+                if (upgrade.id == id) return upgrade;
+            return null;
         }
 
         float DistanceToPool(PoolArea pool)
@@ -255,16 +284,36 @@ namespace SurfPool
         /// The cheapest upgrade you can buy next, with a bar filling toward its price. When you can afford it, the
         /// strip turns teal: go to the computer.
         /// </summary>
+        /// <summary>
+        /// The goal strip follows the plan: the upgrade the current mission asks for (or what it needs first, or the
+        /// park level it needs), so the mission card and the strip never point at different things. Only when the
+        /// mission isn't about an upgrade does it fall back to the cheapest useful upgrade.
+        /// </summary>
         void UpdateGoal()
         {
             if (shop == null) shop = FindAnyObjectByType<UpgradeShop>();
             if (shop == null || wallet == null) return;
-            Upgrade next = null;
-            foreach (var upgrade in shop.Upgrades)
-                if (!upgrade.owned && shop.RequirementMet(upgrade) && shop.LevelMet(upgrade) && (next == null || upgrade.cost < next.cost))
-                    next = upgrade;
+            Upgrade next = PlanUpgrade();
+            bool plan = next != null;
+            if (next == null)
+                foreach (var upgrade in shop.Upgrades)
+                    if (!upgrade.owned && shop.RequirementMet(upgrade) && shop.LevelMet(upgrade) && (next == null || upgrade.cost < next.cost))
+                        next = upgrade;
             goalStrip.EnableInClassList("hidden", next == null || shop.IsOpen || BuildMode.Active || FishingSpot.Fishing);
             if (next == null) return;
+            SetText(goalKicker, plan ? "KAI'S PLAN" : "NEXT GOAL");
+            goalStrip.EnableInClassList("goal-strip--plan", plan);
+            var park = ParkLevel.Instance;
+            if (park != null && !shop.LevelMet(next))
+            {
+                // The plan needs a higher park level first: show the XP still to earn.
+                int from = ParkLevel.XpForLevel(park.Level), to = ParkLevel.XpForLevel(next.level);
+                SetText(goalName, $"{next.title}  ·  park level {next.level}");
+                SetText(goalAmount, $"{Mathf.Max(0, to - park.Xp):#,0} XP to go");
+                goalFill.style.width = Length.Percent(Mathf.Clamp01((park.Xp - from) / (float)Mathf.Max(1, to - from)) * 100f);
+                goalStrip.EnableInClassList("goal-strip--ready", false);
+                return;
+            }
             bool ready = wallet.Money >= next.cost;
             SetText(goalName, next.title);
             SetText(goalAmount, ready ? "Ready! Buy it at the computer" : $"{MoneyText.Format(Mathf.Max(0, wallet.Money))} / {MoneyText.Format(next.cost)}");

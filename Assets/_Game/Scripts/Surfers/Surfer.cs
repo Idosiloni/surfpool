@@ -850,7 +850,7 @@ namespace SurfPool
             state = State.Wipeout;
             wipeoutStart = Time.time;
             tumbleAxis = Random.onUnitSphere;
-            RecordMood(ParkEffects.WipeoutMood);
+            RecordMood(ParkEffects.WipeoutMood + ParkPerks.WipeoutMoodBonus);
             GameStats.Wipeouts++;
             Sfx.Play(Sound.Splash, transform.position);
             RideFeel.Splash(water, transform.position, 24, 3f);
@@ -888,7 +888,7 @@ namespace SurfPool
             }
 
             float happiness = (moodSamples == 0 ? 1f : moodTotal / moodSamples) - Trash.MoodPenalty + Decoration.HappinessBonus;
-            int tip = happiness > 0.5f ? Mathf.RoundToInt(paidPrice * maxTipShare * happiness * (rodeFamous ? 1.5f : 1f)) + tricksLanded * tipPerTrick : 0;
+            int tip = happiness > 0.5f ? Mathf.RoundToInt((paidPrice * maxTipShare * happiness * (rodeFamous ? 1.5f : 1f) + tricksLanded * tipPerTrick) * ParkPerks.TipMultiplier) : 0;
             if (tip > 0) Wallet.Instance.Add(tip, "tip");
             if (Skill == WaveLevel.Beginner && ParkEffects.LessonFee > 0) Wallet.Instance.Add(SurfCoach.TeachLesson(), "surf lessons");
             if (happiness > 0.5f && ParkEffects.MerchPerHappySurfer > 0) Wallet.Instance.Add(ParkEffects.MerchPerHappySurfer, "surf shop");
@@ -930,7 +930,7 @@ namespace SurfPool
         /// <summary>Counts down patience; returns true when it runs out.</summary>
         bool DrainPatience(float seconds)
         {
-            patience -= Time.deltaTime / seconds;
+            patience -= Time.deltaTime / (seconds * ParkPerks.PatienceMultiplier);
             return patience <= 0f;
         }
 

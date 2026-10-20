@@ -471,6 +471,7 @@ namespace SurfPool.EditorTools
             hudDoc.visualTreeAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.VisualTreeAsset>("Assets/_Game/UI/Hud.uxml");
             var hud = hudGo.AddComponent<GameHud>();
             hudGo.AddComponent<SurfHud>();
+            hudGo.AddComponent<PerkPicker>();
             Set(hud, "interactor", interactor);
             Set(hud, "player", fps);
             Set(hud, "pricing", pricing);

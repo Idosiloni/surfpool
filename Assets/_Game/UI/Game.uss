@@ -1599,6 +1599,10 @@
     transition-duration: 0.3s;
 }
 
+.goal-strip--plan .goal-kicker {
+    color: var(--coral);
+}
+
 .goal-strip--ready {
     border-color: var(--teal-dark);
 }
@@ -2394,4 +2398,177 @@
 .surf-card-details {
     font-size: 18px;
     color: var(--muted);
+}
+
+
+/* ---------- Level preview under the XP bar ---------- */
+
+.level-next {
+    margin-top: 3px;
+    font-size: 12px;
+    color: var(--teal-dark);
+    white-space: normal;
+    max-width: 210px;
+}
+
+/* ---------- Upgrade card stickers: PLAN (what Kai's plan wants) and NEW (just unlocked) ---------- */
+
+.card-sticker {
+    position: absolute;
+    top: 40px;
+    right: 14px;
+    padding: 2px 10px 3px 10px;
+    font-size: 15px;
+    color: var(--cream);
+    border-width: 2px;
+    border-color: var(--ink);
+    border-radius: 8px;
+    rotate: 5deg;
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    -unity-font-style: normal;
+}
+
+.card-sticker--plan {
+    background-color: var(--coral);
+}
+
+.card-sticker--new {
+    background-color: var(--teal);
+}
+
+/* ---------- Perk picker (PerkPicker.cs) ---------- */
+
+.perk-window {
+    align-items: center;
+    width: 1040px;
+}
+
+.perk-title {
+    font-size: 64px;
+    color: var(--sun);
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    -unity-font-style: normal;
+    -unity-text-outline-width: 3px;
+    -unity-text-outline-color: var(--ink);
+    text-shadow: 0 6px 0 rgba(11, 46, 58, 0.85);
+    rotate: -2deg;
+}
+
+.perk-ribbon {
+    margin-top: 2px;
+    padding: 6px 30px 8px 30px;
+    font-size: 24px;
+    color: var(--cream);
+    background-color: var(--teal);
+    border-width: 3px;
+    border-color: var(--ink);
+    border-radius: 10px;
+    rotate: -1deg;
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    -unity-font-style: normal;
+}
+
+.perk-cards {
+    flex-direction: row;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.perk-card {
+    width: 300px;
+    min-height: 300px;
+    margin: 0 14px;
+    padding: 22px 22px 18px 22px;
+    align-items: center;
+    background-color: var(--cream);
+    border-width: 4px;
+    border-bottom-width: 11px;
+    border-color: var(--ink);
+    border-radius: 22px;
+    transition-property: translate, scale, border-color, background-color;
+    transition-duration: 0.35s, 0.15s, 0.15s, 0.15s;
+    transition-timing-function: ease-out-back, ease-out, ease-out, ease-out;
+}
+
+.perk-card--1 {
+    transition-delay: 0.08s, 0s, 0s, 0s;
+}
+
+.perk-card--2 {
+    transition-delay: 0.16s, 0s, 0s, 0s;
+}
+
+.screen-overlay--enter .perk-card {
+    translate: 0 60px;
+}
+
+.perk-card:hover {
+    scale: 1.04 1.04;
+    border-color: var(--teal-dark);
+    background-color: var(--paper);
+}
+
+.perk-card:active {
+    scale: 0.97 0.97;
+    border-bottom-width: 6px;
+}
+
+.perk-tile {
+    width: 92px;
+    height: 92px;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--lagoon);
+    border-width: 3px;
+    border-color: var(--ink);
+    border-radius: 20px;
+    rotate: -4deg;
+}
+
+.perk-icon {
+    width: 54px;
+    height: 54px;
+    margin: 0;
+    -unity-background-image-tint-color: var(--ink);
+}
+
+.perk-name {
+    margin-top: 16px;
+    font-size: 28px;
+    color: var(--ink);
+    -unity-text-align: middle-center;
+    white-space: normal;
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    -unity-font-style: normal;
+}
+
+.perk-text {
+    margin-top: 8px;
+    font-size: 19px;
+    color: var(--muted);
+    -unity-text-align: middle-center;
+    white-space: normal;
+    flex-grow: 1;
+}
+
+.perk-key {
+    margin-top: 12px;
+    width: 38px;
+    height: 38px;
+    font-size: 20px;
+    -unity-text-align: middle-center;
+    color: var(--cream);
+    background-color: var(--ink);
+    border-radius: 10px;
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    -unity-font-style: normal;
+}
+
+.perk-more {
+    margin-top: 26px;
+    padding: 6px 18px 7px 18px;
+    font-size: 18px;
+    color: var(--cream);
+    background-color: rgba(11, 46, 58, 0.82);
+    border-radius: 12px;
 }

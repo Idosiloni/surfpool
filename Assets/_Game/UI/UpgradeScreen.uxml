@@ -5,7 +5,7 @@
             <ui:VisualElement class="screen-header">
                 <ui:VisualElement>
                     <ui:Label text="Park Upgrades" class="screen-title" />
-                    <ui:Label text="Pick a tab, buy with the mouse." class="screen-subtitle" />
+                    <ui:Label name="screenSubtitle" text="Pick a tab, buy with the mouse." class="screen-subtitle" />
                 </ui:VisualElement>
                 <ui:Label name="screenMoney" text="$ 0" class="screen-money" />
             </ui:VisualElement>

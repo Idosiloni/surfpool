@@ -74,7 +74,7 @@ namespace SurfPool
         public static void MaybeDrop(Vector3 position, float deltaTime)
         {
             if (All.Count >= MaxPieces) return;
-            float perSecond = 0.008f * ParkEffects.LitterMultiplier * DailyEvents.LitterMultiplier;
+            float perSecond = 0.008f * ParkEffects.LitterMultiplier * DailyEvents.LitterMultiplier * ParkPerks.LitterMultiplier;
             if (Random.value > perSecond * deltaTime || !OnDeck(position)) return;
             Spawn(position + new Vector3(Random.Range(-0.4f, 0.4f), 0f, Random.Range(-0.4f, 0.4f)));
         }

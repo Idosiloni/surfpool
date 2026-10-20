@@ -66,7 +66,7 @@ namespace SurfPool
         {
             if (Broken) return;
             bool wasWarned = Wear >= warnAt;
-            Wear = Mathf.Clamp01(Wear + wearPerWave[Mathf.Clamp((int)level, 0, wearPerWave.Length - 1)] * waves * WearMultiplier);
+            Wear = Mathf.Clamp01(Wear + wearPerWave[Mathf.Clamp((int)level, 0, wearPerWave.Length - 1)] * waves * WearMultiplier * ParkPerks.WearMultiplier);
             if (!wasWarned && Wear >= warnAt)
                 Notifications.Post($"The {PoolName} machine needs a service! Hold E at the machine house.", true);
             // Past the warning, each wave has a growing chance to break it; at 100% it always breaks.

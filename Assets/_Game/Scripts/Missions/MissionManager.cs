@@ -10,6 +10,8 @@ namespace SurfPool
         public string text;
         public Func<long> current;
         public long target = 1;
+        /// <summary>The upgrade this objective asks you to buy (goal strip and computer point at it), if any.</summary>
+        public string upgradeId;
 
         public bool Done => current() >= target;
         public string Progress => target <= 1 ? "" : $" ({Math.Min(current(), target):#,0}/{target:#,0})";
@@ -94,7 +96,12 @@ namespace SurfPool
 
         static Objective Count(string text, Func<long> value, long target) => new() { text = text, current = value, target = target };
         static Objective Flag(string text, Func<bool> done) => new() { text = text, current = () => done() ? 1 : 0, target = 1 };
-        Objective Owns(string text, string upgradeId) => Flag(text, () => shop.IsOwned(upgradeId));
+        Objective Owns(string text, string upgradeId)
+        {
+            var objective = Flag(text, () => shop.IsOwned(upgradeId));
+            objective.upgradeId = upgradeId;
+            return objective;
+        }
 
         bool NearRegister() =>
             player != null && ticketRegister != null && Vector3.Distance(player.transform.position, ticketRegister.position) < 4f;

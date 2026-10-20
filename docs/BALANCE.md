@@ -45,6 +45,7 @@ but you only earn it if you raise your base price. The price buttons now say wha
 ## Park level (XP)
 - XP: happy surfer 10 / 20 / 35 (Beginner / Intermediate / Pro), mission 50, upgrade bought 10, your own ride 15.
 - Your own ride (sponsor bonus): $1 per 120 points, max $40. A good ride with flow and combos scores about 2,500 (about $20); a plain one about 1,000 (about $8). Carves only count when held 0.6 s+ at speed, so tapping can't farm it.
+- Park perks (ParkPerks): 1 pick every 2 park levels (8 perks max), pick 1 of 3, permanent and stacking: tips +15%, arrivals +10%, power+water bills -12%, patience +15%, wipeout mood +0.2, machine wear -15%, litter -20%, own-ride sponsor pay +25%. No XP perk (it would speed up its own picks). All are decisions for Ido to tune.
 - Level L needs 60 x (L-1)^1.8 XP in total (L2 60, L3 209, L5 727, L10 3,175, L15 7,148, L20 13,000).
 - Each upgrade has a level gate set about one level below where the money model reaches it, so levels unlock
   things without making you wait (checked in the model: no purchase is ever blocked by its level).

@@ -34,6 +34,7 @@ namespace SurfPool
             public int fishCaught, beachGuests;
             public List<NamedValue> staffExperience = new();
             public List<MachineState> machines = new();
+            public List<string> perks = new();
         }
 
         [Serializable]
@@ -75,6 +76,7 @@ namespace SurfPool
                 money = Wallet.Instance != null ? Wallet.Instance.Money : 0,
                 day = DayCycle.Instance != null ? DayCycle.Instance.Day : 1,
                 upgrades = shop.OwnedIds(),
+                perks = new List<string>(ParkPerks.Chosen),
                 ticketPrice = pricing.Price,
                 rating = ParkReputation.Instance != null ? ParkReputation.Instance.Score : 0.6f,
                 missionIndex = MissionManager.Instance != null ? MissionManager.Instance.Index : 0,
@@ -126,6 +128,7 @@ namespace SurfPool
             if (ParkLevel.Instance != null) ParkLevel.Instance.Restore(data.version < 3 ? data.surfersServed * 15 : data.parkXp);
             // Upgrades rebuild the fair and rental prices (and pool sizes); only the player's base price is saved.
             shop.RestoreOwned(data.upgrades);
+            ParkPerks.Restore(data.perks); // older saves have none: picks are earned from the level, so they show up
             pricing.RestorePrice(data.ticketPrice);
             Wallet.Instance.Restore(data.money);
             if (ParkReputation.Instance != null) ParkReputation.Instance.Restore(data.rating);

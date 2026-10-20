@@ -15,7 +15,7 @@ namespace SurfPool
 
         VisualElement screenRoot, tabs;
         ScrollView cards;
-        Label money, message;
+        Label money, message, subtitle;
         UpgradeCategory tab;
         bool shown;
         int shownMoney = int.MinValue;
@@ -30,6 +30,7 @@ namespace SurfPool
             cards = root.Q<ScrollView>("cards");
             money = root.Q<Label>("screenMoney");
             message = root.Q<Label>("screenMessage");
+            subtitle = root.Q<Label>("screenSubtitle");
             root.Q<Button>("closeButton").clicked += shop.Close;
 
             tabs.Clear();
@@ -74,6 +75,8 @@ namespace SurfPool
                 shownOwned = shop.OwnedCount;
                 shownLevel = level;
                 money.text = MoneyText.Format(cash);
+                string next = LevelRoadmap.Next(shop, level, out int at);
+                subtitle.text = next == null ? $"Park level {level}" : $"Park level {level}  ·  Level {at} brings {next}";
                 BuildCards();
             }
             message.text = shop.Message ?? "";
@@ -135,6 +138,18 @@ namespace SurfPool
                 var description = new Label(upgrade.description);
                 description.AddToClassList("card-desc");
                 card.Add(description);
+
+                // Stickers: what Kai's plan wants next, and what the last level just unlocked.
+                var mission = MissionManager.Instance != null ? MissionManager.Instance.Current : null;
+                bool planned = !upgrade.owned && mission != null && mission.objectives.Exists(o => !o.Done && o.upgradeId == upgrade.id);
+                bool fresh = !upgrade.owned && upgrade.level > 1 && upgrade.level == shownLevel;
+                if (planned || fresh)
+                {
+                    var sticker = new Label(planned ? "PLAN" : "NEW");
+                    sticker.AddToClassList("card-sticker");
+                    sticker.AddToClassList(planned ? "card-sticker--plan" : "card-sticker--new");
+                    card.Add(sticker);
+                }
 
                 bool levelOk = shop.LevelMet(upgrade);
                 if (!levelOk && !upgrade.owned)

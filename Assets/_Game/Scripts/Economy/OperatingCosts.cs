@@ -31,7 +31,7 @@ namespace SurfPool
                 float total = 0f;
                 foreach (var pool in PoolRegistry.All)
                     if (pool.IsOpen) total += pool.DailyWaterCost;
-                return Mathf.RoundToInt(total * ParkEffects.WaterCostMultiplier * DailyEvents.WaterMultiplier);
+                return Mathf.RoundToInt(total * ParkEffects.WaterCostMultiplier * DailyEvents.WaterMultiplier * ParkPerks.BillMultiplier);
             }
         }
 
@@ -42,7 +42,7 @@ namespace SurfPool
         {
             float cost = powerPerWave[Mathf.Clamp((int)level, 0, powerPerWave.Length - 1)];
             if (pool != null) cost *= pool.PriceMultiplier;
-            return Mathf.Max(1, Mathf.RoundToInt(cost * ParkEffects.ElectricityCostMultiplier * DailyEvents.ElectricityMultiplier));
+            return Mathf.Max(1, Mathf.RoundToInt(cost * ParkEffects.ElectricityCostMultiplier * DailyEvents.ElectricityMultiplier * ParkPerks.BillMultiplier));
         }
 
         /// <summary>A machine just sent waves: add their power to today's meter.</summary>

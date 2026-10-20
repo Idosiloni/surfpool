@@ -50,6 +50,7 @@ namespace SurfPool
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void ResetStatics()
         {
+            ParkPerks.Reset();
             WavePatienceMultiplier = 1f;
             WipeoutMood = 0.3f;
             BeginnerWipeoutMultiplier = 1f;

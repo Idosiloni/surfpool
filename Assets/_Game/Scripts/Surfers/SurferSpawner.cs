@@ -85,7 +85,7 @@ namespace SurfPool
             get
             {
                 float rating = ParkReputation.Instance != null ? ParkReputation.Instance.Score : 0.6f;
-                return spawnDelay * Mathf.Lerp(1.8f, 0.6f, rating) * SpawnDelayMultiplier / DailyEvents.ArrivalMultiplier;
+                return spawnDelay * Mathf.Lerp(1.8f, 0.6f, rating) * SpawnDelayMultiplier / (DailyEvents.ArrivalMultiplier * ParkPerks.ArrivalMultiplier);
             }
         }
 

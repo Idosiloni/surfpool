@@ -581,7 +581,7 @@ namespace SurfPool
             BankCombo();
             float seconds = Time.time - rideStart;
             score += Mathf.RoundToInt(seconds * 40f);
-            int bonus = Mathf.Clamp(score / SponsorScorePerDollar, 1, MaxSponsorBonus);
+            int bonus = Mathf.Clamp(Mathf.RoundToInt(score / (float)SponsorScorePerDollar * ParkPerks.SponsorMultiplier), 1, MaxSponsorBonus);
             Wallet.Instance.Add(bonus, "sponsor bonus");
             if (ParkReputation.Instance != null) ParkReputation.Instance.Record(1f);
             GameStats.PlayerRides++;
