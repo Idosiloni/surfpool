@@ -31,6 +31,9 @@ namespace SurfPool
         [SerializeField] Vector2 seagullGap = new(8f, 25f);
         [SerializeField] int voices = 20;
 
+        /// <summary>The wind loop, for things that play their own wind (the player's speed rush while surfing).</summary>
+        public static AudioClip WindClip => instance != null && instance.bank != null ? instance.bank.windLoop : null;
+
         public static float MusicVolume { get; private set; } = 0.8f;
         public static float EffectsVolume { get; private set; } = 0.9f;
         public static float AmbienceVolume { get; private set; } = 0.8f;

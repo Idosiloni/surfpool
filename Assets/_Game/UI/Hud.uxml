@@ -147,6 +147,28 @@
         </ui:VisualElement>
         <ui:Label name="clickToPlay" text="Click to play" class="click-to-play hidden" picking-mode="Ignore" />
 
+        <!-- Surfing: lens drops, call-outs, ride panel and score card (SurfHud) -->
+        <ui:VisualElement name="surfDrops" class="surf-drops" picking-mode="Ignore" />
+        <ui:Label name="surfCall" class="surf-call" picking-mode="Ignore" />
+        <ui:VisualElement name="surfPanel" class="surf-panel hidden" picking-mode="Ignore">
+            <ui:VisualElement class="surf-panel-box" picking-mode="Ignore">
+                <ui:Label name="surfScore" text="0" class="surf-score" picking-mode="Ignore" />
+                <ui:VisualElement class="surf-flow" picking-mode="Ignore">
+                    <ui:VisualElement name="surfFlowFill" class="surf-flow-fill" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:Label text="FLOW" class="surf-flow-label" picking-mode="Ignore" />
+                <ui:Label name="surfCombo" class="surf-combo hidden" picking-mode="Ignore" />
+                <ui:VisualElement name="surfComboTimer" class="surf-combo-timer hidden" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="surfCard" class="surf-card" picking-mode="Ignore">
+            <ui:VisualElement class="surf-card-box" picking-mode="Ignore">
+                <ui:Label name="surfCardRating" class="surf-card-rating" picking-mode="Ignore" />
+                <ui:Label name="surfCardScore" class="surf-card-score" picking-mode="Ignore" />
+                <ui:Label name="surfCardDetails" class="surf-card-details" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
         <ui:Label name="hint" text="WASD move   ·   Shift sprint   ·   Space jump   ·   E use   ·   Esc free mouse" class="hint" picking-mode="Ignore" />
     </ui:VisualElement>
 </ui:UXML>

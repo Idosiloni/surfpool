@@ -2194,3 +2194,204 @@
     background-color: var(--teal);
     font-size: 30px;
 }
+
+
+/* ---------- Surf HUD (SurfHud.cs): ride panel, flow bar, combo, call-outs, lens drops, score card ---------- */
+
+.surf-panel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 104px;
+    align-items: center;
+}
+
+.surf-panel-box {
+    align-items: center;
+    min-width: 270px;
+    padding: 4px 22px 10px 22px;
+    background-color: rgba(11, 46, 58, 0.8);
+    border-width: 3px;
+    border-color: var(--ink);
+    border-radius: 16px;
+}
+
+.surf-score {
+    font-size: 40px;
+    color: var(--sun);
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    -unity-font-style: normal;
+    -unity-text-outline-width: 1px;
+    -unity-text-outline-color: var(--ink);
+}
+
+.surf-flow {
+    width: 230px;
+    height: 12px;
+    margin-top: 2px;
+    background-color: rgba(255, 247, 236, 0.16);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.surf-flow-fill {
+    height: 100%;
+    width: 0;
+    background-color: var(--teal);
+    border-radius: 6px;
+    transition-property: background-color;
+    transition-duration: 0.3s;
+}
+
+.surf-flow-fill--hot {
+    background-color: var(--orange);
+}
+
+.surf-flow-label {
+    margin-top: 2px;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: var(--lagoon);
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    -unity-font-style: normal;
+}
+
+.surf-combo {
+    margin-top: 4px;
+    font-size: 22px;
+    color: var(--cream);
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    -unity-font-style: normal;
+}
+
+.surf-combo-timer {
+    height: 4px;
+    width: 0;
+    max-width: 230px;
+    margin-top: 2px;
+    background-color: var(--sun);
+    border-radius: 2px;
+}
+
+.surf-call {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 22%;
+    -unity-text-align: middle-center;
+    font-size: 46px;
+    color: var(--sun);
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    -unity-font-style: normal;
+    -unity-text-outline-width: 3px;
+    -unity-text-outline-color: var(--ink);
+    text-shadow: 0 5px 0 rgba(11, 46, 58, 0.85);
+    rotate: -2deg;
+    opacity: 0;
+    scale: 0.8 0.8;
+    transition-property: opacity, scale;
+    transition-duration: 0.2s, 0.25s;
+    transition-timing-function: ease-out, ease-out-back;
+}
+
+.surf-call--shown {
+    opacity: 1;
+    scale: 1 1;
+}
+
+.surf-call--pop {
+    scale: 1.3 1.3;
+}
+
+.surf-call--info {
+    font-size: 30px;
+    color: var(--cream);
+}
+
+.surf-call--good {
+    color: var(--lagoon);
+}
+
+.surf-call--reward {
+    color: var(--sun);
+}
+
+.surf-call--bad {
+    color: var(--coral);
+}
+
+.surf-drops {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.surf-drop {
+    position: absolute;
+    border-radius: 999px;
+    background-color: rgba(214, 244, 255, 0.16);
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.surf-drop-shine {
+    position: absolute;
+    left: 22%;
+    top: 18%;
+    width: 26%;
+    height: 22%;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.7);
+}
+
+.surf-card {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 30%;
+    align-items: center;
+    opacity: 0;
+    scale: 0.6 0.6;
+    transition-property: opacity, scale;
+    transition-duration: 0.3s, 0.4s;
+    transition-timing-function: ease-out, ease-out-back;
+}
+
+.surf-card--shown {
+    opacity: 1;
+    scale: 1 1;
+}
+
+.surf-card-box {
+    align-items: center;
+    padding: 10px 34px 14px 34px;
+    background-color: var(--cream);
+    border-width: 4px;
+    border-bottom-width: 9px;
+    border-color: var(--ink);
+    border-radius: 18px;
+    rotate: -1.5deg;
+}
+
+.surf-card-rating {
+    font-size: 54px;
+    color: var(--coral);
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    -unity-font-style: normal;
+    -unity-text-outline-width: 2px;
+    -unity-text-outline-color: var(--ink);
+}
+
+.surf-card-score {
+    font-size: 40px;
+    color: var(--ink);
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    -unity-font-style: normal;
+}
+
+.surf-card-details {
+    font-size: 18px;
+    color: var(--muted);
+}
