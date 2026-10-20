@@ -29,6 +29,7 @@ namespace SurfPool
             public long totalEarned;
             public int parkXp;
             public int snacksSold;
+            public List<BuildMode.Placed> decorations = new();
             public List<NamedValue> staffExperience = new();
             public List<MachineState> machines = new();
         }
@@ -89,6 +90,7 @@ namespace SurfPool
                 totalEarned = GameStats.TotalEarned,
                 parkXp = ParkLevel.Instance != null ? ParkLevel.Instance.Xp : 0,
                 snacksSold = GameStats.SnacksSold,
+                decorations = BuildMode.Instance != null ? BuildMode.Instance.Export() : new List<BuildMode.Placed>(),
             };
             foreach (var id in data.upgrades)
             {
@@ -146,6 +148,7 @@ namespace SurfPool
             GameStats.PlayerRides = data.playerRides;
             GameStats.TotalEarned = data.totalEarned;
             GameStats.SnacksSold = data.snacksSold;
+            if (BuildMode.Instance != null) BuildMode.Instance.Restore(data.decorations);
             Notifications.Post($"Welcome back! Day {data.day}, {MoneyText.Format(data.money)} in the bank.");
         }
 

@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17979a9cbe9dc426aac24ba895fce90e, type: 3}
+  m_Name: DecorCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::SurfPool.DecorCatalog
+  items:
+  - id: palm
+    title: Palm Tree
+    cost: 150
+    beauty: 3
+    seats: 0
+    prefab: {fileID: 1636180983921217989, guid: 226a938b5a12840e1ba987255cf76963, type: 3}
+  - id: palm_tall
+    title: Tall Palm
+    cost: 220
+    beauty: 4
+    seats: 0
+    prefab: {fileID: 4199752854167516672, guid: 2c207078db78346bab86ff3a606fa0f4, type: 3}
+  - id: umbrella_set
+    title: Umbrella & Loungers
+    cost: 250
+    beauty: 2
+    seats: 2
+    prefab: {fileID: 7701085944749599329, guid: 34654e23194a24a7e8ff8b4f408e4fbf, type: 3}
+  - id: lounger
+    title: Lounge Chair
+    cost: 80
+    beauty: 1
+    seats: 1
+    prefab: {fileID: 9071510389062941772, guid: e2d831ee2784345ecace3ba9f0aabd3c, type: 3}
+  - id: flowers
+    title: Flower Bed
+    cost: 90
+    beauty: 2
+    seats: 0
+    prefab: {fileID: 3881830205196584263, guid: 07a2b8dd3d9b74471bc30849d77d7a50, type: 3}
+  - id: torch
+    title: Tiki Torch
+    cost: 60
+    beauty: 1
+    seats: 0
+    prefab: {fileID: 1569253298532735258, guid: 23d7b91f3dde44809b41d095133fe7e5, type: 3}
+  - id: bench
+    title: Bench
+    cost: 100
+    beauty: 1
+    seats: 2
+    prefab: {fileID: 3688580485432161861, guid: f8f8846ef0d754f53852daf84cce1c00, type: 3}
+  - id: rock
+    title: Big Rock
+    cost: 40
+    beauty: 1
+    seats: 0
+    prefab: {fileID: 5052199932112414649, guid: 0edcdded55c2f4707819d8b02fa4fbaf, type: 3}
+  - id: tiki
+    title: Tiki Statue
+    cost: 500
+    beauty: 6
+    seats: 0
+    prefab: {fileID: 3756351925171815218, guid: 9636c4559b96c4e3792d277981846aa6, type: 3}
+  - id: volleyball
+    title: Volleyball Court
+    cost: 800
+    beauty: 5
+    seats: 0
+    prefab: {fileID: 7021760872672545840, guid: 737361d3673ff4f0bbbc389693865494, type: 3}

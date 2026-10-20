@@ -29,6 +29,9 @@ namespace SurfPool
         /// <summary>Multiplies the daily water bill. Water Recycling lowers it.</summary>
         public static float WaterCostMultiplier = 1f;
 
+        /// <summary>Beach guests come to relax on placed loungers and benches (Beach Passes).</summary>
+        public static bool BeachPassesOpen;
+
         /// <summary>Famous wave presets on the wave consoles (Famous Waves Pack).</summary>
         public static bool FamousWavesUnlocked;
 
@@ -52,6 +55,7 @@ namespace SurfPool
             LitterMultiplier = 1f;
             SnackPriceBonus = 0;
             FamousWavesUnlocked = false;
+            BeachPassesOpen = false;
         }
     }
 }

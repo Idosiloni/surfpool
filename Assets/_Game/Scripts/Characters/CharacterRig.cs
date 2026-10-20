@@ -9,7 +9,7 @@ namespace SurfPool
     /// </summary>
     public class CharacterRig : MonoBehaviour
     {
-        public enum Mode { Locomotion, Paddle, Ride, Sit }
+        public enum Mode { Locomotion, Paddle, Ride, Sit, Lie }
 
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
@@ -98,6 +98,7 @@ namespace SurfPool
                 case Mode.Paddle: Paddle(dt); break;
                 case Mode.Ride: Ride(); break;
                 case Mode.Sit: Sit(); break;
+                case Mode.Lie: Lie(); break;
             }
         }
 
@@ -171,6 +172,19 @@ namespace SurfPool
             }
             shoulderL.localEulerAngles = new Vector3(-20f, 0, 8f);
             shoulderR.localEulerAngles = new Vector3(-20f, 0, -8f);
+        }
+
+        /// <summary>Lying on the back (sunbathing on a lounger), hands behind the head now and then.</summary>
+        void Lie()
+        {
+            SetModel(new Vector3(0, 0.12f, 1.25f), new Vector3(-90f, 0, 0));
+            hips.localPosition = new Vector3(0, hipsHeight, 0);
+            torso.localEulerAngles = new Vector3(-8f, 0, 0);
+            head.localEulerAngles = new Vector3(-20f, Mathf.Sin(Time.time * 0.3f) * 10f, 0);
+            hipL.localEulerAngles = new Vector3(0f, 0, 3f);
+            hipR.localEulerAngles = new Vector3(0f, 0, -3f);
+            shoulderL.localEulerAngles = new Vector3(-170f, 0, 25f);
+            shoulderR.localEulerAngles = new Vector3(-170f, 0, -25f);
         }
 
         void SetModel(Vector3 position, Vector3 euler)

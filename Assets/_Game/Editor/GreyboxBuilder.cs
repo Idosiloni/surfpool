@@ -422,6 +422,9 @@ namespace SurfPool.EditorTools
             game.AddComponent<PassiveIncome>();
             game.AddComponent<OperatingCosts>();
             game.AddComponent<ParkLevel>();
+            var beachGuests = game.AddComponent<BeachGuests>();
+            Set(beachGuests, "guestPrefab", BuildGuestPrefab());
+            Set(beachGuests, "spawner", spawner);
             var events = game.AddComponent<DailyEvents>();
             var rain = BuildRain();
             rain.transform.SetParent(player.transform, false);
@@ -516,6 +519,18 @@ namespace SurfPool.EditorTools
             settingsDoc.visualTreeAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.VisualTreeAsset>("Assets/_Game/UI/Settings.uxml");
             settingsDoc.sortingOrder = 50;
             settingsDoc.gameObject.AddComponent<SettingsScreen>();
+
+            // Build mode (B): decorate the park. The bar sits at the bottom of the screen while building.
+            var buildDoc = new GameObject("Build Bar").AddComponent<UnityEngine.UIElements.UIDocument>();
+            buildDoc.panelSettings = panelSettings;
+            buildDoc.visualTreeAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.VisualTreeAsset>("Assets/_Game/UI/BuildBar.uxml");
+            buildDoc.sortingOrder = 6;
+            var build = player.AddComponent<BuildMode>();
+            Set(build, "catalog", DecorBuilder.Catalog());
+            Set(build, "playerCamera", cam);
+            Set(build, "ghostOk", DecorBuilder.Ghost(true));
+            Set(build, "ghostBad", DecorBuilder.Ghost(false));
+            Set(build, "bar", buildDoc);
 
             // Sound: beach ambience, music and every effect (clips made by tools/audio/make_sounds.py).
             var sfx = new GameObject("Audio").AddComponent<Sfx>();
@@ -989,7 +1004,7 @@ namespace SurfPool.EditorTools
             go.GetComponent<BoxCollider>().size = size;
         }
 
-        static Material Mat(string name, Color color, float smoothness = 0.2f, Color? emission = null)
+        internal static Material Mat(string name, Color color, float smoothness = 0.2f, Color? emission = null)
         {
             string path = $"{MaterialFolder}/{name}.mat";
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -1277,6 +1292,18 @@ namespace SurfPool.EditorTools
         }
 
         /// <summary>Placeholder surfer: capsule body, sphere head, flat box board. Colors are randomized per surfer at runtime.</summary>
+        /// <summary>A beach guest: a character with no board who walks to a seat and relaxes.</summary>
+        static BeachGuest BuildGuestPrefab()
+        {
+            const string path = "Assets/_Game/Prefabs/BeachGuest.prefab";
+            var root = new GameObject("Beach Guest");
+            BuildCharacter(root.transform);
+            var guest = root.AddComponent<BeachGuest>();
+            var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
+            Object.DestroyImmediate(root);
+            return prefab.GetComponent<BeachGuest>();
+        }
+
         static Surfer BuildSurferPrefab(Material mat)
         {
             const string path = "Assets/_Game/Prefabs/Surfer.prefab";

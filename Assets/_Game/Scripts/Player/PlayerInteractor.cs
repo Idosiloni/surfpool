@@ -24,6 +24,7 @@ namespace SurfPool
             Target = null;
             if (InputBlocker.Blocked) return;
             if (PlayerSurfing.Instance != null && PlayerSurfing.Instance.IsSurfing) return;
+            if (BuildMode.Active) return;
             Target = FindTarget();
 
             if (Target == null) return;

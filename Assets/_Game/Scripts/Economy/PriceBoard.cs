@@ -28,6 +28,9 @@ namespace SurfPool
             set => rentalPrice = Mathf.Max(0, value);
         }
 
+        /// <summary>What surfers expect for a base session, including the park's beauty bonus.</summary>
+        public int FairPriceWithBeauty => fairPrice + Decoration.FairBonus;
+
         public int FairPrice
         {
             get => fairPrice;
@@ -51,7 +54,7 @@ namespace SurfPool
             Mathf.RoundToInt(price * SkillMultiplier(skill) * PoolMultiplier(pool) * EventMultiplier(skill));
 
         /// <summary>The most a surfer of this skill, going to this pool, expects to pay (before their own mood roll).</summary>
-        public float FairFor(WaveLevel skill, PoolArea pool) => fairPrice * SkillMultiplier(skill) * PoolMultiplier(pool) * EventMultiplier(skill);
+        public float FairFor(WaveLevel skill, PoolArea pool) => (fairPrice + Decoration.FairBonus) * SkillMultiplier(skill) * PoolMultiplier(pool) * EventMultiplier(skill);
 
         /// <summary>Restores the player's base price from a save. Fair and rental prices come from owned upgrades.</summary>
         public void RestorePrice(int ticket)

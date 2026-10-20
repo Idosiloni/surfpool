@@ -18,6 +18,7 @@ namespace SurfPool
         const string Controls =
             "WASD  walk  ·  Shift  sprint  ·  Space  jump\n" +
             "E  use whatever you look at (register, computer, wave console, boards...)\n" +
+            "B  build mode: decorate the park (1-0 pick, R rotate, click place, X sell back)\n" +
             "Esc  free the mouse  ·  Tab  this menu\n\n" +
             "Surfing: E on your board by a wave console. W paddle, Space stand up when a wave reaches you, " +
             "A/D carve, W/S up and down the face, Space air, F send a wave, Q get out.";
@@ -85,6 +86,8 @@ namespace SurfPool
             AddStat("Waves sent", GameStats.WavesSent.ToString());
             AddStat("Boards rented", GameStats.BoardsRented.ToString());
             if (GameStats.SnacksSold > 0) AddStat("Snacks sold", GameStats.SnacksSold.ToString());
+            if (GameStats.BeachGuests > 0) AddStat("Beach guests", GameStats.BeachGuests.ToString());
+            AddStat("Park beauty", $"{Decoration.Beauty}  (+{MoneyText.Format(Decoration.FairBonus)} fair price)");
             AddStat("Tricks / tube rides", $"{GameStats.TricksLanded} / {GameStats.TubeRides}");
             AddStat("Your own rides", GameStats.PlayerRides.ToString());
             AddStat("Total earned", MoneyText.Format(GameStats.TotalEarned));

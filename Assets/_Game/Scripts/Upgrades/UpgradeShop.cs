@@ -75,6 +75,8 @@ namespace SurfPool
                 description = "Surfers arrive 40% more often." },
             new Upgrade { id = "tiki_garden", category = UpgradeCategory.Park, title = "Tiki Garden", cost = 2000, level = 8,
                 description = "Palms, tiki torches and flower beds all around the pools. A prettier park: surfers will pay $10 more." },
+            new Upgrade { id = "beach_passes", category = UpgradeCategory.Park, title = "Beach Passes", cost = 500, level = 3,
+                description = "Open the beach to guests who don't surf: they pay for a pass to relax on your loungers and benches (prettier park = pricier passes). Place seats with build mode (B)!" },
             new Upgrade { id = "trash_cans", category = UpgradeCategory.Park, title = "Trash Cans", cost = 300, level = 3,
                 description = "Bins all around the decks. Surfers drop 60% less litter (trash on the ground makes them less happy)." },
             new Upgrade { id = "solar_panels", category = UpgradeCategory.Park, title = "Solar Panels", cost = 1500, level = 4,
@@ -306,6 +308,9 @@ namespace SurfPool
                     break;
                 case "mechanic":
                     if (mechanic != null) mechanic.SetActive(true);
+                    break;
+                case "beach_passes":
+                    ParkEffects.BeachPassesOpen = true;
                     break;
                 case "famous_waves":
                     ParkEffects.FamousWavesUnlocked = true;

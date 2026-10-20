@@ -144,7 +144,7 @@ namespace SurfPool
             }
             else
             {
-                SetText(hint, "WASD move   ·   Shift sprint   ·   Space jump   ·   E use   ·   Esc free mouse");
+                SetText(hint, "WASD move   ·   Shift sprint   ·   Space jump   ·   E use   ·   B build   ·   Tab menu   ·   Esc free mouse");
                 hint.EnableInClassList("hint--hidden", Time.timeSinceLevelLoad > hintSeconds);
             }
         }
@@ -194,7 +194,7 @@ namespace SurfPool
             foreach (var upgrade in shop.Upgrades)
                 if (!upgrade.owned && shop.RequirementMet(upgrade) && shop.LevelMet(upgrade) && (next == null || upgrade.cost < next.cost))
                     next = upgrade;
-            goalStrip.EnableInClassList("hidden", next == null || shop.IsOpen);
+            goalStrip.EnableInClassList("hidden", next == null || shop.IsOpen || BuildMode.Active);
             if (next == null) return;
             bool ready = wallet.Money >= next.cost;
             SetText(goalName, next.title);

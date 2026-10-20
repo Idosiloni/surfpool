@@ -668,7 +668,7 @@ namespace SurfPool
                 return;
             }
 
-            float happiness = (moodSamples == 0 ? 1f : moodTotal / moodSamples) - Trash.MoodPenalty;
+            float happiness = (moodSamples == 0 ? 1f : moodTotal / moodSamples) - Trash.MoodPenalty + Decoration.HappinessBonus;
             int tip = happiness > 0.5f ? Mathf.RoundToInt(paidPrice * maxTipShare * happiness * (rodeFamous ? 1.5f : 1f)) + tricksLanded * tipPerTrick : 0;
             if (tip > 0) Wallet.Instance.Add(tip, "tip");
             if (Skill == WaveLevel.Beginner && ParkEffects.LessonFee > 0) Wallet.Instance.Add(SurfCoach.TeachLesson(), "surf lessons");

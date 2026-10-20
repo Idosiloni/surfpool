@@ -139,6 +139,14 @@ namespace SurfPool
             return Rect.MinMaxRect(-margin, zc - width / 2f - margin, length + margin, zc + width / 2f + margin);
         }
 
+        /// <summary>The pool at its biggest size (all stages), grown by a margin. Nothing gets built there.</summary>
+        public Rect FullFootprint(float margin)
+        {
+            float length = StageCount > 0 ? stages[StageCount - 1].length : water.Length;
+            float width = StageCount > 0 ? stages[StageCount - 1].width : water.Width;
+            return Rect.MinMaxRect(-margin, southEdge - margin, length + margin, southEdge + width + margin);
+        }
+
         /// <summary>The wave machine house next to the pool (x, z), grown by a margin.</summary>
         public Rect MachineHouseFootprint(float margin)
         {

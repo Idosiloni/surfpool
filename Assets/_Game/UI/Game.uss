@@ -1243,3 +1243,85 @@
     border-color: #14B8A6;
     color: white;
 }
+
+/* ---------- Build mode ---------- */
+
+.build-root {
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Fredoka.ttf");
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 18px;
+    align-items: center;
+}
+
+.build-panel {
+    padding: 10px 14px 12px 14px;
+}
+
+.build-header {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.build-kicker {
+    margin: 0 14px 0 0;
+}
+
+.build-info {
+    font-size: 15px;
+    color: #5B6B73;
+}
+
+.build-items {
+    flex-direction: row;
+}
+
+.build-card {
+    width: 148px;
+    margin-right: 8px;
+    padding: 8px 10px;
+    background-color: white;
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: #EBD9BF;
+}
+
+.build-card--selected {
+    border-color: #14B8A6;
+    background-color: #E6FBF7;
+}
+
+.build-card--expensive {
+    opacity: 0.5;
+}
+
+.build-key {
+    position: absolute;
+    right: 8px;
+    top: 6px;
+    font-size: 14px;
+    -unity-font-style: bold;
+    color: #9AA5AB;
+}
+
+.build-title {
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: #0B2E3A;
+    white-space: normal;
+    margin-right: 14px;
+}
+
+.build-price {
+    font-size: 16px;
+    color: #0E9F7E;
+    -unity-font-style: bold;
+    margin-top: 2px;
+}
+
+.build-beauty {
+    font-size: 13px;
+    color: #C9824F;
+}

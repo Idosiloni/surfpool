@@ -1,0 +1,12 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="Game.uss" />
+    <ui:VisualElement name="buildRoot" class="build-root hidden" picking-mode="Ignore">
+        <ui:VisualElement class="card build-panel" picking-mode="Ignore">
+            <ui:VisualElement class="build-header" picking-mode="Ignore">
+                <ui:Label text="BUILD MODE" class="section-title build-kicker" picking-mode="Ignore" />
+                <ui:Label name="buildInfo" class="build-info" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement name="buildItems" class="build-items" picking-mode="Ignore" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
