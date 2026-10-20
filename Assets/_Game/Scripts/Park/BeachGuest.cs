@@ -39,7 +39,7 @@ namespace SurfPool
             rig = GetComponent<CharacterRig>();
             var skin = Color.Lerp(new Color(0.42f, 0.27f, 0.17f), new Color(1f, 0.84f, 0.7f), Random.value);
             var hair = Random.value < 0.3f ? new Color(0.95f, 0.82f, 0.45f) : Color.Lerp(new Color(0.08f, 0.06f, 0.05f), new Color(0.45f, 0.28f, 0.15f), Random.value);
-            rig.Paint(skin, Random.ColorHSV(0f, 1f, 0.4f, 0.9f, 0.7f, 1f), Random.ColorHSV(0f, 1f, 0.5f, 0.9f, 0.5f, 0.9f), hair, Random.Range(0, 2));
+            rig.Paint(skin, Random.ColorHSV(0f, 1f, 0.4f, 0.9f, 0.7f, 1f), Random.ColorHSV(0f, 1f, 0.5f, 0.9f, 0.5f, 0.9f), hair, Random.Range(0, rig.HairStyles));
             seat = Decoration.ClaimSeat(out seatOwner);
             if (seat == null)
             {

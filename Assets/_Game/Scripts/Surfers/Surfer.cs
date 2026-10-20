@@ -216,7 +216,7 @@ namespace SurfPool
             rig.Style = Skill switch { WaveLevel.Beginner => 0f, WaveLevel.Intermediate => 0.55f, _ => 1f };
             var skin = Color.Lerp(new Color(0.42f, 0.27f, 0.17f), new Color(1f, 0.84f, 0.7f), Random.value);
             var hair = Random.value < 0.25f ? new Color(0.95f, 0.82f, 0.45f) : Color.Lerp(new Color(0.08f, 0.06f, 0.05f), new Color(0.45f, 0.28f, 0.15f), Random.value);
-            rig.Paint(skin, Random.ColorHSV(0f, 1f, 0.5f, 0.9f, 0.6f, 1f), Random.ColorHSV(0f, 1f, 0.4f, 0.8f, 0.3f, 0.8f), hair, Random.Range(0, 2));
+            rig.Paint(skin, Random.ColorHSV(0f, 1f, 0.5f, 0.9f, 0.6f, 1f), Random.ColorHSV(0f, 1f, 0.4f, 0.8f, 0.3f, 0.8f), hair, Random.Range(0, rig.HairStyles));
             Paint(board, Random.ColorHSV(0f, 1f, 0.6f, 1f, 0.8f, 1f));
             isRenter = renter;
             lane = Random.Range(-0.6f, 0.6f);

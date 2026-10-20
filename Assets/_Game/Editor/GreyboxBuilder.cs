@@ -1254,8 +1254,9 @@ namespace SurfPool.EditorTools
         }
 
         /// <summary>
-        /// Assembles a low-poly person from the Blender character parts under root: Model > Hips > (Shorts, Torso >
-        /// (Head > hair, shoulders > arms), hips > legs). The CharacterRig animates the joints.
+        /// Assembles a low-poly person from the Blender character parts (tools/blender/build_characters.py) under
+        /// root: Model > Hips > (Shorts, Torso > (Head > hair styles, Shoulder > upper arm, Elbow > forearm),
+        /// Hip > thigh, Knee > shin). The CharacterRig animates the joints and paints parts by material name.
         /// </summary>
         internal static CharacterRig BuildCharacter(Transform root)
         {
@@ -1283,16 +1284,25 @@ namespace SurfPool.EditorTools
             var shirt = Part("CharTorso", torso);
             var head = Joint("Head", torso, new Vector3(0, 0.55f, 0));
             var headSkin = Part("CharHead", head);
-            var hairShort = Part("CharHairShort", head);
-            var hairLong = Part("CharHairLong", head);
+            var hair = new[] { "CharHairShort", "CharHairLong", "CharHairBun", "CharHairCurly", "CharCap", "CharHairBuzz" };
+            var hairRenderers = new Renderer[hair.Length];
+            for (int i = 0; i < hair.Length; i++) hairRenderers[i] = Part(hair[i], head);
             var shoulderL = Joint("Shoulder L", torso, new Vector3(-0.27f, 0.5f, 0));
             var shoulderR = Joint("Shoulder R", torso, new Vector3(0.27f, 0.5f, 0));
-            var armL = Part("CharArm", shoulderL);
-            var armR = Part("CharArm", shoulderR);
+            var upperArmL = Part("CharUpperArm", shoulderL);
+            var upperArmR = Part("CharUpperArm", shoulderR);
+            var elbowL = Joint("Elbow L", shoulderL, new Vector3(0, -0.29f, 0));
+            var elbowR = Joint("Elbow R", shoulderR, new Vector3(0, -0.29f, 0));
+            var forearmL = Part("CharForearm", elbowL);
+            var forearmR = Part("CharForearm", elbowR);
             var hipL = Joint("Hip L", hips, new Vector3(-0.1f, 0, 0));
             var hipR = Joint("Hip R", hips, new Vector3(0.1f, 0, 0));
-            var legL = Part("CharLeg", hipL);
-            var legR = Part("CharLeg", hipR);
+            var thighL = Part("CharThigh", hipL);
+            var thighR = Part("CharThigh", hipR);
+            var kneeL = Joint("Knee L", hipL, new Vector3(0, -0.41f, 0));
+            var kneeR = Joint("Knee R", hipR, new Vector3(0, -0.41f, 0));
+            var shinL = Part("CharShin", kneeL);
+            var shinR = Part("CharShin", kneeR);
 
             var rig = root.gameObject.AddComponent<CharacterRig>();
             Set(rig, "model", model);
@@ -1303,10 +1313,14 @@ namespace SurfPool.EditorTools
             Set(rig, "shoulderR", shoulderR);
             Set(rig, "hipL", hipL);
             Set(rig, "hipR", hipR);
-            SetArray(rig, "skinRenderers", headSkin, armL, armR, legL, legR);
+            Set(rig, "elbowL", elbowL);
+            Set(rig, "elbowR", elbowR);
+            Set(rig, "kneeL", kneeL);
+            Set(rig, "kneeR", kneeR);
+            SetArray(rig, "skinRenderers", headSkin, upperArmL, upperArmR, forearmL, forearmR, thighL, thighR, shinL, shinR);
             Set(rig, "shirtRenderer", shirt);
             Set(rig, "shortsRenderer", shorts);
-            SetArray(rig, "hairRenderers", hairShort, hairLong);
+            SetArray(rig, "hairRenderers", hairRenderers);
             return rig;
         }
 

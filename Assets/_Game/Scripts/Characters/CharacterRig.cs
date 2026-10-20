@@ -23,6 +23,9 @@ namespace SurfPool
         [SerializeField] Transform head;
         [SerializeField] Transform shoulderL, shoulderR;
         [SerializeField] Transform hipL, hipR;
+        [Tooltip("Optional elbow/knee joints (people built with forearms and shins). Positive bend = more bent.")]
+        [SerializeField] Transform elbowL, elbowR;
+        [SerializeField] Transform kneeL, kneeR;
         [SerializeField] Renderer[] skinRenderers;
         [SerializeField] Renderer shirtRenderer;
         [SerializeField] Renderer shortsRenderer;
@@ -90,6 +93,7 @@ namespace SurfPool
             public Quaternion modelRot;
             public float hipsY;
             public Quaternion torso, head, shoulderL, shoulderR, hipL, hipR;
+            public Quaternion elbowL, elbowR, kneeL, kneeR;
 
             public static PoseData Lerp(in PoseData a, in PoseData b, float t) => new()
             {
@@ -102,10 +106,30 @@ namespace SurfPool
                 shoulderR = Quaternion.Slerp(a.shoulderR, b.shoulderR, t),
                 hipL = Quaternion.Slerp(a.hipL, b.hipL, t),
                 hipR = Quaternion.Slerp(a.hipR, b.hipR, t),
+                elbowL = Quaternion.Slerp(a.elbowL, b.elbowL, t),
+                elbowR = Quaternion.Slerp(a.elbowR, b.elbowR, t),
+                kneeL = Quaternion.Slerp(a.kneeL, b.kneeL, t),
+                kneeR = Quaternion.Slerp(a.kneeR, b.kneeR, t),
             };
+
+            /// <summary>Bends elbows (forearm forward/up) and knees (shin back), in degrees; returns the pose.</summary>
+            public PoseData Bend(float elbowLeft, float elbowRight, float kneeLeft, float kneeRight)
+            {
+                var pose = this;
+                pose.elbowL = Quaternion.Euler(-elbowLeft, 0f, 0f);
+                pose.elbowR = Quaternion.Euler(-elbowRight, 0f, 0f);
+                pose.kneeL = Quaternion.Euler(kneeLeft, 0f, 0f);
+                pose.kneeR = Quaternion.Euler(kneeRight, 0f, 0f);
+                return pose;
+            }
         }
 
+        /// <summary>Hip joint to sole, standing straight (thigh 0.41 + shin 0.38 + foot 0.07).</summary>
         const float LegLength = 0.86f;
+        const float Thigh = 0.41f, Shin = 0.38f, FootHeight = 0.07f;
+
+        /// <summary>Number of hair styles this person can wear (index for Paint).</summary>
+        public int HairStyles => hairRenderers.Length;
 
         float phase;
         float sprint;
@@ -128,30 +152,35 @@ namespace SurfPool
             if (paintOnStart) Paint(defaultSkin, defaultShirt, defaultShorts, defaultHair, defaultHairStyle);
         }
 
-        /// <summary>Colors the character: skin, shirt, shorts and hair (hair -1 alpha hides it).</summary>
+        /// <summary>
+        /// Colors the character. Every part is painted by material name: Skin, Shirt (also sleeves and caps),
+        /// Shorts (also the legs of the shorts on the thighs) and Hair; eyes, brows and mouth keep their colors.
+        /// Only the chosen hair style is shown.
+        /// </summary>
         public void Paint(Color skin, Color shirt, Color shorts, Color hair, int hairStyle)
         {
             var block = new MaterialPropertyBlock();
-            foreach (var r in skinRenderers) PaintRenderer(r, skin, "Skin", block);
-            PaintRenderer(shirtRenderer, shirt, null, block);
-            PaintRenderer(shortsRenderer, shorts, null, block);
-            for (int i = 0; i < hairRenderers.Length; i++)
-            {
-                hairRenderers[i].gameObject.SetActive(i == hairStyle);
-                PaintRenderer(hairRenderers[i], hair, null, block);
-            }
+            hairStyle = Mathf.Clamp(hairStyle, 0, hairRenderers.Length - 1);
+            for (int i = 0; i < hairRenderers.Length; i++) hairRenderers[i].gameObject.SetActive(i == hairStyle);
+            foreach (var r in skinRenderers) PaintRenderer(r, skin, shirt, shorts, hair, block);
+            PaintRenderer(shirtRenderer, skin, shirt, shorts, hair, block);
+            PaintRenderer(shortsRenderer, skin, shirt, shorts, hair, block);
+            foreach (var r in hairRenderers) PaintRenderer(r, skin, shirt, shorts, hair, block);
         }
 
-        /// <summary>Tints one renderer; with onlyMaterial set, only material slots whose name contains it (keeps eyes dark).</summary>
-        static void PaintRenderer(Renderer renderer, Color color, string onlyMaterial, MaterialPropertyBlock block)
+        static void PaintRenderer(Renderer renderer, Color skin, Color shirt, Color shorts, Color hair, MaterialPropertyBlock block)
         {
             if (renderer == null) return;
             var mats = renderer.sharedMaterials;
             for (int i = 0; i < mats.Length; i++)
             {
-                if (onlyMaterial != null && (mats[i] == null || !mats[i].name.Contains(onlyMaterial))) continue;
+                if (mats[i] == null) continue;
+                string name = mats[i].name;
+                Color? color = name.StartsWith("Skin") ? skin : name.StartsWith("Shirt") ? shirt
+                    : name.StartsWith("Shorts") ? shorts : name.StartsWith("Hair") ? hair : null;
+                if (color == null) continue;
                 block.Clear();
-                block.SetColor(BaseColor, color);
+                block.SetColor(BaseColor, color.Value);
                 renderer.SetPropertyBlock(block, i);
             }
         }
@@ -213,6 +242,10 @@ namespace SurfPool
             shoulderR.localRotation = pose.shoulderR;
             hipL.localRotation = pose.hipL;
             hipR.localRotation = pose.hipR;
+            if (elbowL != null) elbowL.localRotation = pose.elbowL;
+            if (elbowR != null) elbowR.localRotation = pose.elbowR;
+            if (kneeL != null) kneeL.localRotation = pose.kneeL;
+            if (kneeR != null) kneeR.localRotation = pose.kneeR;
         }
 
         static Quaternion E(float x, float y, float z) => Quaternion.Euler(x, y, z);
@@ -229,6 +262,10 @@ namespace SurfPool
             shoulderR = Quaternion.Euler(shoulderRE),
             hipL = Quaternion.Euler(hipLE),
             hipR = Quaternion.Euler(hipRE),
+            elbowL = Quaternion.identity,
+            elbowR = Quaternion.identity,
+            kneeL = Quaternion.identity,
+            kneeR = Quaternion.identity,
         };
 
         PoseData Locomotion(float speed, float dt)
@@ -244,7 +281,10 @@ namespace SurfPool
                 new Vector3(-swing * 28f * blend, 0, -5f - idle),
                 CarryingBoard ? new Vector3(-6f, 0, CarryArmAngle) : new Vector3(swing * 28f * blend, 0, 5f + idle),
                 new Vector3(swing * 32f * blend, 0, 0),
-                new Vector3(-swing * 32f * blend, 0, 0));
+                new Vector3(-swing * 32f * blend, 0, 0))
+                // Knees fold as each leg swings through; elbows a little bent, more while walking.
+                .Bend(12f + Mathf.Abs(swing) * 15f * blend, CarryingBoard ? 25f : 12f + Mathf.Abs(swing) * 15f * blend,
+                    4f + Mathf.Max(0f, -Mathf.Cos(phase)) * 45f * blend, 4f + Mathf.Max(0f, Mathf.Cos(phase)) * 45f * blend);
         }
 
         /// <summary>Right-arm roll that holds the arm out against a carried board.</summary>
@@ -269,13 +309,21 @@ namespace SurfPool
                 new Vector3(stroke % 360f, 0, -PaddleArmOut),
                 new Vector3((stroke + 180f) % 360f, 0, PaddleArmOut),
                 new Vector3(Mathf.Sin(phase * 2f) * 8f, 0, -4f),
-                new Vector3(-Mathf.Sin(phase * 2f) * 8f, 0, 4f));
+                new Vector3(-Mathf.Sin(phase * 2f) * 8f, 0, 4f))
+                // Elbows fold as each arm swings over through the air, nearly straight on the pull.
+                .Bend(PaddleElbow(stroke), PaddleElbow(stroke + 180f), 12f + Mathf.Sin(phase * 2f) * 6f, 12f - Mathf.Sin(phase * 2f) * 6f);
+        }
+
+        static float PaddleElbow(float strokeDegrees)
+        {
+            float a = Mathf.Repeat(strokeDegrees, 360f);
+            return a < 180f ? 15f + Mathf.Sin(a * Mathf.Deg2Rad) * 75f : 15f;
         }
 
         /// <summary>
-        /// Standing sideways on the board, knees bent "like sitting in a low chair", eyes down the line. We have no
-        /// knee joints, so lowness comes from dropping the hips a little (capped, so the feet stay about shoulder
-        /// width apart), pitching the torso and pushing the bottom back. Front arm leads toward the nose at
+        /// Standing sideways on the board, knees bent "like sitting in a low chair", eyes down the line. The hips
+        /// drop and the knees fold to match (thigh forward, shin back the same angle, so the feet stay under the
+        /// hips about shoulder width apart). Front arm leads toward the nose at
         /// waist-chest height, back arm low behind. Beginners bend at the waist ("poo stance"), stand tall and
         /// wave their arms; better surfers pump about once a second. Lean tips the body over the rail, Twist turns
         /// head then shoulders back (cutbacks), ArmsUp lifts the arms (floaters), Air tucks and grabs the rail.
@@ -285,16 +333,28 @@ namespace SurfPool
             float t = Time.time;
             float side = Goofy ? -1f : 1f;              // regular: left foot forward
             float rookie = 1f - Style;
-            float crouch = Mathf.Clamp01(Mathf.Lerp(0.2f, 0.6f, Style) + Crouch + Air * 0.35f);
+            float crouch = Mathf.Clamp01(Mathf.Lerp(0.25f, 0.65f, Style) + Crouch + Air * 0.35f);
             // Pump: compress and extend about once a second (not beginners), torso quiet.
             float pump = Mathf.Sin(t * Mathf.PI * 2f) * Style * (1f - Air);
-            float drop = Mathf.Min(MaxHipsDrop, Mathf.Lerp(0.06f, MaxHipsDrop, crouch) + pump * 0.05f);
+            float drop = Mathf.Min(MaxHipsDrop, Mathf.Lerp(0.05f, MaxHipsDrop, crouch) + pump * 0.04f);
             float hipsY = hipsHeight - drop;
-            // "Knees" angle the legs forward a little (bottom pushed back); the legs splay just enough for the
-            // feet to reach the deck, about 0.8 to 1 m apart.
-            float knees = 4f + crouch * 12f;
-            float reach = LegLength * Mathf.Cos(knees * Mathf.Deg2Rad);
-            float splay = Mathf.Acos(Mathf.Clamp(hipsY / reach, 0.3f, 1f)) * Mathf.Rad2Deg + 3f;
+            float knees, kneeBend, splay;
+            if (kneeL != null)
+            {
+                // Feet about shoulder width apart (beginners a bit wider); the knees fold to reach the deck.
+                splay = 13f + rookie * 4f;
+                float legDown = hipsY / Mathf.Cos(splay * Mathf.Deg2Rad) - FootHeight;
+                knees = Mathf.Acos(Mathf.Clamp(legDown / (Thigh + Shin), 0.2f, 1f)) * Mathf.Rad2Deg;
+                kneeBend = knees * 2f;
+            }
+            else
+            {
+                // Knee-less legs: angle them forward a little and splay them so the feet reach the deck.
+                knees = 4f + crouch * 12f;
+                kneeBend = 0f;
+                float reach = LegLength * Mathf.Cos(knees * Mathf.Deg2Rad);
+                splay = Mathf.Acos(Mathf.Clamp(hipsY / reach, 0.3f, 1f)) * Mathf.Rad2Deg + 3f;
+            }
             float wobble = (Mathf.Sin(t * 5.3f) * 0.6f + Mathf.Sin(t * 8.7f) * 0.4f) * rookie;
             float sway = Mathf.Sin(t * 2.3f);
             float lean = Mathf.Clamp(Lean, -1f, 1f);
@@ -315,11 +375,12 @@ namespace SurfPool
             var left = Goofy ? back : front;
             var right = Goofy ? front : back;
 
-            float tuck = Air * 35f;
+            float tuck = Air * 30f;
             // Twist (cutback): the head turns first and furthest, the shoulders follow.
             float headYaw = Mathf.Lerp(70f, 90f, Style) - Twist;
             float torsoYaw = Mathf.Lerp(12f, 25f, Style) - Twist * 0.6f;
-            float torsoPitch = Mathf.Lerp(35f, 18f, Style) + crouch * 15f + lean * 15f + pump * 3f;
+            float torsoPitch = (kneeL != null ? Mathf.Lerp(30f, 12f, Style) + crouch * 8f : Mathf.Lerp(35f, 18f, Style) + crouch * 15f)
+                + lean * 15f + pump * 3f;
             var pose = Pose(new Vector3(0f, 0.08f, 0f), new Vector3(0f, 90f * side, wobble * 5f),
                 hipsY,
                 new Vector3(torsoPitch, -torsoYaw * side, lean * -6f),
@@ -328,6 +389,10 @@ namespace SurfPool
                 new Vector3(right.x, 0f, right.z),
                 new Vector3(-knees - tuck - lean * 10f, 0f, -splay),
                 new Vector3(-knees - tuck - lean * 10f, 0f, splay));
+            // Elbows soft, the lead arm reaching; knees fold with the crouch (and tuck up in the air).
+            float frontElbow = Mathf.Lerp(20f + rookie * 10f, 35f, Air), backElbow = 35f - ArmsUp * 15f;
+            pose = pose.Bend(Goofy ? backElbow : frontElbow, Goofy ? frontElbow : backElbow,
+                kneeBend + tuck * 1.5f, kneeBend + tuck * 1.5f);
 
             // The whole rider tilts with the board around the deck, so the feet stay planted.
             pose.modelPos = BoardPivot + BoardTilt * (pose.modelPos - BoardPivot);
@@ -335,8 +400,8 @@ namespace SurfPool
             return pose;
         }
 
-        /// <summary>Deepest the hips drop when riding (m): any lower and the knee-less legs splay too wide.</summary>
-        const float MaxHipsDrop = 0.2f;
+        /// <summary>Deepest the hips drop when riding (m).</summary>
+        const float MaxHipsDrop = 0.32f;
 
         /// <summary>
         /// Pop-up: from lying down, press the chest up (hands beside the ribs), bring the feet through into a
@@ -347,11 +412,12 @@ namespace SurfPool
             float side = Goofy ? -1f : 1f;
             var pushUp = Pose(new Vector3(0, 0.3f, -0.35f), new Vector3(62f, 0, 0), hipsHeight, new Vector3(-10f, 0, 0),
                 new Vector3(-40f, 0, 0), new Vector3(-85f, 0, -12f), new Vector3(-85f, 0, 12f),
-                new Vector3(-10f, 0, -4f), new Vector3(-10f, 0, 4f));
-            var tuck = Pose(new Vector3(0, 0.08f, 0), new Vector3(0, 90f * side, 0), hipsHeight - 0.5f,
+                new Vector3(-10f, 0, -4f), new Vector3(-10f, 0, 4f)).Bend(10f, 10f, 15f, 15f);
+            var tuck = Pose(new Vector3(0, 0.08f, 0), new Vector3(0, 90f * side, 0), hipsHeight - 0.45f,
                 new Vector3(50f, -10f * side, 0), new Vector3(-30f, -50f * side, 0),
                 new Vector3(-60f, 0, -25f), new Vector3(-60f, 0, 25f),
-                new Vector3(-25f, 0, -45f), new Vector3(-25f, 0, 45f));
+                kneeL != null ? new Vector3(-75f, 0, -28f) : new Vector3(-25f, 0, -45f),
+                kneeL != null ? new Vector3(-75f, 0, 28f) : new Vector3(-25f, 0, 45f)).Bend(35f, 35f, 125f, 125f);
             tuck.modelPos = BoardPivot + BoardTilt * (tuck.modelPos - BoardPivot);
             tuck.modelRot = BoardTilt * tuck.modelRot;
 
@@ -373,11 +439,13 @@ namespace SurfPool
                 new Vector3(Mathf.Sin(t * 0.5f) * 20f, 0, 0), new Vector3(-20f, Mathf.Sin(t * 0.7f) * 30f, 0),
                 new Vector3(-(t * Mathf.Rad2Deg) % 360f, 0, -60f),
                 new Vector3(-(t * Mathf.Rad2Deg + 120f) % 360f, 0, 60f),
-                new Vector3(Mathf.Sin(t) * 40f, 0, -30f), new Vector3(-Mathf.Sin(t) * 40f, 0, 30f));
+                new Vector3(Mathf.Sin(t) * 40f, 0, -30f), new Vector3(-Mathf.Sin(t) * 40f, 0, 30f))
+                .Bend(40f + Mathf.Sin(t * 1.3f) * 40f, 40f + Mathf.Cos(t * 1.1f) * 40f, 30f + Mathf.Sin(t) * 30f, 30f - Mathf.Sin(t) * 30f);
+            // Forearms folded over the head, knees curled.
             var cover = Pose(new Vector3(0f, 0.4f, 0f), Vector3.zero, hipsHeight,
                 new Vector3(20f, 0, 0), new Vector3(30f, 0, 0),
                 new Vector3(-160f, 0, 20f), new Vector3(-160f, 0, -20f),
-                new Vector3(-20f, 0, -10f), new Vector3(-20f, 0, 10f));
+                new Vector3(-35f, 0, -10f), new Vector3(-35f, 0, 10f)).Bend(110f, 110f, 60f, 60f);
             float covered = Mathf.Clamp01((Time.time - modeStart - 0.45f) / 0.25f);
             return PoseData.Lerp(flail, cover, covered);
         }
@@ -393,7 +461,9 @@ namespace SurfPool
             return Pose(new Vector3(0f, 0.12f - hipsHeight, 0f), Vector3.zero, hipsHeight, new Vector3(-4f, 0, 0),
                 new Vector3(Mathf.Sin(t * 0.5f) * 6f - 4f, Mathf.Sin(t * 0.35f) * 35f, 0),
                 new Vector3(-35f, 0, -12f), new Vector3(-35f, 0, 12f),
-                new Vector3(-35f + kick, 0, -32f), new Vector3(-35f - kick, 0, 32f));
+                new Vector3(-35f + kick, 0, -32f), new Vector3(-35f - kick, 0, 32f))
+                // Hands resting on the thighs, shins hanging down in the water, gently kicking.
+                .Bend(50f, 50f, 75f - kick, 75f + kick);
         }
 
         PoseData Sit()
@@ -405,7 +475,9 @@ namespace SurfPool
                 new Vector3(0, Mathf.Sin(Time.time * 0.4f) * 25f, 0),
                 new Vector3(shoulders.y, 0, -shoulders.x),
                 new Vector3(shoulders.y, 0, shoulders.x),
-                new Vector3(-85f, 0, 4f), new Vector3(-85f, 0, -4f));
+                new Vector3(-85f, 0, 4f), new Vector3(-85f, 0, -4f))
+                // Shins hang down from the seat; hands in the lap (or waving when cheering).
+                .Bend(CheerArms ? 20f : 35f, CheerArms ? 20f : 35f, 85f, 85f);
         }
 
         /// <summary>Lying on the back (sunbathing on a lounger), hands behind the head now and then.</summary>
@@ -414,7 +486,9 @@ namespace SurfPool
             return Pose(new Vector3(0, 0.12f, 1.25f), new Vector3(-90f, 0, 0), hipsHeight, new Vector3(-8f, 0, 0),
                 new Vector3(-20f, Mathf.Sin(Time.time * 0.3f) * 10f, 0),
                 new Vector3(-170f, 0, 25f), new Vector3(-170f, 0, -25f),
-                new Vector3(0f, 0, 3f), new Vector3(0f, 0, -3f));
+                new Vector3(0f, 0, 3f), new Vector3(-12f, 0, -3f))
+                // Hands folded behind the head, one knee up.
+                .Bend(120f, 120f, 0f, 30f);
         }
     }
 }
