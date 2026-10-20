@@ -8,6 +8,13 @@ wave machine, keep surfers happy, and grow it into the best surf park around.
 Surfers arrive → buy a session at the desk → wait their turn → ride waves → leave happy (or not)
 → you earn money and reputation → spend on upgrades → more and better surfers arrive.
 
+## Pillars (from Ido, 2026-10-20)
+- **Incremental tycoon feel:** start tiny and hands-on (one small pool, you do every job), then scale up —
+  more and bigger pools, staff and automation running everything, and money growing to big numbers.
+  Each new pool/tier should earn clearly more than the last, and automation should free you to build more.
+- **Premium beach-surf vibe UI:** warm sand/sunset colors, ocean teal, a beachy display font, polished cards —
+  feels like a high-end surf resort, not a spreadsheet.
+
 ## Decisions so far
 - View: first person
 - Engine: Unity 6 (URP), single-player
@@ -26,7 +33,10 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
   - [x] **Better UI:** real HUD, upgrade computer screen with tabs/icons, wave control panel (UI Toolkit)
   - [ ] **Better world:** low-poly models (Blender + CC0 packs), stylized water with foam, lighting, sky
   - [ ] **Player surfing:** grab a board, paddle out and ride waves yourself in first person (after Better world)
-  - [ ] Later: snack bar, surf shop, lessons, cleaning, day/night, bigger pool
+  - [ ] **Different pools + scaling:** unlockable pool types/tiers (real surf-park layouts), each earning more;
+        economy rebalanced for the incremental curve (big numbers, automation, offline-style growth feel)
+  - [ ] **Premium UI restyle:** beach-surf vibe pass on HUD, bubbles and SurfOS (with the world art)
+  - [ ] Later: snack bar, surf shop, lessons, cleaning, day/night
 
 ## Ideas parking lot
 - Surfer wipeouts (funny ragdolls)

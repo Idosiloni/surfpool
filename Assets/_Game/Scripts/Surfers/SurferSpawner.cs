@@ -50,6 +50,7 @@ namespace SurfPool
         [Tooltip("Share of new surfers who come without a board and need to rent one (0 until the rental stand is bought).")]
         [Range(0f, 1f)] [SerializeField] float renterChance;
 
+        WaveLevel bestSkillComing = WaveLevel.Beginner;
         readonly List<Surfer> deskLine = new();
         readonly List<Surfer> rentalLine = new();
         float nextSpawnTime;
@@ -82,6 +83,27 @@ namespace SurfPool
         {
             get => renterChance;
             set => renterChance = Mathf.Clamp01(value);
+        }
+
+        /// <summary>
+        /// Better surfers only come once the park has waves for them: beginners at first, then intermediates
+        /// after the Intermediate Wave Program, then pros after the Pro Wave Program.
+        /// </summary>
+        public void UnlockSkill(WaveLevel level)
+        {
+            if (level > bestSkillComing) bestSkillComing = level;
+        }
+
+        /// <summary>Picks the skill of a new arrival from the levels the park can serve.</summary>
+        public WaveLevel RollSkill()
+        {
+            float roll = Random.value;
+            return bestSkillComing switch
+            {
+                WaveLevel.Beginner => WaveLevel.Beginner,
+                WaveLevel.Intermediate => roll < 0.5f ? WaveLevel.Beginner : WaveLevel.Intermediate,
+                _ => roll < 0.35f ? WaveLevel.Beginner : roll < 0.75f ? WaveLevel.Intermediate : WaveLevel.Pro,
+            };
         }
 
         /// <summary>Multiplies the time between arrivals. Marketing upgrades lower it.</summary>

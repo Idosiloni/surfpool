@@ -555,3 +555,120 @@
 .close-button:hover {
     background-color: rgba(255, 255, 255, 0.22);
 }
+
+/* ---------- Wave Control panel ---------- */
+
+.wave-window {
+    width: 1000px;
+    height: auto;
+}
+
+.section-gap {
+    margin-top: 18px;
+}
+
+.wave-cards {
+    flex-direction: row;
+}
+
+.wave-card {
+    flex-grow: 1;
+    flex-basis: 0;
+    margin-right: 14px;
+    background-color: #17303F;
+    border-radius: 14px;
+    border-width: 3px;
+    border-color: rgba(255, 255, 255, 0.08);
+    padding: 16px;
+    transition-duration: 0.12s;
+}
+
+.wave-card--last {
+    margin-right: 0;
+}
+
+.wave-card:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.wave-card--selected,
+.wave-card--selected:hover {
+    border-color: #FFD166;
+    background-color: #1E4152;
+}
+
+.wave-card--locked {
+    opacity: 0.45;
+}
+
+.wave-card-text {
+    font-size: 16px;
+    color: #CFE3EA;
+    margin-top: 10px;
+    white-space: normal;
+}
+
+.wave-card-waiting {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: #FFD166;
+    margin-top: 10px;
+}
+
+.wave-card-locked {
+    font-size: 15px;
+    color: #F78C6B;
+    margin-top: 10px;
+    white-space: normal;
+}
+
+.segment-row {
+    flex-direction: row;
+}
+
+.segment {
+    flex-grow: 1;
+    flex-basis: 0;
+    height: 52px;
+    font-size: 20px;
+    -unity-font-style: bold;
+    border-width: 0;
+    border-radius: 10px;
+    margin: 0 10px 0 0;
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #CFE3EA;
+    transition-duration: 0.12s;
+}
+
+.segment:hover {
+    background-color: rgba(255, 255, 255, 0.16);
+}
+
+.segment--selected,
+.segment--selected:hover {
+    background-color: #2EC4B6;
+    color: #10212E;
+}
+
+.send-button {
+    flex-grow: 1;
+    height: 64px;
+    margin: 0 14px 0 0;
+    font-size: 26px;
+    -unity-font-style: bold;
+    border-width: 0;
+    border-radius: 14px;
+    background-color: #EF476F;
+    color: white;
+    transition-duration: 0.12s;
+}
+
+.send-button:hover {
+    background-color: #FF6B8B;
+}
+
+.send-button--charging,
+.send-button--charging:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+}

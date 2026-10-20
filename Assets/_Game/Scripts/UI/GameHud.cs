@@ -112,7 +112,9 @@ namespace SurfPool
         {
             if (machine == null) return;
             var selected = machine.Selected;
-            SetText(waveType, selected.ToString());
+            string direction = selected == WaveLevel.Beginner ? "Whitewater"
+                : machine.SelectedDirection == WaveDirection.Peak ? "Peak" : machine.SelectedDirection.ToString();
+            SetText(waveType, $"{selected}  ·  {direction}");
             waveType.EnableInClassList("wave-type--beginner", selected == WaveLevel.Beginner);
             waveType.EnableInClassList("wave-type--intermediate", selected == WaveLevel.Intermediate);
             waveType.EnableInClassList("wave-type--pro", selected == WaveLevel.Pro);
@@ -249,6 +251,7 @@ namespace SurfPool
                 pickingMode = PickingMode.Ignore,
             };
             label.AddToClassList("popup");
+            label.style.top = popupStack.childCount * 30; // stack popups that arrive together
             label.EnableInClassList("popup--negative", amount < 0);
             popupStack.Add(label);
             label.schedule.Execute(() => label.AddToClassList("popup--leaving")).StartingIn(40);

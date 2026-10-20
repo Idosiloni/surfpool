@@ -8,4 +8,6 @@ Date: 2026-10-20
 - [lowpoly-assets.md](lowpoly-assets.md): free low-poly characters, animations, palms/props, buildings, textures, skyboxes, stylized water/foam tutorials, icon packs (with licenses), what to model in Blender, color palette.
 - [wave-physics.md](wave-physics.md): wave anatomy, breaking depth rule, breaker types, speed vs depth, how pools make waves, how to fake waves in Unity, surfer positions.
 - [boards-and-tricks.md](boards-and-tricks.md): board styles (size, rider, ride feel, guess prices), maneuvers by skill and wave, wipeout types, unlock ideas.
+- [surf-park-design.md](surf-park-design.md): real park layouts by tech (Cove, Ranch, PerfectSwell, Surf Lakes, sheet waves), bathymetry/reefs/channels, park buildings and guest flow, build/run costs, 7 example parks, pool-type ideas.
+- [wave-types-real.md](wave-types-real.md): beach vs reef vs point breaks, famous waves table, wave quality words, how pools imitate them, named wave presets.
 - [surfing-basics.md](surfing-basics.md): skill levels, boards, gear, etiquette, wipeouts, lessons, surf culture for NPCs.

@@ -33,10 +33,14 @@ namespace SurfPool
                 description = "The wave machine recharges twice as fast (4 s -> 2 s)." },
             new Upgrade { id = "auto_waves", category = UpgradeCategory.Waves, title = "Auto Wave Timer", cost = 150,
                 description = "The machine sends the selected wave by itself every 12 seconds. A yellow light turns on." },
+            new Upgrade { id = "intermediate_waves", category = UpgradeCategory.Waves, title = "Intermediate Wave Program", cost = 120,
+                description = "Unlocks bigger peeling Intermediate waves on the console. Intermediate surfers start coming to your park, and they pay more." },
+            new Upgrade { id = "wave_shaper", category = UpgradeCategory.Waves, title = "Reef Shaper", cost = 160, requires = "intermediate_waves",
+                description = "Unlocks Lefts and Rights on the wave console. They peel longer than a peak (longer rides, more tricks). Regular-foot surfers love rights, goofy-foot surfers love lefts." },
             new Upgrade { id = "wave_sets", category = UpgradeCategory.Waves, title = "Wave Sets", cost = 180, requires = "faster_machine",
                 description = "Each press sends a set of 2 waves, 2.5 s apart. More rides, less waiting." },
-            new Upgrade { id = "pro_waves", category = UpgradeCategory.Waves, title = "Pro Wave Program", cost = 200,
-                description = "Unlocks steep, fast Pro waves (select them on the wave console). Pro surfers pay the most and do tricks." },
+            new Upgrade { id = "pro_waves", category = UpgradeCategory.Waves, title = "Pro Wave Program", cost = 200, requires = "intermediate_waves",
+                description = "Unlocks steep, fast, barreling Pro waves. Pro surfers start coming: they pay the most and do tricks." },
             new Upgrade { id = "smart_auto", category = UpgradeCategory.Waves, title = "Smart Wave Timer", cost = 220, requires = "auto_waves",
                 description = "Auto waves pick the wave type most waiting surfers want." },
             new Upgrade { id = "turbo_2", category = UpgradeCategory.Waves, title = "Turbo Pump II", cost = 350, requires = "faster_machine",
@@ -159,11 +163,20 @@ namespace SurfPool
                     machine.AutoInterval = IsOwned("turbo_2") ? 8f : 12f;
                     if (autoWaveLight != null) autoWaveLight.SetActive(true);
                     break;
+                case "intermediate_waves":
+                    machine.Unlock(WaveLevel.Intermediate);
+                    machine.Select(WaveLevel.Intermediate);
+                    spawner.UnlockSkill(WaveLevel.Intermediate);
+                    break;
+                case "wave_shaper":
+                    machine.UnlockDirections();
+                    break;
                 case "wave_sets":
                     machine.WavesPerSet = 2;
                     break;
                 case "pro_waves":
                     machine.Unlock(WaveLevel.Pro);
+                    spawner.UnlockSkill(WaveLevel.Pro);
                     pricing.FairPrice += 5;
                     break;
                 case "smart_auto":

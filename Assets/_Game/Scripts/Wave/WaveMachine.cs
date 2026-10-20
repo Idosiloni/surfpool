@@ -21,13 +21,15 @@ namespace SurfPool
         [Tooltip("Auto waves pick the type most waiting surfers want, instead of the selected one.")]
         [SerializeField] bool smartAuto;
 
-        readonly HashSet<WaveLevel> unlocked = new() { WaveLevel.Beginner, WaveLevel.Intermediate };
-        readonly List<(float time, WaveLevel level)> pending = new();
+        readonly HashSet<WaveLevel> unlocked = new() { WaveLevel.Beginner };
+        bool directionsUnlocked;
+        readonly List<(float time, WaveLevel level, WaveDirection direction)> pending = new();
         float readyAt;
         float chargeDuration;
         float nextAutoWave;
 
-        public WaveLevel Selected { get; private set; } = WaveLevel.Intermediate;
+        public WaveLevel Selected { get; private set; } = WaveLevel.Beginner;
+        public WaveDirection SelectedDirection { get; private set; } = WaveDirection.Peak;
         public bool Ready => Time.time >= readyAt;
         public float SecondsUntilReady => Mathf.Max(0f, readyAt - Time.time);
 
@@ -61,6 +63,17 @@ namespace SurfPool
         public bool IsUnlocked(WaveLevel level) => unlocked.Contains(level);
         public void Unlock(WaveLevel level) => unlocked.Add(level);
 
+        /// <summary>Peaks are always available; lefts and rights need the Reef Shaper upgrade.</summary>
+        public bool IsUnlocked(WaveDirection direction) => direction == WaveDirection.Peak || directionsUnlocked;
+        public void UnlockDirections() => directionsUnlocked = true;
+
+        public bool Select(WaveDirection direction)
+        {
+            if (!IsUnlocked(direction)) return false;
+            SelectedDirection = direction;
+            return true;
+        }
+
         public bool Select(WaveLevel level)
         {
             if (!IsUnlocked(level)) return false;
@@ -73,25 +86,46 @@ namespace SurfPool
             for (int i = pending.Count - 1; i >= 0; i--)
             {
                 if (Time.time < pending[i].time) continue;
-                water.SpawnWave(pending[i].level);
+                water.SpawnWave(pending[i].level, pending[i].direction);
                 pending.RemoveAt(i);
             }
 
             if (autoInterval <= 0f || Time.time < nextAutoWave) return;
-            if (TrySendSet(smartAuto ? MostWantedLevel() : Selected)) nextAutoWave = Time.time + autoInterval;
+            var level = smartAuto ? MostWantedLevel() : Selected;
+            var direction = smartAuto ? MostWantedDirection(level) : SelectedDirection;
+            if (TrySendSet(level, direction)) nextAutoWave = Time.time + autoInterval;
         }
 
-        /// <summary>Sends the selected wave type (a whole set if upgraded).</summary>
-        public bool TryTriggerWave() => TrySendSet(Selected);
+        /// <summary>Sends the selected wave type and direction (a whole set if upgraded).</summary>
+        public bool TryTriggerWave() => TrySendSet(Selected, SelectedDirection);
 
-        bool TrySendSet(WaveLevel level)
+        bool TrySendSet(WaveLevel level, WaveDirection direction)
         {
-            if (!Ready || !IsUnlocked(level)) return false;
+            if (!Ready || !IsUnlocked(level) || !IsUnlocked(direction)) return false;
             for (int i = 0; i < wavesPerSet; i++)
-                pending.Add((Time.time + i * setSpacing, level));
+                pending.Add((Time.time + i * setSpacing, level, direction));
             chargeDuration = cooldown + (wavesPerSet - 1) * setSpacing;
             readyAt = Time.time + chargeDuration;
             return true;
+        }
+
+        /// <summary>
+        /// For smart auto waves: a left or right if everyone waiting for this wave type prefers the same way,
+        /// otherwise a peak (which goes both ways).
+        /// </summary>
+        WaveDirection MostWantedDirection(WaveLevel level)
+        {
+            if (!directionsUnlocked || level == WaveLevel.Beginner) return WaveDirection.Peak;
+            int lefts = 0, rights = 0;
+            foreach (var surfer in Surfer.All)
+            {
+                if (!surfer.WaitingForWave || surfer.Skill != level) continue;
+                if (surfer.PreferredDirection == WaveDirection.Left) lefts++;
+                else rights++;
+            }
+            if (lefts > 0 && rights == 0) return WaveDirection.Left;
+            if (rights > 0 && lefts == 0) return WaveDirection.Right;
+            return WaveDirection.Peak;
         }
 
         /// <summary>The unlocked wave type wanted by the most surfers waiting in the water.</summary>

@@ -29,7 +29,8 @@ namespace SurfPool.EditorTools
             var deckMat = Mat("Deck", new Color(0.72f, 0.72f, 0.72f));
             var tileMat = Mat("PoolTile", new Color(0.82f, 0.9f, 0.95f));
             var sandMat = Mat("Sand", new Color(0.9f, 0.83f, 0.62f));
-            var waterMat = Mat("Water", new Color(0.1f, 0.45f, 0.78f), 0.9f);
+            var waterMat = WaterMaterial();
+            var foamMat = Mat("Foam", Color.white, 0.1f);
             var machineMat = Mat("Machine", new Color(0.35f, 0.37f, 0.4f));
             var consoleMat = Mat("Console", new Color(0.22f, 0.22f, 0.25f));
             var buttonMat = Mat("Button", Color.white, 0.6f);
@@ -82,6 +83,15 @@ namespace SurfPool.EditorTools
             waterGo.GetComponent<MeshRenderer>().sharedMaterial = waterMat;
             var water = waterGo.AddComponent<WaveWater>();
 
+            // Barrel lip: a second mesh the water fills in each frame for barreling waves.
+            var lipGo = new GameObject("Barrel Lip", typeof(MeshFilter), typeof(MeshRenderer));
+            lipGo.transform.SetParent(waterGo.transform, false);
+            lipGo.GetComponent<MeshRenderer>().sharedMaterial = waterMat;
+            Set(water, "lipMesh", lipGo.GetComponent<MeshFilter>());
+
+            // Foam spray: cartoon white blobs thrown up where waves break.
+            Set(water, "spray", BuildSpray(foamMat));
+
             // Wave machine housing behind the deep end.
             var machineGo = Box("Wave Machine", null, new Vector3(-9, 2.5f, 0), new Vector3(10, 5, PoolWidth - 2), machineMat);
             var machine = machineGo.AddComponent<WaveMachine>();
@@ -90,11 +100,11 @@ namespace SurfPool.EditorTools
             // Control console with the big button, on the deck by the deep end.
             var console = new GameObject("Wave Console").transform;
             console.position = new Vector3(5, 0, -halfW - 1.5f);
-            Box("Pedestal", console, console.position + new Vector3(0, 0.5f, 0), new Vector3(1.2f, 1f, 0.7f), consoleMat);
+            Box("Pedestal", console, console.position + new Vector3(0, 0.5f, 0), new Vector3(1.2f, 1f, 0.8f), consoleMat);
             var buttonGo = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             buttonGo.name = "Button";
             buttonGo.transform.SetParent(console, false);
-            buttonGo.transform.localPosition = new Vector3(0, 1.04f, 0.12f);
+            buttonGo.transform.localPosition = new Vector3(0, 1.04f, -0.15f);
             buttonGo.transform.localScale = new Vector3(0.32f, 0.04f, 0.32f);
             Object.DestroyImmediate(buttonGo.GetComponent<Collider>());
             buttonGo.AddComponent<BoxCollider>();
@@ -103,18 +113,11 @@ namespace SurfPool.EditorTools
             Set(button, "machine", machine);
             Set(button, "buttonRenderer", buttonGo.GetComponent<MeshRenderer>());
 
-            // Wave type buttons in front of the big button: Beginner, Intermediate, Pro (left to right).
-            var levels = new[] { WaveLevel.Beginner, WaveLevel.Intermediate, WaveLevel.Pro };
-            var levelColors = new[] { new Color(0.35f, 0.85f, 1f), new Color(0.2f, 0.4f, 1f), new Color(0.85f, 0.2f, 0.95f) };
-            for (int i = 0; i < levels.Length; i++)
-            {
-                var select = Box($"Select {levels[i]}", console, console.position + new Vector3((i - 1) * 0.35f, 1.03f, -0.2f), new Vector3(0.24f, 0.06f, 0.16f), buttonMat);
-                var selectButton = select.AddComponent<WaveSelectButton>();
-                Set(selectButton, "machine", machine);
-                Set(selectButton, "buttonRenderer", select.GetComponent<MeshRenderer>());
-                SetInt(selectButton, "level", (int)levels[i]);
-                SetColor(selectButton, "color", levelColors[i]);
-            }
+            // Wave control screen behind the big button: opens the Wave Control panel.
+            var waveScreen = Box("Wave Screen", console, console.position + new Vector3(0, 1.3f, 0.22f), new Vector3(0.7f, 0.42f, 0.05f), screenMat);
+            waveScreen.transform.rotation = Quaternion.Euler(-35f, 0, 0);
+            var wavePanel = waveScreen.AddComponent<WaveControlPanel>();
+            Set(wavePanel, "machine", machine);
 
             // First-person player.
             var player = new GameObject("Player");
@@ -353,6 +356,13 @@ namespace SurfPool.EditorTools
             screenDoc.sortingOrder = 10;
             Set(screenGo.AddComponent<UpgradeScreen>(), "shop", shop);
 
+            var waveUiGo = new GameObject("Wave Control Screen");
+            var waveDoc = waveUiGo.AddComponent<UnityEngine.UIElements.UIDocument>();
+            waveDoc.panelSettings = panelSettings;
+            waveDoc.visualTreeAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.VisualTreeAsset>("Assets/_Game/UI/WaveControl.uxml");
+            waveDoc.sortingOrder = 10;
+            Set(waveUiGo.AddComponent<WaveControlScreen>(), "panel", wavePanel);
+
             var eventSystem = new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem));
             eventSystem.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
 
@@ -432,6 +442,48 @@ namespace SurfPool.EditorTools
             for (int i = 0; i < values.Length; i++)
                 prop.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        static Material WaterMaterial()
+        {
+            const string path = "Assets/_Game/Materials/StylizedWater.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(Shader.Find("SurfPool/StylizedWater"));
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            return mat;
+        }
+
+        /// <summary>Particle system for foam blobs. WaveWater emits the particles itself.</summary>
+        static ParticleSystem BuildSpray(Material foamMat)
+        {
+            var go = new GameObject("Wave Spray");
+            var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.playOnAwake = false;
+            main.loop = false;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.gravityModifier = 1.1f;
+            main.maxParticles = 4000;
+            main.startColor = Color.white;
+            var emission = ps.emission;
+            emission.enabled = false;
+            var shape = ps.shape;
+            shape.enabled = false;
+            var size = ps.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 0.6f), new Keyframe(0.2f, 1f), new Keyframe(1f, 0f)));
+            var renderer = go.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Mesh;
+            var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            renderer.mesh = sphere.GetComponent<MeshFilter>().sharedMesh;
+            Object.DestroyImmediate(sphere);
+            renderer.sharedMaterial = foamMat;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return ps;
         }
 
         /// <summary>Shared UI Toolkit panel settings: scales with screen size from a 1920x1080 layout.</summary>

@@ -74,6 +74,8 @@ namespace SurfPool
         float rideWave;
         float rideStartTime;
         float rideLaneZ;
+        float rideZ;
+        bool inBarrel;
         float rideQuality;
         float wipeoutAt;
         float wipeoutStart;
@@ -103,6 +105,15 @@ namespace SurfPool
 
         /// <summary>The wave type this surfer is good at.</summary>
         public WaveLevel Skill { get; private set; }
+
+        /// <summary>Regular-foot surfers prefer rights (their frontside), goofy-foot surfers prefer lefts.</summary>
+        public WaveDirection PreferredDirection { get; private set; }
+
+        int PreferredSide => PreferredDirection == WaveDirection.Right ? -1 : 1;
+
+        string WantedWave => Skill == WaveLevel.Beginner
+            ? "a Beginner wave"
+            : $"{(Skill == WaveLevel.Intermediate ? "an" : "a")} {Skill} {PreferredDirection.ToString().ToLowerInvariant()}";
         public bool ShowPatience => state is State.InDeskLine or State.InRentalLine or State.WaitingForWave;
         public float Patience => patience;
 
@@ -118,7 +129,7 @@ namespace SurfPool
                         ? $"${spawner.Pricing.Price}?! That's a lot..."
                         : $"{Skill} surfer - wants a session" + (isRenter ? " + board" : ""),
                     State.InRentalLine when atFront => "Needs a rental board",
-                    State.WaitingForWave => $"Wants a {Skill} wave ({ridesDone + 1}/{wavesPerSession})",
+                    State.WaitingForWave => $"Wants {WantedWave} ({ridesDone + 1}/{wavesPerSession})",
                     _ => null,
                 };
             }
@@ -165,8 +176,8 @@ namespace SurfPool
         {
             spawner = owner;
             water = owner.Water;
-            float roll = Random.value;
-            Skill = roll < 0.45f ? WaveLevel.Beginner : roll < 0.85f ? WaveLevel.Intermediate : WaveLevel.Pro;
+            Skill = owner.RollSkill();
+            PreferredDirection = Random.value < 0.6f ? WaveDirection.Right : WaveDirection.Left;
             float skillPay = Skill switch { WaveLevel.Beginner => 0.85f, WaveLevel.Pro => 1.4f, _ => 1f };
             MaxPrice = owner.Pricing.FairPrice * Random.Range(0.8f, 1.5f) * skillPay;
             // Beginners ride big foam boards, pros ride short narrow ones.
@@ -358,7 +369,14 @@ namespace SurfPool
                 rideWave = wave;
                 rideStartTime = Time.time;
                 rideLaneZ = water.transform.InverseTransformPoint(transform.position).z;
+                rideZ = rideLaneZ;
                 rideQuality = diff == 0 ? 1f : diff < 0 ? 0.5f : 0.6f;
+
+                // On a single-direction wave, going your frontside feels better than going backside.
+                var waveDirection = water.DirectionOf(wave);
+                bool backside = level != WaveLevel.Beginner && waveDirection != WaveDirection.Peak
+                                && waveDirection != PreferredDirection;
+                if (backside) rideQuality *= 0.85f;
                 rideMatched = diff == 0;
                 nextTrickAt = Time.time + Random.Range(trickInterval.x, trickInterval.y);
 
@@ -367,7 +385,8 @@ namespace SurfPool
                 wipeoutAt = Random.value < wipeoutChance ? Time.time + Random.Range(0.8f, 2.5f) : -1f;
 
                 state = State.Riding;
-                Shout(diff < 0 ? "Kinda small..." : diff > 0 ? "Whoa, big one!" : RideShouts[Random.Range(0, RideShouts.Length)], 2f);
+                Shout(diff < 0 ? "Kinda small..." : diff > 0 ? "Whoa, big one!"
+                    : backside ? "Going backside!" : RideShouts[Random.Range(0, RideShouts.Length)], 2f);
                 return;
             }
         }
@@ -395,9 +414,34 @@ namespace SurfPool
                 WaveLevel.Pro => proRideOffset,
                 _ => intermediateRideOffset,
             };
-            float limit = water.Width * 0.5f - 2f;
-            float z = Mathf.Clamp(rideLaneZ + Mathf.Sin((Time.time - rideStartTime) * carveSpeed) * carveWidth, -limit, limit);
-            Vector3 target = water.transform.TransformPoint(new Vector3(crest + offset, 0f, z));
+
+            // Peeling waves: ride just ahead of the break point (the pocket) on your side.
+            // Whitewater: ride straight in front of the foam, carving a little.
+            float limit = water.Width * 0.5f - 1.5f;
+            float carve = Mathf.Sin((Time.time - rideStartTime) * carveSpeed);
+            float targetZ;
+            inBarrel = false;
+            if (water.TryGetPocket(rideWave, PreferredSide, out float pocketZ, out int side, out bool breaking,
+                    out bool finished, out bool barrel))
+            {
+                if (finished)
+                {
+                    RecordMood(rideQuality);
+                    FinishRide(false);
+                    return;
+                }
+                float ahead = Skill switch { WaveLevel.Pro => 0.7f, WaveLevel.Intermediate => 2f, _ => 3f };
+                targetZ = pocketZ + side * ahead + (breaking ? carve * 0.8f : 0f);
+                inBarrel = barrel && breaking && Skill == WaveLevel.Pro;
+                if (inBarrel) offset = 0.9f;
+            }
+            else
+            {
+                targetZ = rideLaneZ + carve * carveWidth * 0.4f;
+            }
+            rideZ = Mathf.Clamp(Mathf.MoveTowards(rideZ, targetZ, 7f * Time.deltaTime), -limit, limit);
+
+            Vector3 target = water.transform.TransformPoint(new Vector3(crest + offset, 0f, rideZ));
             const float airTime = 0.7f;
             float air = Mathf.Clamp01((Time.time - airStart) / airTime);
             target.y = water.SurfaceHeightAt(target) + (air < 1f ? Mathf.Sin(air * Mathf.PI) * 0.9f : 0f);
@@ -415,6 +459,7 @@ namespace SurfPool
                 _ => IntermediateTricks,
             };
             string trick = tricks[Random.Range(0, tricks.Length)];
+            if (inBarrel) trick = Random.value < 0.6f ? "Tube ride!" : "Getting barreled!";
             if (trick == "AIR!") airStart = Time.time;
             tricksLanded++;
             Shout(trick, 1.3f);
