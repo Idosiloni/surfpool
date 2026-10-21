@@ -125,6 +125,9 @@ namespace SurfPool.EditorTools
             Set(surfing, "body", cc);
             Set(surfing, "cameraPivot", camGo.transform);
             Set(surfing, "surfBoard", myBoard);
+            var replay = player.AddComponent<SurfReplay>();
+            Set(replay, "surfing", surfing);
+            Set(replay, "avatarPrefab", BuildReplayAvatarPrefab());
 
             // Money.
             var game = new GameObject("Game");

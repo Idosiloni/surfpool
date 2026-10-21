@@ -490,6 +490,24 @@ namespace SurfPool.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        /// <summary>You, for the instant replay: a person with a shortboard child named "Board".</summary>
+        static CharacterRig BuildReplayAvatarPrefab()
+        {
+            const string path = "Assets/_Game/Prefabs/ReplayAvatar.prefab";
+            var root = new GameObject("Replay Avatar");
+            var rig = BuildCharacter(root.transform);
+            var board = WorldArt.Model("BoardShort", root.transform, root.transform.position, 0f);
+            if (board != null)
+            {
+                board.name = "Board";
+                board.transform.localRotation = Quaternion.identity;
+                board.transform.localPosition = CharacterRig.BoardPivot;
+            }
+            var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
+            Object.DestroyImmediate(root);
+            return prefab.GetComponent<CharacterRig>();
+        }
+
         static Shopper BuildShopperPrefab()
         {
             const string path = "Assets/_Game/Prefabs/Shopper.prefab";

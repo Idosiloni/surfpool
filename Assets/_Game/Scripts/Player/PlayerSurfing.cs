@@ -93,6 +93,21 @@ namespace SurfPool
 
         public bool IsSurfing => state != State.Off;
         public bool IsRiding => state == State.Riding;
+        public bool IsWipingOut => state == State.Wipeout;
+
+        // ---- read by the instant replay (SurfReplay) ----
+        public PoolArea Pool => pool;
+        /// <summary>-1..1 how hard you're turning.</summary>
+        public float Turn => feel.Turn;
+        /// <summary>0..1 height of an air right now.</summary>
+        public float AirLift { get; private set; }
+        /// <summary>The board's tilt under you (heading frame).</summary>
+        public Quaternion BoardTilt => surfBoard.transform.localRotation;
+
+        /// <summary>You popped up and are riding a wave.</summary>
+        public event Action RideStarted;
+        /// <summary>A wipeout began.</summary>
+        public event Action WipedOut;
 
         /// <summary>0..1 how deep in the tube you are right now.</summary>
         public float Tube => tube;
@@ -358,6 +373,7 @@ namespace SurfPool
                     carveSign = 0f;
                     feel.Begin(transform.position, Quaternion.Euler(0f, transform.eulerAngles.y, 0f));
                     state = State.Riding;
+                    RideStarted?.Invoke();
                     Sfx.Play(Sound.Splash, transform.position, 0.4f);
                     if (d >= -1.6f && d <= -0.4f)
                     {
@@ -491,6 +507,7 @@ namespace SurfPool
             float air = Mathf.Clamp01((Time.time - airStart) / 0.8f);
             bool airborne = air < 1f;
             float lift = airborne ? Mathf.Sin(air * Mathf.PI) : 0f;
+            AirLift = lift;
             target.y = water.SurfaceHeightAt(target) + 0.05f + lift * 1.1f;
             Vector3 delta = target - transform.position;
             transform.position = target;
@@ -604,6 +621,8 @@ namespace SurfPool
         void StartWipeout(string why)
         {
             state = State.Wipeout;
+            AirLift = 0f;
+            WipedOut?.Invoke();
             wipeoutUntil = Time.time + 1.5f;
             GameStats.Wipeouts++;
             Sfx.Play(Sound.SplashBig);

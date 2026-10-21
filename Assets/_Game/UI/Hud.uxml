@@ -56,6 +56,15 @@
         </ui:VisualElement>
 
         <SurfPool.HoldRing name="holdRing" class="hold-ring hidden" />
+        <ui:Label name="replayOffer" text="R  Watch replay" class="replay-offer hidden" picking-mode="Ignore" />
+        <ui:VisualElement name="replayOverlay" class="replay-overlay hidden" picking-mode="Ignore">
+            <ui:VisualElement class="replay-bar" picking-mode="Ignore" />
+            <ui:Label name="replaySlow" text="SLOW-MO" class="replay-slow hidden" picking-mode="Ignore" />
+            <ui:VisualElement class="replay-bar replay-bar--bottom" picking-mode="Ignore">
+                <ui:Label text="REPLAY" class="replay-title" picking-mode="Ignore" />
+                <ui:Label text="Space  skip" class="replay-hint" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
         <ui:VisualElement name="cashPopLayer" class="layer" picking-mode="Ignore" />
 
         <ui:VisualElement name="shopTicket" class="card shop-ticket hidden" picking-mode="Ignore">

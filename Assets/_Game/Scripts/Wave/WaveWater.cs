@@ -98,6 +98,57 @@ namespace SurfPool
         readonly List<Color> lipColors = new();
         readonly List<int> lipTriangles = new();
 
+        // ---- instant replay: the water can be rewound to a recorded ride (SurfReplay) ----
+        bool replaying;
+        float replayTime, replayDt;
+        readonly List<ActiveWave> recorded = new(), liveBackup = new();
+        bool recording;
+
+        /// <summary>The water's clock: the game time, or the replay's time while a ride is replayed.</summary>
+        float Now => replaying ? replayTime : Time.time;
+        float Dt => replaying ? replayDt : Time.deltaTime;
+
+        /// <summary>Starts remembering every wave in the pool now and every new one (for a replay of this ride).</summary>
+        public void BeginRecording()
+        {
+            recorded.Clear();
+            recorded.AddRange(waves);
+            recording = true;
+        }
+
+        public void EndRecording() => recording = false;
+
+        /// <summary>Swaps the live waves for the recorded ones and drives the water from the replay clock.</summary>
+        public void StartReplay(float time)
+        {
+            if (replaying) return;
+            liveBackup.Clear();
+            liveBackup.AddRange(waves);
+            waves.Clear();
+            waves.AddRange(recorded);
+            foreach (var wave in recorded) crashed.Remove(wave.start); // let them crash again on screen
+            replaying = true;
+            replayTime = time;
+            replayDt = 0f;
+        }
+
+        /// <summary>Moves the replay clock (dt can be slow-motion small).</summary>
+        public void SetReplayTime(float time)
+        {
+            replayDt = Mathf.Max(0f, time - replayTime);
+            replayTime = time;
+        }
+
+        public void StopReplay()
+        {
+            if (!replaying) return;
+            replaying = false;
+            waves.Clear();
+            waves.AddRange(liveBackup);
+            foreach (var wave in recorded) crashed.Add(wave.start);
+            foreach (var wave in liveBackup) crashed.Add(wave.start);
+        }
+
         public int ActiveWaves => waves.Count;
         public float Length => length;
         public float Width => width;
@@ -110,7 +161,7 @@ namespace SurfPool
         public float CurrentWaveCenter(float waveId)
         {
             foreach (var wave in waves)
-                if (wave.start == waveId) return WaveCenter(wave, Time.time);
+                if (wave.start == waveId) return WaveCenter(wave, Now);
             return length * 2f; // gone: treat as past the beach
         }
 
@@ -201,7 +252,9 @@ namespace SurfPool
                 type.height *= preset.size;
                 type.peelSpeed *= preset.peel;
             }
-            waves.Add(new ActiveWave { start = Time.time, type = type, direction = direction, famous = preset?.name });
+            var spawned = new ActiveWave { start = Now, type = type, direction = direction, famous = preset?.name };
+            waves.Add(spawned);
+            if (recording) recorded.Add(spawned);
         }
 
         /// <summary>Has this wave broken into whitewater yet? (Beginners on the inside ride the whitewater of bigger waves.)</summary>
@@ -224,19 +277,19 @@ namespace SurfPool
         public float SurfaceHeightAt(Vector3 worldPosition)
         {
             Vector3 local = transform.InverseTransformPoint(worldPosition);
-            return transform.TransformPoint(new Vector3(local.x, LocalHeight(local.x, local.z, Time.time), local.z)).y;
+            return transform.TransformPoint(new Vector3(local.x, LocalHeight(local.x, local.z, Now), local.z)).y;
         }
 
         void Update()
         {
-            float t = Time.time;
-            waves.RemoveAll(wave => WaveCenter(wave, t) > length + wave.type.backWidth * 3f);
+            float t = Now;
+            if (!replaying) waves.RemoveAll(wave => WaveCenter(wave, t) > length + wave.type.backWidth * 3f);
             UpdateStates(t);
 
             // Foam stays where it was made and fades over foamLinger seconds, leaving lacy trails behind the
             // wave. Vertex color: R = foam, G = face brightness, B = shallowness (beach end), A = foam freshness
             // (1 = just made, toward 0 = old foam the shader breaks into lace).
-            float fade = Time.deltaTime / Mathf.Max(0.1f, foamLinger);
+            float fade = Dt / Mathf.Max(0.1f, foamLinger);
             for (int i = 0; i < vertices.Length; i++)
             {
                 Vector3 v = baseVertices[i];
@@ -525,7 +578,7 @@ namespace SurfPool
                 {
                     float z = bp + direction * Random.Range(0.3f, 1.4f);
                     float x = state.center + state.amplitude * 0.35f;
-                    var local = new Vector3(x, LocalHeight(x, z, Time.time) + state.amplitude * 0.45f, z);
+                    var local = new Vector3(x, LocalHeight(x, z, Now) + state.amplitude * 0.45f, z);
                     var velocity = new Vector3(Random.Range(0.5f, 2f), Random.Range(0.3f, 1.2f), direction * Random.Range(4f, 7f));
                     spray.Emit(new ParticleSystem.EmitParams
                     {
@@ -541,7 +594,7 @@ namespace SurfPool
         void EmitBlob(in WaveState state, float z, int direction, float strength)
         {
             float x = state.center + Random.Range(-0.4f, 0.8f);
-            var local = new Vector3(x, LocalHeight(x, z, Time.time) + 0.1f, z);
+            var local = new Vector3(x, LocalHeight(x, z, Now) + 0.1f, z);
             var velocity = new Vector3(Random.Range(1f, 3.5f), Random.Range(1.5f, 4f) * strength, direction * Random.Range(0f, 1.5f));
             spray.Emit(new ParticleSystem.EmitParams
             {
@@ -573,9 +626,9 @@ namespace SurfPool
             }, 1);
         }
 
-        static int RandomCount(float perSecond)
+        int RandomCount(float perSecond)
         {
-            float expected = perSecond * Time.deltaTime;
+            float expected = perSecond * Dt;
             int count = Mathf.FloorToInt(expected);
             return count + (Random.value < expected - count ? 1 : 0);
         }
