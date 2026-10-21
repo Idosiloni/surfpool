@@ -94,6 +94,7 @@ namespace SurfPool
         float tube, tubeTime;
         bool inTube;
         Vector3 chaseVelocity, chaseLook;
+        float waveWatch; // 0..1 the paddling chase cam turns to face out to sea when a wave is coming
         // Maneuvers: air spins and grabs, snaps and cutbacks (a twist of the body), floaters (arms up).
         float spin, grabTime, airDuration = 0.8f, airHeight = 1.1f, twist, armsUp, floatTime;
         bool partyAwarded;
@@ -106,7 +107,9 @@ namespace SurfPool
         const int SpareBoardCost = 40;
         // Pumping (W/S up and down the face in rhythm) makes speed on green waves; repeated moves score less.
         int pumpStep, pumpsInRow, lastPumpIndex = -1;
-        float lastPumpKey = -10f, pumpGlow;
+        float lastPumpKey = -10f, pumpGlow, lastPump = -10f, pumpFlow;
+        /// <summary>Most flow pumping alone can add in one ride: real speed for snaps and airs still needs carves.</summary>
+        const float MaxPumpFlow = 0.35f;
         readonly System.Collections.Generic.Dictionary<string, int> movesThisRide = new();
         float travelSign = 1f;
         bool chaseSnap = true;
@@ -339,6 +342,18 @@ namespace SurfPool
                 forward.Normalize();
                 want = rider - forward * 4.2f + Vector3.up * (2.1f + Mathf.Clamp(pitch, -20f, 40f) * 0.04f);
                 look = rider + forward * 3f + Vector3.up * 0.4f;
+                // A wave rolling up behind you: swing round to look out to sea over your shoulder, to time the pop-up.
+                waveWatch = Mathf.MoveTowards(waveWatch, state == State.Paddling && WaveComingBehind() ? 1f : 0f, dt * 1.5f);
+                if (waveWatch > 0f)
+                {
+                    Vector3 toBeach = w.TransformDirection(Vector3.right);
+                    Vector3 side = w.TransformDirection(Vector3.forward) * (w.InverseTransformPoint(rider).z > 0f ? -1f : 1f);
+                    Vector3 seaWant = rider + toBeach * 4.2f + side * 1.6f + Vector3.up * 2.2f;
+                    Vector3 seaLook = rider - toBeach * 6f + Vector3.up * 0.8f;
+                    float k = Mathf.SmoothStep(0f, 1f, waveWatch);
+                    want = Vector3.Lerp(want, seaWant, k);
+                    look = Vector3.Lerp(look, seaLook, k);
+                }
             }
             Vector3 local = w.InverseTransformPoint(want);
             float limit = water.Width * 0.5f - 0.4f;
@@ -357,6 +372,19 @@ namespace SurfPool
             cameraPivot.position = Vector3.SmoothDamp(cameraPivot.position, want, ref chaseVelocity, 0.2f) + shake;
             chaseLook = Vector3.Lerp(chaseLook, look, 1f - Mathf.Exp(-8f * dt));
             cameraPivot.rotation = Quaternion.LookRotation(chaseLook - cameraPivot.position) * Quaternion.Euler(kick, 0f, roll * 0.5f + shakeRoll);
+        }
+
+        /// <summary>A wave's crest is rolling toward you from behind, within about 18 m.</summary>
+        bool WaveComingBehind()
+        {
+            var water = pool.Water;
+            float x = water.transform.InverseTransformPoint(transform.position).x;
+            for (int i = 0; i < water.ActiveWaves; i++)
+            {
+                float crest = water.CurrentWaveCenter(water.GetWave(i).id);
+                if (crest < x + 1f && x - crest < 18f) return true;
+            }
+            return false;
         }
 
         void Look(Vector2 delta)
@@ -489,7 +517,7 @@ namespace SurfPool
                     waveLevel = water.LevelOf(wave);
                     movesThisRide.Clear();
                     pumpStep = pumpsInRow = 0;
-                    pumpGlow = 0f;
+                    pumpGlow = pumpFlow = 0f;
                     CheckDropIn(water, wave);
                     feel.Begin(transform.position, Quaternion.Euler(0f, transform.eulerAngles.y, 0f));
                     state = State.Riding;
@@ -563,7 +591,7 @@ namespace SurfPool
         void Trick(string name, int points, float flowGain)
         {
             // Variety (like real judges): the same move again in one ride is worth less each time.
-            string kind = name.Split(' ')[0];
+            string kind = name.StartsWith("TUBE") ? "TUBE" : name; // "AIR" and "AIR REVERSE 180" are different moves
             movesThisRide.TryGetValue(kind, out int done);
             movesThisRide[kind] = done + 1;
             points = Mathf.RoundToInt(points * Mathf.Pow(0.65f, done));
@@ -748,9 +776,14 @@ namespace SurfPool
         public void Pump()
         {
             if (state != State.Riding || waveLevel == WaveLevel.Beginner) return;
+            // A real pump is a rhythm, not mashing: at least 0.4 s apart, and you have to be moving along the face.
+            if (Time.time - lastPump < 0.4f || Mathf.Abs(rideVelocity) < 0.3f * carveSpeed) return;
+            lastPump = Time.time;
             pumpsInRow++;
             pumpGlow = 1f;
-            flow = Mathf.Clamp01(flow + 0.07f);
+            float gain = Mathf.Min(0.07f, MaxPumpFlow - pumpFlow);
+            pumpFlow += gain;
+            flow = Mathf.Clamp01(flow + gain);
             float dir = Mathf.Abs(rideVelocity) > 0.3f ? Mathf.Sign(rideVelocity) : travelSign;
             rideVelocity += dir * 1.2f;
             if (pumpsInRow == 3) Called?.Invoke("PUMPING! Speed up", Notice.Info);
@@ -822,7 +855,7 @@ namespace SurfPool
                 && water.TryGetPocket(rideWave, side, out float pocketZ, out int direction, out _, out _, out bool barrel) && !barrel)
             {
                 float ahead = (rideZ - pocketZ) * direction;
-                over = ahead > -1.5f && ahead < 3f;
+                over = ahead > -2.5f && ahead < 4f;
             }
             armsUp = Mathf.MoveTowards(armsUp, over ? 1f : 0f, dt * 4f);
             if (!over)
@@ -831,7 +864,7 @@ namespace SurfPool
                 return;
             }
             floatTime += dt;
-            if (floatTime >= 0.7f && floatTime - dt < 0.7f)
+            if (floatTime >= 0.5f && floatTime - dt < 0.5f)
             {
                 Trick("FLOATER", 160, 0.2f);
                 RideFeel.Splash(water, transform.position, 14, 2.4f);
