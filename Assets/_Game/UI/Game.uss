@@ -1650,7 +1650,7 @@
 /* ---------- End-of-day report and pause menu ---------- */
 
 .report-window {
-    width: 880px;
+    width: 1220px;
     height: auto;
 }
 
@@ -1688,6 +1688,59 @@
 .report-empty {
     font-size: 16px;
     color: #8FA3AB;
+}
+
+/* Guest reviews: little paper notes with stars, the line, and who said it. */
+.report-column--reviews {
+    flex-grow: 1.35;
+}
+
+.review-card {
+    background-color: white;
+    border-radius: 12px;
+    border-width: 2px;
+    border-bottom-width: 4px;
+    border-color: var(--sand-dark);
+    padding: 8px 12px 9px 12px;
+    margin-bottom: 8px;
+}
+
+.review-card--bad {
+    border-color: #F2B3A9;
+}
+
+.review-stars {
+    font-size: 17px;
+    color: var(--sun-dark);
+    letter-spacing: 2px;
+}
+
+.review-card--bad .review-stars {
+    color: var(--coral);
+}
+
+.review-text {
+    font-size: 16px;
+    color: var(--ink);
+    white-space: normal;
+    margin-top: 2px;
+}
+
+.review-who {
+    font-size: 14px;
+    color: var(--muted);
+    -unity-text-align: upper-right;
+    margin-top: 2px;
+}
+
+.report-facts {
+    margin-top: 4px;
+}
+
+.report-fact {
+    font-size: 15px;
+    color: var(--ink-soft);
+    white-space: normal;
 }
 
 .report-totals {

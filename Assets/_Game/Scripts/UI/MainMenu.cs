@@ -114,6 +114,7 @@ namespace SurfPool
             ParkEffects.ResetStatics();
             DailyEvents.ResetStatics();
             ParkName.Load("");
+            ParkReviews.NewDay();
             MachineService.ResetStatics();
             var save = FindAnyObjectByType<SaveSystem>();
             if (save != null) save.enabled = false;

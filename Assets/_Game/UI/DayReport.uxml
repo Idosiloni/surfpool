@@ -14,9 +14,14 @@
                     <ui:Label text="INCOME" class="section-title" />
                     <ui:VisualElement name="incomeRows" />
                 </ui:VisualElement>
-                <ui:VisualElement class="report-column report-column--last">
+                <ui:VisualElement class="report-column">
                     <ui:Label text="EXPENSES" class="section-title" />
                     <ui:VisualElement name="expenseRows" />
+                </ui:VisualElement>
+                <ui:VisualElement class="report-column report-column--last report-column--reviews">
+                    <ui:Label text="WHAT GUESTS SAID" class="section-title" />
+                    <ui:VisualElement name="reviewCards" />
+                    <ui:VisualElement name="factRows" class="report-facts" />
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:Label name="reportTotals" class="report-totals" />

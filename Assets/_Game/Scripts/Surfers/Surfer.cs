@@ -110,6 +110,12 @@ namespace SurfPool
 
         /// <summary>Who this surfer is (grom, kook, charger...): what they say and how they celebrate.</summary>
         public Archetype Type => archetype;
+
+        // Their visit so far, for the review they write when they leave (ParkReviews).
+        readonly Visit visit = new();
+
+        /// <summary>First name, shown at the desk and in reviews.</summary>
+        public string FirstName => visit.name;
         Move move;
         float moveStart, moveLength, moveDirection;
         int tricksLanded;
@@ -159,7 +165,7 @@ namespace SurfPool
                 {
                     State.InDeskLine when atFront => spawner.Pricing.PriceFor(Skill, pool) > MaxPrice
                         ? $"{MoneyText.Format(spawner.Pricing.PriceFor(Skill, pool))}?! That's a lot..."
-                        : $"{Skill} surfer - wants a session" + (isRenter ? " + board" : ""),
+                        : $"{visit.name} · {Skill} surfer - wants a session" + (isRenter ? " + board" : ""),
                     State.InRentalLine when atFront => "Needs a rental board",
                     State.WaitingForWave => $"Wants {WantedWave} ({ridesDone + 1}/{wavesPerSession})",
                     _ => null,
@@ -205,6 +211,7 @@ namespace SurfPool
         {
             if (!WaitingForBoard) return;
             Wallet.Instance.Add(spawner.Pricing.RentalPrice, "board rental");
+            visit.spent += spawner.Pricing.RentalPrice;
             GameStats.BoardsRented++;
             RecordMood(patience);
             hasRentalBoard = true;
@@ -225,6 +232,10 @@ namespace SurfPool
             MaxPrice = owner.Pricing.FairFor(Skill, pool) * Random.Range(0.8f, 1.5f);
             UseBoardFor(Skill);
             archetype = SurferPersonalities.Roll(Skill);
+            visit.name = SurferNames.Pick();
+            visit.type = archetype;
+            visit.skill = Skill;
+            visit.arrivedAt = Time.time;
             rig.Goofy = Random.value < 0.35f;
             rig.Style = Skill switch { WaveLevel.Beginner => 0f, WaveLevel.Intermediate => 0.55f, _ => 1f };
             rig.Wear(CharacterLooks.For(archetype));
@@ -255,6 +266,9 @@ namespace SurfPool
         {
             Famous = legend;
             Skill = WaveLevel.Pro;
+            visit.name = legend.name.Split(' ')[0];
+            visit.famous = true;
+            visit.skill = WaveLevel.Pro;
             archetype = legend.type;
             PoolArea best = pool;
             foreach (var area in PoolRegistry.All)
@@ -275,6 +289,8 @@ namespace SurfPool
         {
             if (!WaitingToPay) return;
             paidPrice = price;
+            visit.paidAt = Time.time;
+            visit.spent += price;
             RecordMood(patience);
             spawner.LeaveLines(this);
             lineupTarget = FreeLineupSpot();
@@ -785,6 +801,8 @@ namespace SurfPool
                     // Drop-in drama: the surfer already on it yells, the kook apologizes, the lifeguard whistles.
                     dropInVictim.Shout(SurferPersonalities.Line(dropInVictim.archetype, Moment.DropInVictim), 2.5f);
                     dropInVictim.rig.ShowFace(SurfPool.Face.Grumpy, 3f);
+                    dropInVictim.visit.droppedInOn = true;
+                    visit.droppedIn = true;
                     Shout(SurferPersonalities.Line(archetype, Moment.DropInSorry), 2.5f);
                     Lifeguard.Whistle();
                 }
@@ -951,6 +969,7 @@ namespace SurfPool
             {
                 trick = Random.value < 0.6f ? "Tube ride!" : "Getting barreled!";
                 GameStats.TubeRides++;
+                visit.barrels++;
             }
             GameStats.TricksLanded++;
             if (inBarrel || Skill == WaveLevel.Pro || Random.value < 0.3f) Sfx.Play(Sound.Cheer, transform.position, inBarrel ? 1f : 0.7f);
@@ -979,6 +998,7 @@ namespace SurfPool
             tumbleAxis = Random.onUnitSphere;
             RecordMood(ParkEffects.WipeoutMood + ParkPerks.WipeoutMoodBonus);
             GameStats.Wipeouts++;
+            visit.wipeouts++;
             Sfx.Play(Sound.Splash, transform.position);
             RideFeel.Splash(water, transform.position, 24, 3f);
             Lifeguard.Whistle();
@@ -1034,6 +1054,7 @@ namespace SurfPool
             string line = SurferPersonalities.Line(archetype, happiness > 0.75f ? Moment.GoodEnd : happiness > 0.5f ? Moment.OkEnd : Moment.BadEnd);
             if (Famous != null) line = FamousVisits.LegendLeaves(this, happiness, paidPrice);
             rig.ShowFace(happiness > 0.75f ? SurfPool.Face.Stoked : happiness > 0.5f ? SurfPool.Face.Happy : SurfPool.Face.Grumpy, 3.5f);
+            WriteReview(happiness, tip);
             Shout(line + (tip > 0 ? $"  (tipped ${tip})" : ""), 5f);
             state = State.SwimmingToBeach;
         }
@@ -1067,10 +1088,26 @@ namespace SurfPool
             }
         }
 
+        void WriteReview(float happiness, int tip)
+        {
+            visit.happiness = happiness;
+            visit.tip = tip;
+            visit.spent += tip;
+            visit.tricks = tricksLanded;
+            visit.photoGrade = PhotoGrade;
+            visit.trash = Trash.MoodPenalty > 0.05f;
+            if (Famous == null)
+                foreach (var other in All)
+                    if (other.Famous != null && other.pool == pool) visit.rodeWith = other.Famous.name;
+            ParkReviews.Record(visit);
+        }
+
         void LeaveAngry(string message)
         {
             if (angry) return;
             angry = true;
+            visit.angry = message;
+            ParkReviews.Record(visit);
             Shout(message, 5f);
             spawner.LeaveLines(this);
             spawner.ReportLost();
