@@ -100,6 +100,10 @@ namespace SurfPool
         // The wave you're on decides what's possible (like real surfing): whitewater = stand up, angle and ride it
         // in; a green face = carves, bottom turns, snaps, cutbacks, floaters; a steep, fast pro wave = airs too.
         WaveLevel waveLevel;
+        bool boardSnapped;
+
+        /// <summary>A spare board when yours snaps (it never stops you surfing).</summary>
+        const int SpareBoardCost = 40;
         // Pumping (W/S up and down the face in rhythm) makes speed on green waves; repeated moves score less.
         int pumpStep, pumpsInRow, lastPumpIndex = -1;
         float lastPumpKey = -10f, pumpGlow;
@@ -126,6 +130,8 @@ namespace SurfPool
         public float Grab { get; private set; }
         /// <summary>Degrees the body twists back (snaps and cutbacks).</summary>
         public float Twist => twist;
+        /// <summary>Degrees of the wipeout tumble (the stand-in rolls with it in the chase cam).</summary>
+        public float Tumble => state == State.Wipeout ? tumble : 0f;
         /// <summary>0..1 arms up (floaters).</summary>
         public float ArmsUp => armsUp;
 
@@ -948,7 +954,15 @@ namespace SurfPool
             state = State.Wipeout;
             AirLift = 0f;
             Grab = 0f;
+            bool fromAir = Time.time - airStart < 1.5f;
             spin = twist = armsUp = 0f;
+            if (UnityEngine.Random.value < BoardBreak.Chance(waveLevel, fromAir))
+            {
+                boardSnapped = true;
+                var replay = SurfReplay.Instance;
+                var board = GameSettings.ChaseCam && replay != null && replay.AvatarBoard != null ? replay.AvatarBoard : surfBoard.transform;
+                BoardBreak.Snap(board, pool.Water);
+            }
             WipedOut?.Invoke();
             wipeoutUntil = Time.time + 1.5f;
             GameStats.Wipeouts++;
@@ -981,6 +995,16 @@ namespace SurfPool
             underwater.cutoffFrequency = Mathf.Lerp(22000f, 650f, Mathf.Pow(left, 0.5f));
             if (Time.time >= wipeoutUntil)
             {
+                if (boardSnapped)
+                {
+                    boardSnapped = false;
+                    surfBoard.SetActive(true);
+                    ApplyView();
+                    var replay = SurfReplay.Instance;
+                    if (replay != null && replay.AvatarBoard != null) replay.AvatarBoard.gameObject.SetActive(true);
+                    Wallet.Instance.Charge(SpareBoardCost, "new boards");
+                    Notifications.Post($"Your board snapped in half! You grab a spare: -{MoneyText.Format(SpareBoardCost)}", Notice.Bad);
+                }
                 state = State.Paddling;
                 underwater.enabled = false;
                 Sfx.Play(Sound.Splash, transform.position, 0.35f); // breaking the surface

@@ -38,6 +38,9 @@ namespace SurfPool
 
         public static SurfReplay Instance { get; private set; }
 
+        /// <summary>The stand-in's board (the one you see in the chase cam).</summary>
+        public Transform AvatarBoard => avatarBoard;
+
         /// <summary>A replay is playing (the park is frozen).</summary>
         public static bool Playing { get; private set; }
 
@@ -165,7 +168,16 @@ namespace SurfPool
                 SetVisible(avatar.gameObject, liveVisible);
             }
             var t = surfing.transform;
-            avatar.transform.SetPositionAndRotation(new Vector3(t.position.x, t.position.y - 0.05f, t.position.z), Quaternion.Euler(0f, t.eulerAngles.y, 0f));
+            var heading = Quaternion.Euler(0f, t.eulerAngles.y, 0f);
+            if (surfing.IsWipingOut)
+            {
+                // Rolled over in the foam: tumbling head over heels, mostly under the surface.
+                float roll = surfing.Tumble;
+                var tumbling = heading * Quaternion.Euler(roll * 0.6f, 0f, roll);
+                Vector3 center = t.position + Vector3.up * 0.15f; // spin around the middle of the body, not the feet
+                avatar.transform.SetPositionAndRotation(center - tumbling * (Vector3.up * 0.7f), tumbling);
+            }
+            else avatar.transform.SetPositionAndRotation(new Vector3(t.position.x, t.position.y - 0.05f, t.position.z), heading);
             avatar.CurrentMode = surfing.IsWipingOut ? CharacterRig.Mode.Flail : surfing.IsRiding ? CharacterRig.Mode.Ride : CharacterRig.Mode.Paddle;
             avatar.Lean = -surfing.Turn;
             avatar.Crouch = Mathf.Clamp01(Mathf.Abs(surfing.Turn) * 0.5f + surfing.Tube * 0.7f + Mathf.Sin(surfing.PumpGlow * Mathf.PI) * 0.45f);

@@ -12,7 +12,7 @@ namespace SurfPool
         public bool famous;
         public float arrivedAt, paidAt = -1f;
         public int barrels, tricks, wipeouts, spent, tip, photoGrade = -1;
-        public bool droppedInOn, droppedIn, rescued;
+        public bool droppedInOn, droppedIn, rescued, brokeBoard;
         public string rodeWith;      // a legend they shared the water with
         public string angry;         // why they left angry (null if they didn't)
         public float happiness;
@@ -104,6 +104,12 @@ namespace SurfPool
                 r.stars = Mathf.Max(r.stars, 4);
                 r.text = Pick("Got tired, panicked, got saved with a ring buoy. Heroes work here!", "They threw me a ring! Best staff ever.",
                     "Almost became a fish. 10/10 rescue.");
+            }
+            else if (v.brokeBoard)
+            {
+                r.interest = 3;
+                r.text = r.stars >= 3 ? Pick("Snapped my board in half! Still a sick day.", "Waves so good they broke my board. Respect.")
+                    : Pick("Snapped my board. Not my day.", "RIP my board. RIP my wallet.");
             }
             else if (v.famous)
             {

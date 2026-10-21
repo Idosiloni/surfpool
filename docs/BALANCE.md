@@ -130,3 +130,8 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
   of a half turn or wipe out. Airs last 0.8-1.35 s and go 1.1-2.1 m high with flow.
 - Variety: each repeat of the same move in one ride is worth x0.65 of the last.
 - Drop-in on an NPC: their mood drops, a 0.4 mark on the rating, no party wave.
+
+## Snapped boards (2026-10-21, proposals)
+- Chance per wipeout: whitewater 0, Intermediate 4%, Pro 10%, +12% if it came off an air. Legends never snap.
+- An NPC with their own board buys a new one at your gear shop if it's open: $60 / $110 / $180 by skill.
+  A snapped rental costs the park $30. Your own board: a spare for $40, and you keep surfing.

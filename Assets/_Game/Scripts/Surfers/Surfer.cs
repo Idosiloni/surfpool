@@ -504,6 +504,7 @@ namespace SurfPool
             }
 
             SneakAround();
+            BrokenBoardAftermath();
 
             // A delayed hoot for someone else's wave, and letting go of whatever caught our eye.
             if (hootAt > 0f && Time.time >= hootAt)
@@ -1228,6 +1229,50 @@ namespace SurfPool
             RideFeel.Splash(water, transform.position, 24, 3f);
             Lifeguard.Whistle();
             Shout(SurferPersonalities.Line(archetype, Moment.Wipeout), 2.5f, Sound.VoiceAah);
+            if (!boardBroken && Famous == null && Random.value < BoardBreak.Chance(water.LevelOf(rideWave), Time.time - airStart < 1.5f))
+            {
+                boardBroken = true;
+                visit.brokeBoard = true;
+                BoardBreak.Snap(board, water);
+                wavesPerSession = ridesDone + 1; // no board, no more waves
+                brokeShoutAt = Time.time + 1.9f;
+            }
+        }
+
+        // ---- snapped boards (BoardBreak) ----
+        bool boardBroken;
+        float brokeShoutAt = -1f;
+        static readonly string[] BrokenLines = { "MY BOARD!!", "Noooo, it snapped!", "That was my favorite board...", "Half a board. Great." };
+
+        /// <summary>After a snapped board: a sad look, then (on the way out) a new board from your surf shop if you have one.</summary>
+        void BrokenBoardAftermath()
+        {
+            if (brokeShoutAt < 0f || Time.time < brokeShoutAt) return;
+            brokeShoutAt = -1f;
+            Shout(BrokenLines[Random.Range(0, BrokenLines.Length)], 3f, Sound.VoiceOoh);
+            rig.ShowFace(SurfPool.Face.Sleepy, 3f);
+        }
+
+        /// <summary>Leaving with a snapped board: rentals are your loss; their own board means a sale if the gear shop is open.</summary>
+        void SettleBrokenBoard()
+        {
+            if (!boardBroken) return;
+            if (hasRentalBoard)
+            {
+                hasRentalBoard = false; // nothing to bring back to the bin
+                Wallet.Instance.Charge(BoardBreak.RentalLoss, "broken rentals");
+                Notifications.Post($"{FirstName} snapped one of your rental boards! -{MoneyText.Format(BoardBreak.RentalLoss)}", Notice.Bad);
+                return;
+            }
+            foreach (var shop in ShopCounter.All)
+                if (shop is GearShop)
+                {
+                    int price = BoardBreak.NewBoardPrice(Skill);
+                    Wallet.Instance.Add(price, "board sales");
+                    Sfx.Play(Sound.CashBig, shop.transform.position, 0.7f);
+                    Notifications.Post($"{FirstName} snapped their board and bought a new one at your shop! +{MoneyText.Format(price)}", Notice.Reward);
+                    return;
+                }
         }
 
         /// <summary>Spins under the water for a moment, then pops back up.</summary>
@@ -1282,6 +1327,7 @@ namespace SurfPool
                 return;
             }
 
+            SettleBrokenBoard();
             float happiness = (moodSamples == 0 ? 1f : moodTotal / moodSamples) - Trash.MoodPenalty + Decoration.HappinessBonus;
             int tip = happiness > 0.5f ? Mathf.RoundToInt((paidPrice * maxTipShare * happiness * (rodeFamous ? 1.5f : 1f) + tricksLanded * tipPerTrick) * ParkPerks.TipMultiplier) : 0;
             if (tip > 0) Wallet.Instance.Add(tip, "tip");
