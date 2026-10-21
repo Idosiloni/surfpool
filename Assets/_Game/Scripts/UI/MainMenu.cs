@@ -113,6 +113,7 @@ namespace SurfPool
             GameStats.Reset();
             ParkEffects.ResetStatics();
             DailyEvents.ResetStatics();
+            DailyEvents.ApplyWind(Wind.Calm, false);
             ParkName.Load("");
             ParkReviews.NewDay();
             MachineService.ResetStatics();

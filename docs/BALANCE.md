@@ -171,3 +171,8 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
   pros x0.9 ("bit soft"). Hollow (needs Reef Shaper): height x1.12, face x0.75, barrels on green waves too. Pros' ride
   quality x1.15; everyone else wipes out x1.5. Power cost is the same for every shape (could charge more for hollow).
 - Alternate L/R sends lefts and rights in turn. Set size can be chosen from 1 up to what Wave Sets allows.
+
+## Wind (2026-10-21, proposal)
+- From day 2: 50% calm, 25% offshore, 25% onshore (independent of the day's event). Offshore: glassy water (ripples
+  x0.25), spray blowing off the lips, ride quality x1.1, wipeouts x0.85, your flow builds x1.1 faster. Onshore:
+  chop x3.5, ride quality x0.85, wipeouts x1.25, flow builds x0.85.

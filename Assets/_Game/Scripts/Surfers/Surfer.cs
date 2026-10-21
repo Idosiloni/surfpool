@@ -1072,6 +1072,9 @@ namespace SurfPool
                 // Too-big waves often end in a wipeout; everyone wipes out sometimes.
                 float wipeoutChance = whitewash ? (diff == 1 ? 0.22f : 0.35f) : diff > 0 ? 0.6f : Skill switch { WaveLevel.Beginner => 0.2f, WaveLevel.Intermediate => 0.1f, _ => 0.05f };
                 if (Skill == WaveLevel.Beginner) wipeoutChance *= ParkEffects.BeginnerWipeoutMultiplier;
+                // Today's wind: offshore grooms the waves, onshore makes them mushy.
+                rideQuality = Mathf.Min(1f, rideQuality * DailyEvents.WindRideQuality);
+                wipeoutChance *= DailyEvents.WindWipeouts;
                 // The wave's shape (an operator setting): mellow waves forgive, hollow ones punish all but the pros.
                 var shape = whitewash ? WaveShape.Standard : water.ShapeOf(wave);
                 string shapeLine = null;

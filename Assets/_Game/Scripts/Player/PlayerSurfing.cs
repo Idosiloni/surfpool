@@ -717,7 +717,7 @@ namespace SurfPool
             }
 
             // Flow: trimming high on the face builds it, the flats drain it, and it fades a little anyway.
-            flow += (rideOffset < 1.5f ? flowTrimAndFlats.x : 0f) * dt - (rideOffset > 3f ? flowTrimAndFlats.y : 0.02f) * dt;
+            flow += (rideOffset < 1.5f ? flowTrimAndFlats.x * DailyEvents.WindRideQuality : 0f) * dt - (rideOffset > 3f ? flowTrimAndFlats.y : 0.02f) * dt;
             flow = Mathf.Clamp(flow, 0f, waveLevel == WaveLevel.Beginner ? 0.3f : 1f);
             if (comboCount > 0 && Time.time > comboUntil) BankCombo();
             flowSum += flow * dt;

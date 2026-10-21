@@ -390,7 +390,7 @@ namespace SurfPool
             for (int ix = 0; ix < nx; ix++)
             {
                 float x = baseVertices[ix].x;
-                colSin[ix] = rippleHeight * Mathf.Sin(x * 0.7f + t * 1.3f);
+                colSin[ix] = rippleHeight * DailyEvents.WindChop * Mathf.Sin(x * 0.7f + t * 1.3f);
                 colShallow[ix] = Smooth(0.55f, 1f, x / length);
                 int n = 0;
                 for (int s = 0; s < count; s++)
@@ -540,7 +540,7 @@ namespace SurfPool
 
         float LocalHeight(float x, float z, float t)
         {
-            float h = rippleHeight * Mathf.Sin(x * 0.7f + t * 1.3f) * Mathf.Sin(z * 0.9f + t * 1.1f);
+            float h = rippleHeight * DailyEvents.WindChop * Mathf.Sin(x * 0.7f + t * 1.3f) * Mathf.Sin(z * 0.9f + t * 1.1f);
             float edge = z / HalfWidth;
             float edgeScale = 1f - edgeDrop * edge * edge;
 
@@ -715,6 +715,27 @@ namespace SurfPool
         {
             float bp = BreakPoint(state, direction);
             if (Mathf.Abs(bp) > HalfWidth - 0.5f) return;
+
+            // Offshore wind: mist blown back off the lip of the clean wave ahead of the break, like a mane.
+            if (DailyEvents.TodayWind == Wind.Offshore)
+            {
+                int mist = RandomCount(sprayRate * 0.6f * strength);
+                for (int i = 0; i < mist; i++)
+                {
+                    float z = bp + direction * Random.Range(0.5f, 12f);
+                    if (Mathf.Abs(z) > HalfWidth - 0.5f) continue;
+                    float x = state.center + 0.3f;
+                    var local = new Vector3(x, LocalHeight(x, z, Now) + 0.15f, z);
+                    var velocity = new Vector3(-Random.Range(2.5f, 5f), Random.Range(1f, 2.5f), Random.Range(-0.4f, 0.4f));
+                    spray.Emit(new ParticleSystem.EmitParams
+                    {
+                        position = transform.TransformPoint(local),
+                        velocity = transform.TransformDirection(velocity),
+                        startSize = Random.Range(0.25f, 0.55f),
+                        startLifetime = Random.Range(0.5f, 1f),
+                    }, 1);
+                }
+            }
             int count = RandomCount(sprayRate * strength);
             for (int i = 0; i < count; i++) EmitBlob(state, bp - direction * Random.Range(0f, 2.5f), direction, strength);
 

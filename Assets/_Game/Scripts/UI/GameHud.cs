@@ -343,8 +343,11 @@ namespace SurfPool
                 SetText(dayLabel, $"Day {DayCycle.Instance.Day}  ·  {DayCycle.Instance.Clock}" + (DayCycle.Instance.ParkClosed
                     ? DayCycle.GuestsLeft > 0 ? $"  ·  CLOSED ({DayCycle.GuestsLeft} left)" : "  ·  CLOSED: end the day at the desk sign" : ""));
             var dayEvent = DailyEvents.Instance != null ? DailyEvents.Instance.Today : DayEvent.None;
-            eventLabel.EnableInClassList("hidden", dayEvent == DayEvent.None);
-            SetText(eventLabel, "Today: " + DailyEvents.Title(dayEvent));
+            var wind = DailyEvents.TodayWind;
+            eventLabel.EnableInClassList("hidden", dayEvent == DayEvent.None && wind == Wind.Calm);
+            string today = dayEvent == DayEvent.None ? DailyEvents.WindTitle(wind)
+                : wind == Wind.Calm ? DailyEvents.Title(dayEvent) : DailyEvents.Title(dayEvent) + "  ·  " + DailyEvents.WindTitle(wind);
+            SetText(eventLabel, "Today: " + today);
             if (ParkReputation.Instance != null)
             {
                 stars.Stars = ParkReputation.Instance.Stars;

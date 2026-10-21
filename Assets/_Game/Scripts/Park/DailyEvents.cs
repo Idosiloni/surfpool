@@ -4,6 +4,9 @@ namespace SurfPool
 {
     public enum DayEvent { None, HeatWave, RainyDay, SurfContest, Influencer, PowerPrices, Inspector }
 
+    /// <summary>Today's wind (docs/research/wave-pools-and-ocean-waves.md): offshore grooms waves, onshore makes them mushy.</summary>
+    public enum Wind { Calm, Offshore, Onshore }
+
     /// <summary>
     /// Something different most days (never on day 1): a heat wave, a rainy day, a surf contest, an influencer
     /// visit, expensive power, or a health inspector who checks how clean the park is in the afternoon.
@@ -29,6 +32,13 @@ namespace SurfPool
         public static float SkilledPriceMultiplier = 1f; // Intermediate and Pro sessions
         public static bool ContestDay;
 
+        // Wind, picked separately from the event (both can happen on the same day).
+        public static Wind TodayWind = Wind.Calm;
+        /// <summary>Size of the small surface ripples (onshore chop is big, offshore water is glassy).</summary>
+        public static float WindChop = 1f;
+        /// <summary>How good rides feel, and how often surfers fall.</summary>
+        public static float WindRideQuality = 1f, WindWipeouts = 1f;
+
         public DayEvent Today { get; private set; }
         bool inspected;
 
@@ -39,6 +49,9 @@ namespace SurfPool
             XpMultiplier = RatingSpeedMultiplier = SkilledPriceMultiplier = 1f;
             ContestDay = false;
         }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetWind() => ApplyWind(Wind.Calm, false);
 
         void Awake() => Instance = this;
 
@@ -64,9 +77,31 @@ namespace SurfPool
             _ => "",
         };
 
+        public static string WindTitle(Wind w) => w switch
+        {
+            Wind.Offshore => "Offshore winds",
+            Wind.Onshore => "Onshore winds",
+            _ => "",
+        };
+
+        /// <summary>Sets today's wind and what it does to the waves and the surfers.</summary>
+        public static void ApplyWind(Wind wind, bool announce)
+        {
+            TodayWind = wind;
+            WindChop = wind switch { Wind.Offshore => 0.25f, Wind.Onshore => 3.5f, _ => 1f };
+            WindRideQuality = wind switch { Wind.Offshore => 1.1f, Wind.Onshore => 0.85f, _ => 1f };
+            WindWipeouts = wind switch { Wind.Offshore => 0.85f, Wind.Onshore => 1.25f, _ => 1f };
+            if (!announce || wind == Wind.Calm) return;
+            Notifications.Post(wind == Wind.Offshore
+                ? "Offshore winds today: glassy water, spray blowing off the lips. Surfers are stoked!"
+                : "Onshore winds today: choppy, mushy waves. Surfers fall more and enjoy it less.", Notice.Info);
+        }
+
         /// <summary>Morning: picks today's event (none on day 1) and announces it.</summary>
         public void StartDay(int day, bool announce = true)
         {
+            float windRoll = Random.value;
+            var wind = day <= 1 || windRoll < 0.5f ? Wind.Calm : windRoll < 0.75f ? Wind.Offshore : Wind.Onshore;
             var pick = DayEvent.None;
             if (day > 1 && Random.value > quietDayChance)
             {
@@ -76,6 +111,7 @@ namespace SurfPool
                     pick = DayEvent.HeatWave;
             }
             Apply(pick, announce);
+            ApplyWind(wind, announce);
         }
 
         public void Apply(DayEvent pick, bool announce)
