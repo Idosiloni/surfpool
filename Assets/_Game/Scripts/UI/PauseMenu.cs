@@ -100,6 +100,7 @@ namespace SurfPool
             AddStat("Park beauty", $"{Decoration.Beauty}  (+{MoneyText.Format(Decoration.FairBonus)} fair price)");
             AddStat("Tricks / tube rides", $"{GameStats.TricksLanded} / {GameStats.TubeRides}");
             AddStat("Your own rides", GameStats.PlayerRides.ToString());
+            if (GameStats.BestJudgeScore > 0f) AddStat("Best judged ride", GameStats.BestJudgeScore.ToString("0.00"));
             AddStat("Total earned", MoneyText.Format(GameStats.TotalEarned));
             if (ParkLevel.Instance != null) AddStat("Park level", $"{ParkLevel.Instance.Level}  ({ParkLevel.Instance.XpToNext:#,0} XP to next)");
             foreach (var worker in StaffMember.Active)

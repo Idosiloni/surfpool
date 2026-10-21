@@ -40,6 +40,7 @@ namespace SurfPool
             public List<MachineState> machines = new();
             public List<string> perks = new();
             public string parkName = "";
+            public float bestJudgeScore;
         }
 
         [Serializable]
@@ -83,6 +84,7 @@ namespace SurfPool
                 upgrades = shop.OwnedIds(),
                 perks = new List<string>(ParkPerks.Chosen),
                 parkName = ParkName.Saved,
+                bestJudgeScore = GameStats.BestJudgeScore,
                 ticketPrice = pricing.Price,
                 rating = ParkReputation.Instance != null ? ParkReputation.Instance.Score : 0.6f,
                 missionIndex = MissionManager.Instance != null ? MissionManager.Instance.Index : 0,
@@ -166,6 +168,7 @@ namespace SurfPool
             GameStats.TricksLanded = data.tricksLanded;
             GameStats.Wipeouts = data.wipeouts;
             GameStats.PlayerRides = data.playerRides;
+            GameStats.BestJudgeScore = data.bestJudgeScore;
             GameStats.TotalEarned = data.totalEarned;
             GameStats.SnacksSold = data.snacksSold;
             GameStats.ShopSales = data.shopSales;

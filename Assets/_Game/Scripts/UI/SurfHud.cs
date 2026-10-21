@@ -17,7 +17,7 @@ namespace SurfPool
         static readonly string[] MoodClasses = { "surf-call--info", "surf-call--good", "surf-call--reward", "surf-call--bad" };
 
         VisualElement panel, flowFill, comboTimer, drops, card;
-        Label score, combo, call, cardRating, cardScore, cardDetails;
+        Label score, combo, call, cardRating, cardScore, cardDetails, cardJudges, cardPraise;
         PlayerSurfing surfing;
         float callUntil = -1f, callStart, cardUntil = -1f;
         readonly List<(VisualElement drop, float born)> liveDrops = new();
@@ -36,12 +36,15 @@ namespace SurfPool
             cardRating = root.Q<Label>("surfCardRating");
             cardScore = root.Q<Label>("surfCardScore");
             cardDetails = root.Q<Label>("surfCardDetails");
+            cardJudges = root.Q<Label>("surfCardJudges");
+            cardPraise = root.Q<Label>("surfCardPraise");
 
             surfing = PlayerSurfing.Instance;
             if (surfing == null) return;
             surfing.Called += OnCall;
             surfing.Splashed += OnSplash;
             surfing.RideFinished += OnRideFinished;
+            surfing.Judged += OnJudged;
         }
 
         void OnDestroy()
@@ -50,6 +53,7 @@ namespace SurfPool
             surfing.Called -= OnCall;
             surfing.Splashed -= OnSplash;
             surfing.RideFinished -= OnRideFinished;
+            surfing.Judged -= OnJudged;
         }
 
         void Update()
@@ -117,6 +121,14 @@ namespace SurfPool
                 drops.Add(drop);
                 liveDrops.Add((drop, Time.unscaledTime));
             }
+        }
+
+        void OnJudged(float judges, string praise)
+        {
+            if (cardJudges == null) return;
+            cardJudges.text = $"JUDGES  {judges:0.00}";
+            cardJudges.EnableInClassList("surf-card-judges--great", judges >= 7f);
+            cardPraise.text = praise;
         }
 
         void OnRideFinished(int total, string rating, float bestCombo, float topSpeedKmh, int airs)

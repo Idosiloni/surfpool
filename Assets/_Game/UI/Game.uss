@@ -2456,6 +2456,28 @@
     color: var(--muted);
 }
 
+/* The judges' 0-10 score, like a surf contest scoreboard. */
+.surf-card-judges {
+    font-size: 30px;
+    color: white;
+    background-color: var(--ink);
+    border-radius: 12px;
+    padding: 2px 16px 4px 16px;
+    margin-top: 6px;
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    -unity-font-style: normal;
+}
+
+.surf-card-judges--great {
+    background-color: var(--teal);
+}
+
+.surf-card-praise {
+    font-size: 16px;
+    color: var(--ink-soft);
+    margin-top: 4px;
+}
+
 
 /* ---------- Level preview under the XP bar ---------- */
 

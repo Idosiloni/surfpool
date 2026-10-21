@@ -110,6 +110,11 @@ namespace SurfPool
         float lastPumpKey = -10f, pumpGlow, lastPump = -10f, pumpFlow;
         /// <summary>Most flow pumping alone can add in one ride: real speed for snaps and airs still needs carves.</summary>
         const float MaxPumpFlow = 0.35f;
+        // What the judges watch (docs/research/surf-maneuvers.md: speed, power, flow, variety, combination, commitment).
+        float flowSum, flowSamples, powerPoints, tubeTotal, biggestSpin;
+        bool perfectTakeoff;
+        static readonly System.Collections.Generic.HashSet<string> PowerMoves = new()
+            { "SNAP", "CUTBACK", "BOTTOM TURN", "TOP TURN", "FLOATER", "AIR" };
         readonly System.Collections.Generic.Dictionary<string, int> movesThisRide = new();
         float travelSign = 1f;
         bool chaseSnap = true;
@@ -169,6 +174,9 @@ namespace SurfPool
 
         /// <summary>Water hits the lens: how many drops.</summary>
         public event Action<int> Splashed;
+
+        /// <summary>The judges' score for a finished ride (0-10, like a real heat) and what they liked most.</summary>
+        public event Action<float, string> Judged;
 
         /// <summary>A ride finished: score, rating word, best combo multiplier, top speed (km/h), airs.</summary>
         public event Action<int, string, float, float, int> RideFinished;
@@ -518,6 +526,8 @@ namespace SurfPool
                     movesThisRide.Clear();
                     pumpStep = pumpsInRow = 0;
                     pumpGlow = pumpFlow = 0f;
+                    flowSum = flowSamples = powerPoints = tubeTotal = biggestSpin = 0f;
+                    perfectTakeoff = false;
                     CheckDropIn(water, wave);
                     feel.Begin(transform.position, Quaternion.Euler(0f, transform.eulerAngles.y, 0f));
                     state = State.Riding;
@@ -525,6 +535,7 @@ namespace SurfPool
                     Sfx.Play(Sound.Splash, transform.position, 0.4f);
                     if (d >= -1.6f && d <= -0.4f)
                     {
+                        perfectTakeoff = true;
                         flow = 0.4f;
                         score += 100;
                         RideFeel.Splash(water, transform.position, 12, 2f);
@@ -595,6 +606,7 @@ namespace SurfPool
             movesThisRide.TryGetValue(kind, out int done);
             movesThisRide[kind] = done + 1;
             points = Mathf.RoundToInt(points * Mathf.Pow(0.65f, done));
+            if (PowerMoves.Contains(kind) || kind.Contains("ROTATION") || kind.Contains("REVERSE") || kind.Contains("540")) powerPoints += points;
             comboCount++;
             comboPoints += points;
             comboUntil = Time.time + comboWindow;
@@ -694,6 +706,8 @@ namespace SurfPool
             flow += (rideOffset < 1.5f ? flowTrimAndFlats.x : 0f) * dt - (rideOffset > 3f ? flowTrimAndFlats.y : 0.02f) * dt;
             flow = Mathf.Clamp(flow, 0f, waveLevel == WaveLevel.Beginner ? 0.3f : 1f);
             if (comboCount > 0 && Time.time > comboUntil) BankCombo();
+            flowSum += flow * dt;
+            flowSamples += dt;
 
             // Too far down in the flats: the wave leaves you behind.
             if (rideOffset > 4.2f)
@@ -827,6 +841,7 @@ namespace SurfPool
             // Full turns are done; a half turn lands you backwards for a moment, then the board whips back around.
             spin = Mathf.DeltaAngle(0f, spin);
             int degrees = Mathf.RoundToInt(Mathf.Abs(halves) * 180f);
+            biggestSpin = Mathf.Max(biggestSpin, degrees);
             if (degrees >= 180)
             {
                 string name = degrees switch { 180 => "AIR REVERSE 180", 360 => "FULL ROTATION 360", 540 => "540!!", _ => $"{degrees}!!!" };
@@ -912,7 +927,7 @@ namespace SurfPool
             if (water.TryGetPocket(rideWave, side, out float pocketZ, out int direction, out _, out _, out bool barrel) && barrel)
             {
                 float ahead = (rideZ - pocketZ) * direction; // meters in front of the break point, under the lip
-                if (ahead > 0f && ahead < 4.5f && rideOffset < 1.3f)
+                if (ahead > 0f && ahead < 4.5f && rideOffset < 1.3f && AirLift <= 0f)
                     target = Mathf.Clamp01(1.4f - ahead / 4.5f) * Mathf.Clamp01((1.3f - rideOffset) / 0.5f);
             }
             tube = Mathf.MoveTowards(tube, target, dt * 3f);
@@ -921,6 +936,7 @@ namespace SurfPool
             if (nowIn)
             {
                 tubeTime += dt;
+                tubeTotal += dt;
                 score += Mathf.RoundToInt(120f * dt * (1f + flow));
                 if (!inTube) Called?.Invoke("GETTING BARRELED!", Notice.Reward);
             }
@@ -970,9 +986,45 @@ namespace SurfPool
             string rating = score < 250 ? "Nice ride!" : score < 600 ? "Sick ride!" : score < 1000 ? "EPIC RIDE!" : "LEGENDARY!";
             // The crowd's cheer follows how good it was.
             Sfx.Play(Sound.Cheer, transform.position, Mathf.Lerp(0.5f, 1f, Mathf.InverseLerp(100f, 900f, score)));
+            Judge();
             RideFinished?.Invoke(score, rating, bestMultiplier, topSpeed * 3.6f, tricks);
             Notifications.Post($"{rating} Score {score}. Sponsors paid ${bonus}.", Notice.Reward);
             flow = 0f;
+        }
+
+        /// <summary>
+        /// Scores the ride 0-10 the way surf judges do: speed, power (turns and airs), flow (no stalls), variety
+        /// (different moves), combination (linked moves) and commitment (tubes, spins, a perfect take-off). The wave
+        /// sets the ceiling: whitewater can't score big, only Pro waves can reach a 10. Three judges, a little apart.
+        /// </summary>
+        void Judge()
+        {
+            float topFor = waveLevel switch { WaveLevel.Beginner => 4f, WaveLevel.Intermediate => 7.5f, _ => 9.5f };
+            var parts = new (string word, float value, float weight)[]
+            {
+                ("SPEED", Mathf.Clamp01(topSpeed / topFor), 1.5f),
+                ("POWER", Mathf.Clamp01(powerPoints / 550f), 2f),
+                ("FLOW", flowSamples > 0f ? Mathf.Clamp01(flowSum / flowSamples / 0.7f) : 0f, 1.5f),
+                ("VARIETY", Mathf.Clamp01((movesThisRide.Count - 1) / 4f), 1.5f),
+                ("COMBOS", Mathf.Clamp01((bestMultiplier - 1f) / 2f), 1.5f),
+                ("COMMITMENT", Mathf.Clamp01(tubeTotal / 2.5f + biggestSpin / 720f + (perfectTakeoff ? 0.25f : 0f)), 2f),
+            };
+            float raw = 0f;
+            foreach (var p in parts) raw += p.value * p.weight;
+            if (waveLevel == WaveLevel.Beginner) raw += 1.5f; // riding whitewater all the way in is the goal there
+            float cap = waveLevel switch { WaveLevel.Beginner => 4.5f, WaveLevel.Intermediate => 8f, _ => 10f };
+            float judges = 0f;
+            for (int i = 0; i < 3; i++) judges += Mathf.Clamp(raw + UnityEngine.Random.Range(-0.25f, 0.25f), 0.1f, cap);
+            float final = Mathf.Round(judges / 3f * 100f) / 100f;
+            System.Array.Sort(parts, (a, b) => (b.value * b.weight).CompareTo(a.value * a.weight));
+            string praise = parts[0].value * parts[0].weight < 0.5f ? "Keep at it!" : parts[1].value * parts[1].weight < 0.5f
+                ? $"Big on {parts[0].word}" : $"Big on {parts[0].word} and {parts[1].word}";
+            if (final > GameStats.BestJudgeScore)
+            {
+                if (GameStats.BestJudgeScore > 0f) praise += "  ·  NEW BEST!";
+                GameStats.BestJudgeScore = final;
+            }
+            Judged?.Invoke(final, praise);
         }
 
         const float HitPauseScale = 0.08f;

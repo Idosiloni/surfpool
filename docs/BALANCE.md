@@ -147,3 +147,10 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
 ## Main pool wave speed (2026-10-21, proposal)
 - Main pool waves travel at 75% speed (travel 0.75): a green-wave ride went from about 3.5 s to 5.3 s in the
   40 m starter pool, enough to link two or three moves. Reef (0.7) and Lagoon (0.65) were already slower.
+
+## Judges' score (2026-10-21, proposal)
+- Every finished ride (not wipeouts) gets a 0-10 score from 3 "judges" (+-0.25 apart), like a real heat:
+  speed 1.5, power 2 (snap/cutback/turns/floater/airs points, full at 550), flow 1.5 (average flow, full at 0.7),
+  variety 1.5 (5 different moves = full), combos 1.5 (x3 = full), commitment 2 (tube time, spins, perfect take-off).
+- Ceiling by wave: whitewater 4.5 (+1.5 for riding it in), Intermediate 8, Pro 10. Best score is saved and shown
+  in the pause menu stats.

@@ -211,6 +211,8 @@
             <ui:VisualElement class="surf-card-box" picking-mode="Ignore">
                 <ui:Label name="surfCardRating" class="surf-card-rating" picking-mode="Ignore" />
                 <ui:Label name="surfCardScore" class="surf-card-score" picking-mode="Ignore" />
+                <ui:Label name="surfCardJudges" class="surf-card-judges" picking-mode="Ignore" />
+                <ui:Label name="surfCardPraise" class="surf-card-praise" picking-mode="Ignore" />
                 <ui:Label name="surfCardDetails" class="surf-card-details" picking-mode="Ignore" />
             </ui:VisualElement>
         </ui:VisualElement>

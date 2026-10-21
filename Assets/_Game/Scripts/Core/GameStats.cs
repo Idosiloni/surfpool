@@ -20,6 +20,8 @@ namespace SurfPool
         public static int FishCaught;
         public static int TrashCollected;
         public static long TotalEarned;
+        /// <summary>Your best judged ride (0-10).</summary>
+        public static float BestJudgeScore;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void Reset()
@@ -39,6 +41,7 @@ namespace SurfPool
             Wipeouts = 0;
             PlayerRides = 0;
             TotalEarned = 0;
+            BestJudgeScore = 0f;
         }
     }
 }
