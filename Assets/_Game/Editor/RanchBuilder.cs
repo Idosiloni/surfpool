@@ -20,7 +20,7 @@ namespace SurfPool.EditorTools
             var ranch = BuildPool(new PoolSpec
             {
                 name = "Surf Ranch", display = "Surf Ranch", upgradeId = "pool_ranch", z = RanchZ, open = false,
-                depth = PoolDepth + 1f, waterLevel = WaterLevel - 0.5f, size = 1.15f, peel = 2.6f, price = 10f, water = 200f,
+                depth = PoolDepth + 2f, waterLevel = WaterLevel - 1.5f, size = 1.15f, peel = 2.6f, price = 10f, water = 200f,
                 length = RanchLength, width = RanchWidth, travel = 0.2f, peakFromWall = 4f, gridDensity = 2f,
                 x0 = RanchX, machineDepth = 6f, airWall = false,
                 // East along the main pool's south deck, north up the sand between the main pool and the Cove, then
@@ -37,6 +37,7 @@ namespace SurfPool.EditorTools
             SetEnum(ranch.machine, "fixedDirection", (int)WaveDirection.Right);
             SetFloat(ranch.machine, "minCooldown", 20f);
             SetInt(ranch.machine, "maxSetSize", 1);
+            SetBool(ranch.machine, "bigWaves", true);
             // Made by the foil right by the rail: it starts breaking almost at once, then crawls out for ~25 s.
             SetFloat(ranch.water, "headStart", 5f);
             SetFloat(ranch.water, "breakAtMultiplier", 0.4f);
@@ -92,8 +93,8 @@ namespace SurfPool.EditorTools
             Part("Cab", new Vector3(-0.3f, 1.4f, 0f), new Vector3(2.6f, 2.2f, 4.5f), yellow);
             Part("Cab Window", new Vector3(-0.3f, 1.9f, 0f), new Vector3(2.65f, 0.6f, 3.6f), navy);
             Part("Arm", new Vector3(1.6f, 1.6f, 0f), new Vector3(3.4f, 0.5f, 1.2f), steel);
-            Part("Strut", new Vector3(3.1f, -0.6f, 0f), new Vector3(0.4f, 4.4f, 0.8f), steel);
-            Part("Foil", new Vector3(3.3f, -3.2f, 0f), new Vector3(1.4f, 1.6f, 7f), yellow);
+            Part("Strut", new Vector3(3.1f, -1.5f, 0f), new Vector3(0.4f, 6.2f, 0.8f), steel);
+            Part("Foil", new Vector3(3.3f, -4.2f, 0f), new Vector3(1.4f, 1.6f, 7f), yellow);
             Signs.Text("SURF RANCH", carriage, carriage.position + new Vector3(-1.64f, 1.5f, 0f), 90f, 0.45f, Color.white, 4f);
 
             var wake = BuildSpray(mats.foam);

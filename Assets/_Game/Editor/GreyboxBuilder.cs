@@ -262,12 +262,14 @@ namespace SurfPool.EditorTools
             {
                 // The biggest pool: heavy waves that peel fast across its whole 90 m width (~12 s rides).
                 name = "Big Wave Lagoon", display = "Big Wave Lagoon", upgradeId = "pool_lagoon", z = LagoonZ, open = false,
-                depth = PoolDepth + 1f, waterLevel = WaterLevel - 0.8f, size = 1.25f, peel = 2.25f, price = 5f, water = 150f,
+                // Extra deep: room for XL waves (Giant ~4.5 m faces) without them spilling over the deck.
+                depth = PoolDepth + 2f, waterLevel = WaterLevel - 1.8f, size = 1.25f, peel = 2.25f, price = 5f, water = 150f,
                 length = LagoonLength, width = LagoonWidth, travel = 0.5f, peakFromWall = 3f, gridDensity = 2.5f,
                 pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-19.3f, 0, -18.8f), new Vector3(-19.3f, 0, LagoonZ - LagoonWidth / 2f - 8f), new Vector3(14, 0, LagoonZ - LagoonWidth / 2f - 8f), new Vector3(14, 0, LagoonZ - LagoonWidth / 2f - 0.6f) },
                 pathOut = new[] { new Vector3(LagoonLength + 3, 0, LagoonZ - 6), new Vector3(LagoonLength + 40, 0, LagoonZ - 6) },
             });
 
+            SetBool(lagoon.machine, "bigWaves", true);
             var cove = BuildCove();
             var ranch = BuildRanch();
 

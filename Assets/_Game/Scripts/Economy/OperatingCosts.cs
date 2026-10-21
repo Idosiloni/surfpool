@@ -46,9 +46,9 @@ namespace SurfPool
         }
 
         /// <summary>A machine just sent waves: add their power to today's meter.</summary>
-        public void MeterWaves(WaveLevel level, PoolArea pool, int count)
+        public void MeterWaves(WaveLevel level, PoolArea pool, int count, float scale = 1f)
         {
-            electricityToday += PowerCost(level, pool) * count;
+            electricityToday += PowerCost(level, pool) * count * scale;
         }
 
         /// <summary>Estimated bills so far today (power + water + tax on today's income).</summary>

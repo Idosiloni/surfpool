@@ -208,3 +208,10 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
   a jet-ski tow back would be a nice upgrade later.
 - Open question: ride scores on 24 s rides are much higher than on 10 s rides (points pile up). Cap or scale?
 
+## XL waves (2026-10-22, proposals)
+- SIZE on the console of the deep pools only (Lagoon, Surf Ranch; `WaveMachine.bigWaves`), once Pro waves are unlocked:
+  Big = Pro height x1.15, Giant = x1.3 (Lagoon Giant ~4.5 m faces; the pool world record is 3.8 m, Surf Abu Dhabi).
+  Power x1.5 / x2, machine wear x2. Lagoon and Ranch were dug ~1 m deeper so XL crests stay below the deck at the walls.
+- Pros ride better on them (ride quality x1.2 + 0.05) but everyone wipes out x1.3 more; you get +300 (Big) / +600
+  (Giant) for riding one to the end. Ideas: a gun board for XL, contest day on Giants.
+

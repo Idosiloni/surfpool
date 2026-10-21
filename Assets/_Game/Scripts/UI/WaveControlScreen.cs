@@ -29,8 +29,8 @@ namespace SurfPool
             "Buy the Pro Wave Program on the upgrade computer.",
         };
 
-        VisualElement root, cards, directionSection, directionRow, famousRow, shapeSection, shapeRow, setSection, setRow;
-        Label directionHint, famousHint, shapeHint, setHint;
+        VisualElement root, cards, directionSection, directionRow, famousRow, shapeSection, shapeRow, setSection, setRow, sizeSection, sizeRow;
+        Label directionHint, famousHint, shapeHint, setHint, sizeHint;
         Button send;
         bool shown;
         float nextRefresh;
@@ -51,6 +51,9 @@ namespace SurfPool
             shapeSection = doc.Q("shapeSection");
             shapeRow = doc.Q("shapeRow");
             shapeHint = doc.Q<Label>("shapeHint");
+            sizeSection = doc.Q("sizeSection");
+            sizeRow = doc.Q("sizeRow");
+            sizeHint = doc.Q<Label>("sizeHint");
             setSection = doc.Q("setSection");
             setRow = doc.Q("setRow");
             setHint = doc.Q<Label>("setHint");
@@ -82,11 +85,15 @@ namespace SurfPool
             BuildWaveCards(machine);
             BuildDirections(machine);
             BuildShapes(machine);
+            BuildSizes(machine);
             BuildSets(machine);
             BuildFamous(machine);
 
             bool ready = machine.Ready;
-            string waveName = machine.Preset != null ? machine.Preset.name.ToUpperInvariant() : machine.Selected.ToString().ToUpperInvariant() + " WAVE";
+            string waveName = machine.Preset != null ? machine.Preset.name.ToUpperInvariant()
+                : machine.Selected == WaveLevel.Pro && machine.BigWavesHere && machine.SelectedSize != WaveSize.Normal
+                    ? machine.SelectedSize.ToString().ToUpperInvariant() + " WAVE"
+                    : machine.Selected.ToString().ToUpperInvariant() + " WAVE";
             send.text = ready ? $"SEND {waveName}"
                 : $"Recharging... {Mathf.CeilToInt(machine.SecondsUntilReady)}s";
             send.EnableInClassList("send-button--charging", !ready);
@@ -204,6 +211,34 @@ namespace SurfPool
             shapeHint.text = machine.IsUnlocked(WaveShape.Hollow)
                 ? ShapeText[(int)machine.SelectedShape]
                 : ShapeText[(int)machine.SelectedShape] + " (Hollow needs Reef Shaper.)";
+        }
+
+        static readonly string[] SizeText =
+        {
+            "Normal: the pool's usual Pro wave.",
+            "Big: a heavier Pro wave. Pros love it, it costs 1.5x the power and wears the machine twice as fast.",
+            "Giant: about 4.5 m faces, near the world record for a pool. Only pros paddle for it; 2x power, 2x wear.",
+        };
+
+        /// <summary>XL waves, only in the deep pools (Lagoon, Surf Ranch) once Pro waves are unlocked.</summary>
+        void BuildSizes(WaveMachine machine)
+        {
+            bool show = machine.BigWavesHere && machine.Preset == null;
+            sizeSection.EnableInClassList("hidden", !show);
+            if (!show) return;
+            sizeRow.Clear();
+            foreach (WaveSize size in Enum.GetValues(typeof(WaveSize)))
+            {
+                var button = new Button(() => { machine.Select(size); Refresh(); }) { text = size.ToString() };
+                button.AddToClassList("segment");
+                bool selected = machine.Selected == WaveLevel.Pro ? machine.SelectedSize == size : size == WaveSize.Normal;
+                button.EnableInClassList("segment--selected", selected);
+                button.SetEnabled(machine.IsUnlocked(size));
+                sizeRow.Add(button);
+            }
+            sizeHint.text = machine.IsUnlocked(WaveSize.Big)
+                ? SizeText[machine.Selected == WaveLevel.Pro ? (int)machine.SelectedSize : 0]
+                : "Big and Giant waves need the Pro Wave Program.";
         }
 
         void BuildSets(WaveMachine machine)

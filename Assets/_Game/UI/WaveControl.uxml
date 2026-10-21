@@ -25,6 +25,12 @@
                 <ui:Label name="shapeHint" class="screen-subtitle" />
             </ui:VisualElement>
 
+            <ui:VisualElement name="sizeSection">
+                <ui:Label text="SIZE" class="section-title section-gap" />
+                <ui:VisualElement name="sizeRow" class="segment-row" />
+                <ui:Label name="sizeHint" class="screen-subtitle" />
+            </ui:VisualElement>
+
             <ui:VisualElement name="setSection">
                 <ui:Label text="SET" class="section-title section-gap" />
                 <ui:VisualElement name="setRow" class="segment-row" />

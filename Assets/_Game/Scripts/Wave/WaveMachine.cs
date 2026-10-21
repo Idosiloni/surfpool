@@ -32,6 +32,9 @@ namespace SurfPool
         [Tooltip("This side follows another machine (its console and timer drive both sides).")]
         [SerializeField] WaveMachine leader;
 
+        [Tooltip("Deep enough for XL waves (Big / Giant Pro waves): the Lagoon and the Surf Ranch.")]
+        [SerializeField] bool bigWaves;
+
         [Header("Limits (the Surf Ranch: one long wave per pass of the foil)")]
         [Tooltip("Never recharges faster than this, whatever the upgrades (0 = no limit).")]
         [SerializeField] float minCooldown;
@@ -40,7 +43,7 @@ namespace SurfPool
 
         readonly HashSet<WaveLevel> unlocked = new() { WaveLevel.Beginner };
         bool directionsUnlocked;
-        readonly List<(float time, WaveLevel level, WaveDirection direction, FamousWave preset, WaveShape shape)> pending = new();
+        readonly List<(float time, WaveLevel level, WaveDirection direction, FamousWave preset, WaveShape shape, float size)> pending = new();
         bool nextAlternateRight;
         float readyAt;
         float chargeDuration;
@@ -92,7 +95,9 @@ namespace SurfPool
         public bool Broken => Service != null && Service.Broken;
 
         /// <summary>Power cost of one press with the selected wave (a whole set if upgraded).</summary>
-        public int PressCost => OperatingCosts.Instance != null ? OperatingCosts.Instance.PowerCost(Selected, Pool) * SetSize : 0;
+        public int PressCost => OperatingCosts.Instance != null
+            ? Mathf.RoundToInt(OperatingCosts.Instance.PowerCost(Selected, Pool) * SetSize * (SizeFor(Selected, Preset) > 1f ? WaveSizes.Power(SelectedSize) : 1f))
+            : 0;
 
         public WaveLevel Selected { get; private set; } = WaveLevel.Beginner;
         public WaveDirection SelectedDirection { get; private set; } = WaveDirection.Peak;
@@ -157,6 +162,26 @@ namespace SurfPool
 
         public bool IsUnlocked(WaveShape shape) => shape != WaveShape.Hollow || directionsUnlocked || HasFixedDirection;
 
+        /// <summary>This pool can make XL waves (it's deep enough).</summary>
+        public bool BigWavesHere => bigWaves;
+
+        /// <summary>Normal, Big or Giant (Big and Giant are Pro waves, deep pools only).</summary>
+        public WaveSize SelectedSize { get; private set; } = WaveSize.Normal;
+
+        public bool IsUnlocked(WaveSize size) => size == WaveSize.Normal || (bigWaves && IsUnlocked(WaveLevel.Pro));
+
+        public bool Select(WaveSize size)
+        {
+            if (!IsUnlocked(size)) return false;
+            SelectedSize = size;
+            if (size != WaveSize.Normal) Select(WaveLevel.Pro);
+            return true;
+        }
+
+        /// <summary>How big the next Pro wave is (1 for every other wave and for famous presets).</summary>
+        float SizeFor(WaveLevel level, FamousWave preset) =>
+            level == WaveLevel.Pro && preset == null && bigWaves ? WaveSizes.Height(SelectedSize) : 1f;
+
         public bool Select(WaveShape shape)
         {
             if (!IsUnlocked(shape)) return false;
@@ -216,7 +241,7 @@ namespace SurfPool
             for (int i = pending.Count - 1; i >= 0; i--)
             {
                 if (Time.time < pending[i].time) continue;
-                water.SpawnWave(pending[i].level, pending[i].direction, pending[i].preset, pending[i].shape);
+                water.SpawnWave(pending[i].level, pending[i].direction, pending[i].preset, pending[i].shape, pending[i].size);
                 WaveFired?.Invoke(pending[i].level, pending[i].direction);
                 pending.RemoveAt(i);
                 SetFired++;
@@ -262,6 +287,7 @@ namespace SurfPool
             if (HasFixedDirection && level != WaveLevel.Beginner) direction = fixedDirection;
             if ((!Ready && !withLeader) || Broken || !IsUnlocked(level) || (level != WaveLevel.Beginner && !IsUnlocked(direction))) return false;
             int count = SetSize;
+            float size = SizeFor(level, preset);
             for (int i = 0; i < count; i++)
             {
                 var dir = direction;
@@ -270,12 +296,12 @@ namespace SurfPool
                     dir = nextAlternateRight ? WaveDirection.Right : WaveDirection.Left;
                     nextAlternateRight = !nextAlternateRight;
                 }
-                pending.Add((Time.time + setLead + i * setSpacing, level, dir, preset, preset != null ? WaveShape.Standard : SelectedShape));
+                pending.Add((Time.time + setLead + i * setSpacing, level, dir, preset, preset != null ? WaveShape.Standard : SelectedShape, size));
             }
             GameStats.WavesSent += count;
-            if (OperatingCosts.Instance != null) OperatingCosts.Instance.MeterWaves(level, Pool, count);
+            if (OperatingCosts.Instance != null) OperatingCosts.Instance.MeterWaves(level, Pool, count, size > 1f ? WaveSizes.Power(SelectedSize) : 1f);
             Sfx.Play(Sound.WaveMachine, transform.position);
-            if (Service != null) Service.AddWear(level, count);
+            if (Service != null) Service.AddWear(level, size > 1f ? count * 2 : count); // XL waves work the machine hard
             // The charge-up runs during the cooldown (not on top of it), so sets don't feel slower than before.
             chargeDuration = Mathf.Max(Cooldown, setLead) + (count - 1) * setSpacing;
             readyAt = Time.time + chargeDuration;

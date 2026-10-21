@@ -1124,6 +1124,14 @@ namespace SurfPool
                 score += lineBonus;
                 Called?.Invoke($"DOWN THE LINE {lineMeters:0} m  +{lineBonus}", Notice.Reward);
             }
+            // Riding an XL wave (Big / Giant) all the way: a big-wave bonus.
+            float xl = pool != null ? pool.Water.SizeOf(rideWave) : 1f;
+            if (xl > 1.05f && waveLevel == WaveLevel.Pro)
+            {
+                int bigBonus = xl > 1.2f ? 600 : 300;
+                score += bigBonus;
+                Called?.Invoke($"{(xl > 1.2f ? "GIANT" : "BIG")} WAVE SURVIVED  +{bigBonus}", Notice.Reward);
+            }
             LastRideSeconds = Time.time - rideStart;
             LastRideLine = lineMeters;
             // On whitewater the goal is simple: stand up and ride it all the way in.

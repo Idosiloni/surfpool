@@ -1132,6 +1132,14 @@ namespace SurfPool
                     if (Skill == WaveLevel.Pro) { rideQuality = Mathf.Min(1f, rideQuality * 1.15f); shapeLine = "It's HOLLOW! Yew!"; }
                     else { wipeoutChance *= 1.5f; shapeLine = "Uh oh, that's steep..."; }
                 }
+                // XL waves (Big / Giant in the deepest pools): the ride of the day for a pro, and a beating if it goes wrong.
+                float xl = whitewash ? 1f : water.SizeOf(wave);
+                if (xl > 1.05f)
+                {
+                    wipeoutChance *= 1.3f;
+                    if (Skill == WaveLevel.Pro) rideQuality = Mathf.Min(1f, rideQuality * 1.2f + 0.05f);
+                    shapeLine = xl > 1.2f ? "BOMB! Biggest wave of my life!" : "XL! Let's GO!";
+                }
                 wipeoutAt = Random.value < wipeoutChance ? Time.time + Random.Range(0.8f, 2.5f) : -1f;
 
                 state = State.Riding;

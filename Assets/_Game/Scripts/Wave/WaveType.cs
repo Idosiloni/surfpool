@@ -18,6 +18,18 @@ namespace SurfPool
     /// </summary>
     public enum WaveShape { Mellow, Standard, Hollow }
 
+    /// <summary>XL waves for the deepest pools (Lagoon, Surf Ranch): bigger Pro waves, for pros only.</summary>
+    public enum WaveSize { Normal, Big, Giant }
+
+    public static class WaveSizes
+    {
+        /// <summary>Height multiplier (Giant ~4.5 m faces in the Lagoon, about the 3.8 m pool world record and a bit).</summary>
+        public static float Height(WaveSize size) => size switch { WaveSize.Big => 1.15f, WaveSize.Giant => 1.3f, _ => 1f };
+
+        /// <summary>Power per wave multiplier.</summary>
+        public static float Power(WaveSize size) => size switch { WaveSize.Big => 1.5f, WaveSize.Giant => 2f, _ => 1f };
+    }
+
     /// <summary>The shape and breaking behavior of one kind of wave.</summary>
     [Serializable]
     public class WaveType

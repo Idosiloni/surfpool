@@ -86,6 +86,7 @@ namespace SurfPool
             public WaveDirection direction;
             public string famous; // name of the famous wave it imitates, or null
             public WaveShape shape;
+            public float size; // XL multiplier (1 = normal)
         }
 
         /// <summary>Everything about a wave that's the same for every vertex this frame.</summary>
@@ -303,9 +304,12 @@ namespace SurfPool
         }
 
         public void SpawnWave(WaveLevel level, WaveDirection direction = WaveDirection.Peak, FamousWave preset = null,
-            WaveShape shape = WaveShape.Standard)
+            WaveShape shape = WaveShape.Standard, float size = 1f)
         {
             var type = Scaled(TypeOf(level));
+            // XL: a taller wave with a proportionally bigger face (its lip, foam ball and spray all scale with height).
+            type.height *= size;
+            type.frontWidth *= Mathf.Lerp(1f, size, 0.7f);
             if (preset != null)
             {
                 type.height *= preset.size;
@@ -329,9 +333,17 @@ namespace SurfPool
                     type.barrel = true;
                 }
             }
-            var spawned = new ActiveWave { start = Now - headStart, type = type, direction = direction, famous = preset?.name, shape = shape };
+            var spawned = new ActiveWave { start = Now - headStart, type = type, direction = direction, famous = preset?.name, shape = shape, size = size };
             waves.Add(spawned);
             if (recording) recorded.Add(spawned);
+        }
+
+        /// <summary>How much bigger than normal this wave is (1 = normal, 1.15 Big, 1.3 Giant).</summary>
+        public float SizeOf(float waveId)
+        {
+            foreach (var wave in waves)
+                if (wave.start == waveId) return wave.size > 0f ? wave.size : 1f;
+            return 1f;
         }
 
         /// <summary>Has this wave broken into whitewater yet? (Beginners on the inside ride the whitewater of bigger waves.)</summary>
