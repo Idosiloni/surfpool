@@ -24,7 +24,6 @@ namespace SurfPool
         /// <summary>A maneuver the body and board act out over a moment of the ride.</summary>
         enum Move { None, Snap, Cutback, Floater, BottomTurn }
 
-        static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         static readonly Color RentalBoardColor = new(1f, 0.85f, 0.15f);
         static readonly string[] BeginnerTricks = { "Popped up!", "Trimming!", "Standing!" };
         static readonly string[] IntermediateTricks = { "Bottom turn!", "Cutback!", "Snap!" };
@@ -229,7 +228,7 @@ namespace SurfPool
             rig.Goofy = Random.value < 0.35f;
             rig.Style = Skill switch { WaveLevel.Beginner => 0f, WaveLevel.Intermediate => 0.55f, _ => 1f };
             rig.Wear(CharacterLooks.For(archetype));
-            Paint(board, Random.ColorHSV(0f, 1f, 0.6f, 1f, 0.8f, 1f));
+            Paint(board, Color.HSVToRGB(Random.Range(0, 24) / 24f, Random.Range(0, 3) * 0.15f + 0.65f, Random.Range(0, 2) * 0.15f + 0.85f)); // a set of shades, so boards share materials
             isRenter = renter;
             lane = Random.Range(-0.6f, 0.6f);
             board.gameObject.SetActive(!renter);
@@ -1175,18 +1174,19 @@ namespace SurfPool
         /// <summary>Tints a part. Boards only get their deck tinted, so stripes, stringer and fins keep their colors.</summary>
         static void Paint(Transform part, Color color)
         {
-            var block = new MaterialPropertyBlock();
-            block.SetColor(BaseColor, color);
             var renderer = part.GetComponent<Renderer>();
             var materials = renderer.sharedMaterials;
             bool tinted = false;
             for (int i = 0; i < materials.Length; i++)
             {
                 if (materials[i] == null || !materials[i].name.StartsWith("BoardDeck")) continue;
-                renderer.SetPropertyBlock(block, i);
+                materials[i] = PaintCache.Get(materials[i], color);
                 tinted = true;
             }
-            if (!tinted) renderer.SetPropertyBlock(block);
+            if (!tinted)
+                for (int i = 0; i < materials.Length; i++)
+                    if (materials[i] != null) materials[i] = PaintCache.Get(materials[i], color);
+            renderer.sharedMaterials = materials;
         }
     }
 }

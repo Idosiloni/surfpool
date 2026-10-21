@@ -15,7 +15,6 @@ namespace SurfPool
     {
         public enum Mode { Locomotion, Paddle, Ride, Sit, Lie, Flail, Straddle }
 
-        static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
         [SerializeField] Transform model;
         [SerializeField] Transform hips;
@@ -218,26 +217,26 @@ namespace SurfPool
             if (shortsRenderer != null) shortsRenderer.transform.localScale = new Vector3(look.width, 1f, look.width);
             Mood = look.mood;
 
-            var block = new MaterialPropertyBlock();
+            // Shared painted materials, not property blocks: those switch off the SRP Batcher (see PaintCache).
             var root = model != null ? model : transform;
             foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = renderer.sharedMaterials;
+                bool changed = false;
                 for (int i = 0; i < mats.Length; i++)
                 {
                     if (mats[i] == null) continue;
                     var color = SlotColor(mats[i].name, look, out var pattern);
                     if (color == null) continue;
-                    block.Clear();
-                    block.SetColor(BaseColor, color.Value);
                     var texture = pattern != Pattern.None && patterns != null && (int)pattern - 1 < patterns.Length ? patterns[(int)pattern - 1] : null;
-                    block.SetTexture(BaseMap, texture != null ? texture : Texture2D.whiteTexture);
-                    renderer.SetPropertyBlock(block, i);
+                    mats[i] = PaintCache.Get(mats[i], color.Value, texture);
+                    changed = true;
                 }
+                if (!changed) continue;
+                renderer.SetPropertyBlock(null);
+                renderer.sharedMaterials = mats;
             }
         }
-
-        static readonly int BaseMap = Shader.PropertyToID("_BaseMap");
 
         static void ShowOne(Renderer[] options, int index)
         {
