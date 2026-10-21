@@ -127,7 +127,8 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
 
 ## Surf moves (2026-10-21, proposals)
 - Whitewater: no tricks; "RODE IT IN" +80 at the end of a ride. Carving speed x0.55, flow capped at 0.3.
-- Green (Intermediate): CARVE 50, BOTTOM TURN 120, TOP TURN 70 (flow < 0.4), SNAP 130 (flow 0.4+), CUTBACK 140
+- Green (Intermediate): CARVE 50, BOTTOM TURN 120, TOP TURN 70 (flow < 0.4), SNAP 130 (flow 0.4+), TAIL SLIDE 140
+  (SHIFT at the lip 0.35-1.3 s, longer = wipeout), CUTBACK 140
   (out on the shoulder, flow 0.45+), FLOATER 160, PARTY WAVE 100. Pumping: +0.07 flow per up-and-down.
 - Pro: AIR 150; spins 180 = 330, 360 = 510, 540 = 690 (150 + degrees); grabs 120 + 100/s held. Land within 55 degrees
   of a half turn or wipe out. Airs last 0.8-1.35 s and go 1.1-2.1 m high with flow.

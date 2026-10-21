@@ -96,7 +96,7 @@ namespace SurfPool
         Vector3 chaseVelocity, chaseLook;
         float waveWatch; // 0..1 the paddling chase cam turns to face out to sea when a wave is coming
         // Maneuvers: air spins and grabs, snaps and cutbacks (a twist of the body), floaters (arms up).
-        float spin, grabTime, airDuration = 0.8f, airHeight = 1.1f, twist, armsUp, floatTime;
+        float spin, grabTime, airDuration = 0.8f, airHeight = 1.1f, twist, armsUp, floatTime, slideTime, nextSlideSpray;
         bool partyAwarded;
         // The wave you're on decides what's possible (like real surfing): whitewater = stand up, angle and ride it
         // in; a green face = carves, bottom turns, snaps, cutbacks, floaters; a steep, fast pro wave = airs too.
@@ -114,7 +114,7 @@ namespace SurfPool
         float flowSum, flowSamples, powerPoints, tubeTotal, biggestSpin;
         bool perfectTakeoff;
         static readonly System.Collections.Generic.HashSet<string> PowerMoves = new()
-            { "SNAP", "CUTBACK", "BOTTOM TURN", "TOP TURN", "FLOATER", "AIR" };
+            { "SNAP", "CUTBACK", "BOTTOM TURN", "TOP TURN", "FLOATER", "AIR", "TAIL SLIDE" };
         readonly System.Collections.Generic.Dictionary<string, int> movesThisRide = new();
         float travelSign = 1f;
         bool chaseSnap = true;
@@ -147,6 +147,8 @@ namespace SurfPool
         public float SpinOverride { get; set; }
         /// <summary>For tests: hold a grab in the air.</summary>
         public bool GrabOverride { get; set; }
+        /// <summary>For tests: hold SHIFT on the face (tail slide).</summary>
+        public bool SlideOverride { get; set; }
 
         /// <summary>You popped up and are riding a wave.</summary>
         public event Action RideStarted;
@@ -193,8 +195,8 @@ namespace SurfPool
                 : waveLevel == WaveLevel.Beginner
                     ? "Whitewater: A/D angle  ·  stay on your feet and ride it in  ·  bigger waves unlock real turns  ·  V camera"
                     : waveLevel == WaveLevel.Intermediate
-                        ? "A/D carve (switch at the top = snap, out on the shoulder = cutback)  ·  W/S up and down  ·  hold W at the lip = floater  ·  V camera"
-                        : "A/D carve, snap, cutback  ·  W/S up and down  ·  hold W at the lip = floater  ·  SPACE air (A/D spin, SHIFT grab)  ·  V camera",
+                        ? "A/D carve (switch at the top = snap, out on the shoulder = cutback)  ·  W/S pump  ·  W at the lip = floater  ·  SHIFT at the lip = tail slide  ·  V camera"
+                        : "A/D carve, snap, cutback  ·  W/S pump  ·  W at the lip = floater  ·  SHIFT at the lip = tail slide  ·  SPACE air (A/D spin, SHIFT grab)  ·  V camera",
             State.Wipeout => "Wipeout! Hold on...",
             _ => null,
         };
@@ -519,7 +521,7 @@ namespace SurfPool
                     bestMultiplier = 1f;
                     topSpeed = 0f;
                     carveSign = 0f;
-                    spin = grabTime = twist = armsUp = floatTime = 0f;
+                    spin = grabTime = twist = armsUp = floatTime = slideTime = 0f;
                     Grab = 0f;
                     partyAwarded = false;
                     waveLevel = water.LevelOf(wave);
@@ -726,6 +728,7 @@ namespace SurfPool
             AirLift = lift;
             target.y = water.SurfaceHeightAt(target) + 0.05f + lift * airHeight;
             AirMoves(keyboard, airborne, dt);
+            if (!TailSlide(keyboard, water, airborne, dt)) return;
             Vector3 delta = target - transform.position;
             transform.position = target;
             delta.y = 0;
@@ -826,6 +829,42 @@ namespace SurfPool
                 // After landing a half turn you ride backwards for a moment, then whip the board back around.
                 spin = Mathf.MoveTowards(spin, 0f, 520f * dt);
             }
+        }
+
+        /// <summary>
+        /// Tail slide: at the lip of a green wave, going fast, hold SHIFT for a moment. The fins break loose and the
+        /// tail slides sideways over the top in a fan of spray; let go to catch it again. Hold it too long and you
+        /// slide right out (a wipeout). Returns false if it ended the ride.
+        /// </summary>
+        bool TailSlide(Keyboard keyboard, WaveWater water, bool airborne, float dt)
+        {
+            bool held = SlideOverride || keyboard.leftShiftKey.isPressed;
+            bool canSlide = waveLevel != WaveLevel.Beginner && !airborne && rideOffset < 0.8f && Mathf.Abs(rideVelocity) > 0.5f * carveSpeed;
+            if (held && canSlide)
+            {
+                slideTime += dt;
+                spin = Mathf.MoveTowards(spin, 65f * Mathf.Sign(rideVelocity), 420f * dt); // the tail swings out
+                if (Time.time >= nextSlideSpray)
+                {
+                    nextSlideSpray = Time.time + 0.12f;
+                    RideFeel.Splash(water, transform.position - transform.forward * 0.5f, 8, 2.4f);
+                }
+                if (slideTime > 1.3f)
+                {
+                    slideTime = 0f;
+                    StartWipeout("Slid out! A tail slide is a quick flick: let go of SHIFT sooner.");
+                    return false;
+                }
+                return true;
+            }
+            if (slideTime >= 0.35f)
+            {
+                Trick("TAIL SLIDE", 140, 0.2f);
+                Sfx.Play(Sound.Splash, transform.position, 0.5f);
+                Splashed?.Invoke(4);
+            }
+            slideTime = 0f;
+            return true;
         }
 
         /// <summary>Landing an air: spins must finish near a half turn or you go down. Returns false on a wipeout.</summary>
