@@ -618,7 +618,7 @@ namespace SurfPool
                     bool waveComing = WaveComing();
                     SetPose(waveComing ? Pose.Paddle : Pose.Straddle);
                     rig.Sprint = waveComing;
-                    Float(transform.position + Separation(WaterSpace) * Time.deltaTime, waveComing ? Vector3.right : Vector3.left);
+                    Float(transform.position + Separation(WaterSpace) * Time.deltaTime, waveComing ? ToBeach : -ToBeach);
                     if (!waveComing && Time.time >= nextFidget && !rig.Gesturing) Fidget();
                     if (DrainPatience(wavePatience * ParkEffects.WavePatienceMultiplier)) LeaveAngry("Where are the waves?!");
                     else TryCatchWave();
@@ -638,8 +638,10 @@ namespace SurfPool
                     if (KickOut()) break;
                     SetPose(Pose.Paddle);
                     rig.Sprint = false;
-                    var beach = pool.BeachLanding.position;
-                    PaddleTo(new Vector3(beach.x - 4f, 0f, transform.position.z), paddleSpeed * 1.5f, State.WalkingOut);
+                    // Straight in to the beach, 4 m short of the landing (in the pool's own frame: pools face any way).
+                    float beachX = water.transform.InverseTransformPoint(pool.BeachLanding.position).x;
+                    var swimTo = water.transform.TransformPoint(new Vector3(beachX - 4f, 0f, water.transform.InverseTransformPoint(transform.position).z));
+                    PaddleTo(swimTo, paddleSpeed * 1.5f, State.WalkingOut);
                     break;
             }
         }
@@ -661,11 +663,13 @@ namespace SurfPool
             float halfWidth = Mathf.Max(1f, water.Width * 0.5f - 2f);
             for (int i = 0; i < 8; i++)
             {
-                var spot = pool.Lineup.position + new Vector3(Random.Range(-2f, 2f), 0f, 0f);
+                // In the pool's own frame (x = out from the machine, z = across): pools can face any way.
+                var local = water.transform.InverseTransformPoint(pool.Lineup.position);
+                local.x += Random.Range(-2f, 2f);
                 // Beginners wait on the inside, nearer the beach, where bigger waves have already turned to whitewater.
-                if (Skill == WaveLevel.Beginner)
-                    spot = water.transform.TransformPoint(new Vector3(water.Length * InsideLineup + Random.Range(-1.5f, 1.5f), 0f, 0f));
-                spot.z = water.transform.position.z + Random.Range(-halfWidth, halfWidth);
+                if (Skill == WaveLevel.Beginner) local.x = water.Length * InsideLineup + Random.Range(-1.5f, 1.5f);
+                local.z = Random.Range(-halfWidth, halfWidth);
+                var spot = water.transform.TransformPoint(local);
                 float gap = float.MaxValue;
                 foreach (var other in All)
                     if (other != this && other.pool == pool)
@@ -705,10 +709,10 @@ namespace SurfPool
                 rig.PlayGesture(SurferPersonalities.Celebration(archetype), kickOutTime);
             }
             float hop = Mathf.Sin(t * Mathf.PI);
-            Vector3 p = transform.position + Vector3.left * (2.5f * Time.deltaTime);
+            Vector3 p = transform.position - ToBeach * (2.5f * Time.deltaTime);
             p.y = water.SurfaceHeightAt(p) + hop * 0.5f;
             transform.position = p;
-            Face(Vector3.left);
+            Face(-ToBeach);
             rig.Air = hop * 0.6f;
             rig.Crouch = 0.2f;
             rig.Twist = 0f;
@@ -776,7 +780,11 @@ namespace SurfPool
             {
                 if (other.pool != inPool || other.state != State.WaitingForWave) continue;
                 other.lookUntil = Time.time + 2.5f;
-                other.rig.LookTarget = new Vector3(machine.x, other.transform.position.y + 1f, other.transform.position.z);
+                // Straight out to the machine wall (in the pool's frame), at eye height.
+                var w = other.water.transform;
+                var local = w.InverseTransformPoint(other.transform.position);
+                local.x = w.InverseTransformPoint(machine).x;
+                other.rig.LookTarget = w.TransformPoint(local) + Vector3.up * 1f;
                 other.patience = Mathf.Min(1f, other.patience + 0.1f);
                 if (Random.Range(0, ++seen) == 0) caller = other; // a random one of them
             }
@@ -992,8 +1000,10 @@ namespace SurfPool
 
             if (whenArrived == State.WalkingOut)
             {
-                var landing = pool.BeachLanding.position;
-                landing.z = transform.position.z;
+                // Land on the beach in line with where we swam in (along the pool's width).
+                var landingLocal = water.transform.InverseTransformPoint(pool.BeachLanding.position);
+                landingLocal.z = water.transform.InverseTransformPoint(transform.position).z;
+                var landing = water.transform.TransformPoint(landingLocal);
                 var route = new List<Vector3> { landing };
                 if (wantsSnack && SnackBar.Instance != null)
                 {
@@ -1430,7 +1440,7 @@ namespace SurfPool
             board.Rotate(Vector3.right, 900f * Time.deltaTime, Space.Self);
             if (t < 1f) return;
 
-            transform.rotation = Quaternion.LookRotation(Vector3.right);
+            transform.rotation = Quaternion.LookRotation(ToBeach);
             SetPose(Pose.Paddle);
             if (MaybeGetInTrouble()) return;
             FinishRide(true);
@@ -1587,6 +1597,9 @@ namespace SurfPool
             if (exclaim.HasValue) Voices.Exclaim(transform, Voice, exclaim.Value);
             else Voices.Talk(transform, Voice, text);
         }
+
+        /// <summary>Out of the machine toward the beach, in the world (the pool's +x; pools can face any way).</summary>
+        Vector3 ToBeach => water != null ? water.transform.right : Vector3.right;
 
         void Face(Vector3 direction)
         {

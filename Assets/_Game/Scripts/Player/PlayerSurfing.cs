@@ -261,10 +261,10 @@ namespace SurfPool
             walker.enabled = false;
             body.enabled = false;
             surfBoard.SetActive(true);
-            Vector3 start = pool.Lineup.position + Vector3.forward * 2f;
+            Vector3 start = pool.Lineup.position + pool.Water.transform.forward * 2f;
             start.y = pool.Water.SurfaceHeightAt(start);
             transform.position = start;
-            transform.rotation = Quaternion.LookRotation(Vector3.right);
+            transform.rotation = Quaternion.LookRotation(pool.Water.transform.right); // facing the beach (pools face any way)
             pitch = 10f;
             eye = PaddleEye;
             roll = tumble = 0f;
@@ -282,7 +282,7 @@ namespace SurfPool
             surfBoard.transform.SetLocalPositionAndRotation(boardRest, Quaternion.identity);
             var path = pool.PathToPool;
             transform.position = path[path.Length - 1].position + Vector3.up * 0.05f;
-            transform.rotation = Quaternion.LookRotation(Vector3.right);
+            transform.rotation = Quaternion.LookRotation(pool.Water.transform.right);
             cameraPivot.localPosition = new Vector3(0, 1.65f, 0);
             cameraPivot.localRotation = Quaternion.identity;
             if (cam != null) cam.fieldOfView = baseFov;

@@ -24,6 +24,14 @@ namespace SurfPool
         [Tooltip("Auto waves pick the type most waiting surfers want, instead of the selected one.")]
         [SerializeField] bool smartAuto;
 
+        [Header("Cove (one pier, two sides)")]
+        [Tooltip("This side only makes this way (a Cove's pier: rights on one side, lefts on the other). Peak = free choice.")]
+        [SerializeField] WaveDirection fixedDirection = WaveDirection.Peak;
+        [Tooltip("The other side of the pier: fires the same wave whenever this one does.")]
+        [SerializeField] WaveMachine twin;
+        [Tooltip("This side follows another machine (its console and timer drive both sides).")]
+        [SerializeField] WaveMachine leader;
+
         readonly HashSet<WaveLevel> unlocked = new() { WaveLevel.Beginner };
         bool directionsUnlocked;
         readonly List<(float time, WaveLevel level, WaveDirection direction, FamousWave preset, WaveShape shape)> pending = new();
@@ -113,7 +121,14 @@ namespace SurfPool
         public void Unlock(WaveLevel level) => unlocked.Add(level);
 
         /// <summary>Peaks are always available; lefts and rights need the Reef Shaper upgrade.</summary>
-        public bool IsUnlocked(WaveDirection direction) => direction == WaveDirection.Peak || directionsUnlocked;
+        public bool IsUnlocked(WaveDirection direction) =>
+            HasFixedDirection ? direction == fixedDirection : direction == WaveDirection.Peak || directionsUnlocked;
+
+        /// <summary>A Cove side: always the same way (no picking), whatever upgrades you own.</summary>
+        public bool HasFixedDirection => fixedDirection != WaveDirection.Peak;
+
+        /// <summary>The machine whose console runs this one (itself unless it's the follower side of a Cove).</summary>
+        public WaveMachine Leader => leader != null ? leader : this;
         public void UnlockDirections() => directionsUnlocked = true;
 
         public bool Select(WaveDirection direction)
@@ -128,7 +143,7 @@ namespace SurfPool
         /// <summary>The wave's shape (Mellow / Standard / Hollow). Hollow needs the Reef Shaper, like lefts and rights.</summary>
         public WaveShape SelectedShape { get; private set; } = WaveShape.Standard;
 
-        public bool IsUnlocked(WaveShape shape) => shape != WaveShape.Hollow || directionsUnlocked;
+        public bool IsUnlocked(WaveShape shape) => shape != WaveShape.Hollow || directionsUnlocked || HasFixedDirection;
 
         public bool Select(WaveShape shape)
         {
@@ -142,7 +157,7 @@ namespace SurfPool
 
         public void SetAlternate(bool on)
         {
-            if (on && !directionsUnlocked) return;
+            if (on && (!directionsUnlocked || HasFixedDirection)) return;
             Alternate = on;
             if (on) Preset = null;
         }
@@ -177,6 +192,11 @@ namespace SurfPool
             return true;
         }
 
+        void Awake()
+        {
+            if (HasFixedDirection) SelectedDirection = fixedDirection;
+        }
+
         void Update()
         {
             for (int i = pending.Count - 1; i >= 0; i--)
@@ -189,7 +209,7 @@ namespace SurfPool
                 LastWaveAt = Time.time;
             }
 
-            if (autoInterval <= 0f || Time.time < nextAutoWave) return;
+            if (autoInterval <= 0f || Time.time < nextAutoWave || leader != null) return; // a follower fires with its leader
             var level = smartAuto ? MostWantedLevel() : Selected;
             var direction = smartAuto ? MostWantedDirection(level) : SelectedDirection;
             if (TrySendSet(level, direction, smartAuto ? null : Preset)) nextAutoWave = Time.time + autoInterval;
@@ -198,6 +218,7 @@ namespace SurfPool
         /// <summary>For the wave operator: send the wave most of this pool's waiting surfers want, if any are waiting.</summary>
         public bool SendForWaiting()
         {
+            if (leader != null) return leader.SendForWaiting();
             bool anyoneWaiting = false;
             foreach (var surfer in Surfer.All)
                 if (surfer.WaitingForWave && IsMine(surfer)) anyoneWaiting = true;
@@ -207,11 +228,13 @@ namespace SurfPool
         }
 
         /// <summary>Sends the selected wave type and direction (a whole set if upgraded).</summary>
-        public bool TryTriggerWave() => TrySendSet(Selected, SelectedDirection, Preset);
+        public bool TryTriggerWave() => leader != null ? leader.TryTriggerWave() : TrySendSet(Selected, SelectedDirection, Preset);
 
-        bool TrySendSet(WaveLevel level, WaveDirection direction, FamousWave preset = null)
+        bool TrySendSet(WaveLevel level, WaveDirection direction, FamousWave preset = null, bool withLeader = false)
         {
-            if (!Ready || Broken || !IsUnlocked(level) || !IsUnlocked(direction)) return false;
+            // A Cove side always peels its own way (presets too: the pier only makes one wave per side).
+            if (HasFixedDirection && level != WaveLevel.Beginner) direction = fixedDirection;
+            if ((!Ready && !withLeader) || Broken || !IsUnlocked(level) || (level != WaveLevel.Beginner && !IsUnlocked(direction))) return false;
             int count = SetSize;
             for (int i = 0; i < count; i++)
             {
@@ -234,6 +257,8 @@ namespace SurfPool
             SetStarted?.Invoke(count);
             // The lineup sees it coming: someone calls "Outside!", everyone looks out to the machine.
             if (Pool != null) Surfer.SeeSet(Pool, transform.position, count);
+            // The other side of a Cove's pier fires the same set.
+            if (twin != null && !withLeader) twin.TrySendSet(level, direction, preset, true); // it turns non-beginner waves its own way
             return true;
         }
 
@@ -256,7 +281,7 @@ namespace SurfPool
             return WaveDirection.Peak;
         }
 
-        bool IsMine(Surfer surfer) => surfer.Pool != null && surfer.Pool.Machine == this;
+        bool IsMine(Surfer surfer) => surfer.Pool != null && (surfer.Pool.Machine == this || (twin != null && surfer.Pool.Machine == twin));
 
         /// <summary>The unlocked wave type wanted by the most surfers waiting in the water.</summary>
         /// <summary>

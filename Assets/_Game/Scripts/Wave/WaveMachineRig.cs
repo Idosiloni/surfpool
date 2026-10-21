@@ -144,13 +144,16 @@ namespace SurfPool
             if (chamber.valve != null) chamber.valve.Rotate(540f * Time.deltaTime * (1f - Mathf.Clamp01(t / 1.2f)), 0f, 0f, Space.Self);
             if (spray != null && t >= 0.16f && t - Time.deltaTime < 0.16f)
             {
-                Vector3 mouth = chamber.root.position + Vector3.right * 3.3f + Vector3.up * 0.2f;
+                // Out over the water: the pool's +x (pools can face any way).
+                Vector3 outward = pool != null && pool.Water != null ? pool.Water.transform.right : Vector3.right;
+                Vector3 across = Vector3.Cross(Vector3.up, outward);
+                Vector3 mouth = chamber.root.position + outward * 3.3f + Vector3.up * 0.2f;
                 var emit = new ParticleSystem.EmitParams { applyShapeToPosition = true };
                 for (int i = 0; i < 22; i++)
                 {
                     // A white burst out of the mouth, thrown up and out over the water.
-                    emit.position = mouth + new Vector3(Random.Range(0f, 0.6f), Random.Range(-0.3f, 0.2f), Random.Range(-1.3f, 1.3f));
-                    emit.velocity = new Vector3(Random.Range(2.5f, 6f), Random.Range(1.5f, 4.5f), Random.Range(-1.2f, 1.2f));
+                    emit.position = mouth + outward * Random.Range(0f, 0.6f) + Vector3.up * Random.Range(-0.3f, 0.2f) + across * Random.Range(-1.3f, 1.3f);
+                    emit.velocity = outward * Random.Range(2.5f, 6f) + Vector3.up * Random.Range(1.5f, 4.5f) + across * Random.Range(-1.2f, 1.2f);
                     emit.startSize = Random.Range(0.3f, 0.75f);
                     spray.Emit(emit, 1);
                 }
@@ -162,12 +165,14 @@ namespace SurfPool
             // Chambers beyond the pool's current width aren't built yet.
             if (pool != null && pool.Water != null)
             {
-                float north = pool.SouthEdge + pool.Water.Width;
+                var w = pool.Water.transform;
+                float north = w.InverseTransformPoint(new Vector3(0f, 0f, pool.SouthEdge)).z + pool.Water.Width;
+                if (pool.StageCount == 0) north = pool.Water.Width; // always full size: every chamber is built
                 foreach (var chamber in chambers)
                     if (chamber.root != null)
                     {
                         // Built once the pool reaches past the chamber's middle (the last one may overhang a little).
-                        bool built = chamber.root.position.z < north;
+                        bool built = w.InverseTransformPoint(chamber.root.position).z < north;
                         if (chamber.root.gameObject.activeSelf != built) chamber.root.gameObject.SetActive(built);
                     }
             }

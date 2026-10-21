@@ -268,6 +268,8 @@ namespace SurfPool.EditorTools
                 pathOut = new[] { new Vector3(LagoonLength + 3, 0, LagoonZ - 6), new Vector3(LagoonLength + 40, 0, LagoonZ - 6) },
             });
 
+            var cove = BuildCove();
+
             var spawnerGo = new GameObject("Surfer Spawner");
             var spawner = spawnerGo.AddComponent<SurferSpawner>();
             Set(spawner, "surferPrefab", BuildSurferPrefab(surferMat));
@@ -637,6 +639,14 @@ namespace SurfPool.EditorTools
             public string[] stageNames;
             public bool open, mainDeck;
             public Vector3[] pathToPool, pathOut;
+            // Where the pool sits and which way it faces: the machine wall at world x = x0, turned yaw degrees around
+            // (x0, z) (180 = machine on the east, waves running west). Route points stay in world coordinates.
+            public float x0, yaw;
+            // Deck behind the machine (x < 0), the machine's depth, and whether it's the open "air wall" machine (with
+            // its solar roof and tanks). A Cove half has no back deck: its pier sits there.
+            public float backDeck = 20f, machineDepth = 14.5f, lotBack = 20f;
+            public bool airWall = true;
+            public float sideDecks; // > 0: the same deck depth on both long sides (the Cove's two halves match up)
         }
 
         class PoolBuild
@@ -665,10 +675,11 @@ namespace SurfPool.EditorTools
             built.SetParent(root, false);
 
             // Deck. The main pool's deck is wide (desks and sunbathing live on it); the others have narrower strips.
-            float south = spec.mainDeck ? 28 : 12, north = spec.mainDeck ? MainNorthDeck : 16;
-            Box("Deck North", built, new Vector3(poolLength / 2, -thickness / 2, zc + halfW + north / 2), new Vector3(poolLength + 40, thickness, north), mats.deck);
-            Box("Deck South", built, new Vector3(poolLength / 2, -thickness / 2, zc - halfW - south / 2), new Vector3(poolLength + 40, thickness, south), mats.deck);
-            Box("Deck West", built, new Vector3(-10, -thickness / 2, zc), new Vector3(20, thickness, poolWidth), mats.deck);
+            float south = spec.mainDeck ? 28 : spec.sideDecks > 0f ? spec.sideDecks : 12, north = spec.mainDeck ? MainNorthDeck : spec.sideDecks > 0f ? spec.sideDecks : 16;
+            float back = spec.backDeck;
+            Box("Deck North", built, new Vector3((poolLength + 20 - back) / 2, -thickness / 2, zc + halfW + north / 2), new Vector3(poolLength + 20 + back, thickness, north), mats.deck);
+            Box("Deck South", built, new Vector3((poolLength + 20 - back) / 2, -thickness / 2, zc - halfW - south / 2), new Vector3(poolLength + 20 + back, thickness, south), mats.deck);
+            if (back > 0f) Box("Deck West", built, new Vector3(-back / 2, -thickness / 2, zc), new Vector3(back, thickness, poolWidth), mats.deck);
             Box("Deck East", built, new Vector3(poolLength + 10, -thickness / 2, zc), new Vector3(20, thickness, poolWidth), mats.deck);
 
             // The basin (walls, floor, beach, coping, edge blockers). A pool with size stages gets one basin per stage;
@@ -712,21 +723,24 @@ namespace SurfPool.EditorTools
             Set(water, "spray", spray);
 
             // The machine's collider (hold E to repair); the open "air wall" machine built below is the look.
-            var machineGo = Box("Wave Machine", built, new Vector3(-7.25f, 2.5f, zc), new Vector3(14.5f, 5, poolWidth), mats.machine);
+            float md = spec.machineDepth, lightX = spec.airWall ? -6f : -md / 2f, lightY = spec.airWall ? 4.85f : 2.1f;
+            var machineGo = spec.airWall
+                ? Box("Wave Machine", built, new Vector3(-md / 2f, 2.5f, zc), new Vector3(md, 5, poolWidth), mats.machine)
+                : Box("Wave Machine", built, new Vector3(-md / 2f, 0.8f, zc), new Vector3(md, 1.6f, poolWidth), mats.machine); // a Cove pier's module row
             machineGo.GetComponent<MeshRenderer>().enabled = false;
             var machine = machineGo.AddComponent<WaveMachine>();
             Set(machine, "water", water);
-            var autoLight = Box("Auto Wave Light", built, new Vector3(-6, 4.85f, zc - 9), new Vector3(0.6f, 0.5f, 0.6f), mats.beacon);
+            var autoLight = Box("Auto Wave Light", built, new Vector3(lightX, lightY, zc - 9), new Vector3(0.6f, 0.5f, 0.6f), mats.beacon);
             autoLight.SetActive(false);
 
             // Breakdowns: a flashing red light and black smoke from the roof when the machine is broken.
             var service = machineGo.AddComponent<MachineService>();
-            var brokenLight = Box("Broken Light", built, new Vector3(-6, 4.85f, zc - 7.6f), new Vector3(0.6f, 0.5f, 0.6f),
+            var brokenLight = Box("Broken Light", built, new Vector3(lightX, lightY, zc - 7.6f), new Vector3(0.6f, 0.5f, 0.6f),
                 Mat("BrokenLight", new Color(1f, 0.15f, 0.1f), 0.5f, new Color(3f, 0.3f, 0.2f)));
             Object.DestroyImmediate(brokenLight.GetComponent<Collider>());
             var smoke = BuildSmoke();
             smoke.transform.SetParent(built, false);
-            smoke.transform.position = new Vector3(-10, 5.5f, zc);
+            smoke.transform.position = spec.airWall ? new Vector3(-10, 5.5f, zc) : new Vector3(-md / 2f, 2.4f, zc);
             Set(service, "smoke", smoke);
             Set(service, "brokenLight", brokenLight);
 
@@ -769,7 +783,8 @@ namespace SurfPool.EditorTools
             {
                 lot = new GameObject("Construction Lot");
                 lot.transform.SetParent(root, false);
-                Box("Lot Sand", lot.transform, new Vector3(poolLength / 2, -0.6f, zc + (north - south) / 2), new Vector3(poolLength + 40, 1, poolWidth + north + south), mats.sand);
+                Box("Lot Sand", lot.transform, new Vector3((poolLength + 20 - spec.lotBack) / 2, -0.6f, zc + (north - south) / 2),
+                    new Vector3(poolLength + 20 + spec.lotBack, 1, poolWidth + north + south), mats.sand);
                 for (int i = 0; i <= Mathf.CeilToInt((poolLength + 10) / 3.5f); i++)
                 {
                     Box("Fence Post", lot.transform, new Vector3(-5 + i * 3.5f, 0.6f, zc - halfW - 2), new Vector3(0.15f, 1.2f, 0.15f), mats.coping);
@@ -799,8 +814,12 @@ namespace SurfPool.EditorTools
             SetFloat(area, "priceMultiplier", spec.price);
             SetFloat(area, "southEdge", southZ);
             SetFloat(area, "dailyWater", spec.water);
-            Set(area, "solarPanels", SolarPanels(built, zc));
-            Set(area, "waterTanks", WaterTanks(built, zc));
+            if (spec.airWall)
+            {
+                Set(area, "solarPanels", SolarPanels(built, zc));
+                Set(area, "waterTanks", WaterTanks(built, zc));
+            }
+            SetFloat(area, "machineDepth", md);
             if (spec.stages != null)
             {
                 var so = new SerializedObject(area);
@@ -829,7 +848,18 @@ namespace SurfPool.EditorTools
             if (lot != null) Set(area, "lotVisuals", lot);
             Set(area, "autoWaveLight", autoLight);
             Set(surfPeg, "pool", area);
-            BuildAirWall(built, zc, southZ, poolWidth, spec.display, machine, area, autoLight, brokenLight, smoke.transform);
+            if (spec.airWall) BuildAirWall(built, zc, southZ, poolWidth, spec.display, machine, area, autoLight, brokenLight, smoke.transform);
+
+            // Place and turn the finished pool: everything was built with the machine wall at x = 0. Turning happens
+            // around (0, zc); then the route points go back to where the spec put them (they're world positions).
+            if (spec.x0 != 0f || spec.yaw != 0f)
+            {
+                var turn = Quaternion.Euler(0f, spec.yaw, 0f);
+                var pivot = new Vector3(0f, 0f, zc);
+                root.SetPositionAndRotation(pivot + new Vector3(spec.x0, 0f, 0f) - turn * pivot, turn);
+                for (int i = 0; i < toPool.Length; i++) ((Transform)toPool[i]).SetPositionAndRotation(spec.pathToPool[i], Quaternion.identity);
+                for (int i = 0; i < outPoints.Length; i++) ((Transform)outPoints[i]).SetPositionAndRotation(spec.pathOut[i], Quaternion.identity);
+            }
             if (!spec.open) built.gameObject.SetActive(false);
 
             return new PoolBuild { area = area, built = built, water = water, machine = machine, panel = panel, peg = peg };

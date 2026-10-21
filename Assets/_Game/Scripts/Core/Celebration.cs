@@ -71,7 +71,7 @@ namespace SurfPool
         void OnBought(Upgrade upgrade)
         {
             if (upgrade.category != UpgradeCategory.Pools) return;
-            bool newPool = upgrade.id == "pool_reef" || upgrade.id == "pool_lagoon";
+            bool newPool = upgrade.id.StartsWith("pool_") && !upgrade.id.StartsWith("pool_expand");
             var where = mainPoolCenter != null ? mainPoolCenter.position : transform.position;
             foreach (var pool in PoolRegistry.All)
                 if (newPool ? pool.UpgradeId == upgrade.id : string.IsNullOrEmpty(pool.UpgradeId))

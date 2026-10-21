@@ -371,7 +371,7 @@ namespace SurfPool
                 float distance = (pool.Lineup.position - from).sqrMagnitude;
                 if (distance < bestDistance)
                 {
-                    best = pool.Machine;
+                    best = pool.Machine.Leader; // a Cove's two sides are run from one console
                     bestDistance = distance;
                 }
             }
@@ -392,6 +392,7 @@ namespace SurfPool
             if (!near) return;
             var selected = machine.Selected;
             string direction = selected == WaveLevel.Beginner ? "Whitewater"
+                : machine.HasFixedDirection ? "Rights + lefts" // a Cove: both sides of the pier at once
                 : machine.SelectedDirection == WaveDirection.Peak ? "Peak" : machine.SelectedDirection.ToString();
             SetText(waveType, machine.Preset != null ? $"{machine.Preset.name}  ·  {selected}" : $"{selected}  ·  {direction}");
             waveType.EnableInClassList("wave-type--beginner", selected == WaveLevel.Beginner);

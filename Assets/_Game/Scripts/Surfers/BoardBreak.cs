@@ -147,7 +147,7 @@ namespace SurfPool
                 // Floating, rocking, drifting toward the beach a little; after a while it sinks out of sight.
                 float sink = Mathf.Clamp01((age - 6f) / 2f);
                 var p = transform.position;
-                p += Vector3.right * 0.3f * Time.deltaTime;
+                p += (water != null ? water.transform.right : Vector3.right) * 0.3f * Time.deltaTime;
                 p.y = surface + 0.02f + Mathf.Sin(age * 3f) * 0.03f - sink * 0.6f;
                 transform.position = p;
                 transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.Euler(0f, transform.eulerAngles.y, Mathf.Sin(age * 2f) * 8f), Time.deltaTime * 3f);

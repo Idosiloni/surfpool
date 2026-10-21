@@ -39,6 +39,9 @@ namespace SurfPool.EditorTools
             return asset != null ? asset.GetComponentInChildren<MeshFilter>().sharedMesh : null;
         }
 
+        /// <summary>East end of the sand island (past the Cove).</summary>
+        internal const float IslandEast = GreyboxBuilder.CoveEast + 14f;
+
         /// <summary>Sand island under the park, ocean to the horizon, palms, umbrellas, loungers and rocks.</summary>
         public static void BuildEnvironment(Material sandMat, Material waterMat)
         {
@@ -51,7 +54,15 @@ namespace SurfPool.EditorTools
             SandSlab(sand, "North", new Vector3(30, -0.6f, DecksNorth + 30f), new Vector3(260, 1, 60), sandMat);
             SandSlab(sand, "South", new Vector3(30, -0.6f, -70), new Vector3(240, 1, 60), sandMat);
             SandSlab(sand, "West", new Vector3(-50, -0.6f, (DecksNorth - 40f) / 2f), new Vector3(60, 1, DecksNorth + 40f), sandMat);
-            SandSlab(sand, "East", new Vector3(120, -0.6f, (DecksNorth - 40f) / 2f), new Vector3(80, 1, DecksNorth + 40f), sandMat);
+            // East: a strip by the main pool, then sand around the Cove (its decks cover the rest) out to the island's end.
+            const float coveW = GreyboxBuilder.CoveWest, coveE = GreyboxBuilder.CoveEast, coveS = GreyboxBuilder.CoveSouth, coveN = GreyboxBuilder.CoveNorth;
+            void Slab(string name, float x0, float x1, float z0, float z1) =>
+                SandSlab(sand, name, new Vector3((x0 + x1) / 2f, -0.6f, (z0 + z1) / 2f), new Vector3(x1 - x0, 1, z1 - z0), sandMat);
+            Slab("East", 80f, coveW, -40f, DecksNorth);
+            Slab("East North", coveW, IslandEast, coveN, DecksNorth);
+            Slab("East Beach", coveE, IslandEast, coveS, coveN);
+            Slab("South East", 150f, IslandEast, -100f, coveS);
+            Slab("North East", 160f, IslandEast, DecksNorth, DecksNorth + 60f);
 
             var ocean = new GameObject("Ocean", typeof(MeshFilter), typeof(MeshRenderer));
             ocean.transform.SetParent(root, false);
@@ -71,8 +82,8 @@ namespace SurfPool.EditorTools
                 new(-18, 0, N + 2f), new(-18, 0, -14), new(-3, 0, N + 4f), new(12, 0, N + 3f), new(26, 0, N + 4.5f), new(44, 0, N + 3f),
                 new(58, 0, N + 4f), new(72, 0, N), new(76, 0, -6), new(74, 0, -20), new(88, 0, -40), new(8, 0, -38),
                 new(-14, 0, -34), new(36, 0, -38), new(52, 0, -30), new(-24, 0, 0),
-                new(88, 0, 30), new(95, 0, -10), new(-35, 0, 25), new(-38, 0, -30), new(88, 0, 60), new(-30, 0, 70), new(90, 0, 110), new(-32, 0, 125),
-                new(20, 0, -52), new(92, 0, -62), new(105, 0, 20), new(-45, 0, 5),
+                new(83, 0, 30), new(-35, 0, 25), new(-38, 0, -30), new(88, 0, 62), new(-30, 0, 70), new(90, 0, 110), new(-32, 0, 125),
+                new(20, 0, -52), new(92, 0, -62), new(83, 0, -20), new(-45, 0, 5), new(240, 0, -20), new(238, 0, 30), new(200, 0, -66),
             };
             for (int i = 0; i < palmSpots.Length; i++)
             {
@@ -91,9 +102,9 @@ namespace SurfPool.EditorTools
                 Model("LoungeChair", lounge, new Vector3(x - 0.8f, 0, N + 7.2f), 180f);
                 Model("LoungeChair", lounge, new Vector3(x + 0.8f, 0, N + 7.2f), 180f);
             }
-            // A few more on the sand past the beach end.
+            // A few more on the sand strip past the main pool's beach end (the Cove starts just east of it).
             for (int i = 0; i < 4; i++)
-                Model(i % 2 == 0 ? "BeachUmbrellaCoral" : "BeachUmbrellaTeal", lounge, new Vector3(86 + i * 5f, -0.1f, -8 + i * 6f), Range(0, 360));
+                Model(i % 2 == 0 ? "BeachUmbrellaCoral" : "BeachUmbrellaTeal", lounge, new Vector3(83f, -0.1f, -8 + i * 7f), Range(0, 360));
 
             var rocks = new GameObject("Rocks").transform;
             rocks.SetParent(root, false);
@@ -102,7 +113,7 @@ namespace SurfPool.EditorTools
                 float angle = Range(0, Mathf.PI * 2);
                 float radius = Range(100, 120);
                 var spot = new Vector3(30 + Mathf.Cos(angle) * radius, -0.3f, 52 + Mathf.Sin(angle) * radius * 1.3f);
-                bool inPark = spot.x > -25 && spot.x < 100 && spot.z > -45 && spot.z < 186;
+                bool inPark = spot.x > -25 && spot.x < IslandEast && spot.z > -45 && spot.z < 186;
                 if (inPark || spot.z < -95 || spot.z > 238) continue;
                 Model("Rock", rocks, spot, Range(0, 360), Range(0.8f, 2.4f));
             }
@@ -213,7 +224,7 @@ namespace SurfPool.EditorTools
             const int n = 80;
             const float size = 1600f;
             // Island footprint in the ocean's local space (ocean is centered at x = 30, z = 0).
-            var hole = Rect.MinMaxRect(-80 - 30 + 2, -100 + 2, 140 - 30 - 2, GreyboxBuilder.LagoonZ + GreyboxBuilder.LagoonWidth / 2f + 40f);
+            var hole = Rect.MinMaxRect(-80 - 30 + 2, -100 + 2, IslandEast - 30 - 2, GreyboxBuilder.LagoonZ + GreyboxBuilder.LagoonWidth / 2f + 40f);
             var vertices = new Vector3[(n + 1) * (n + 1)];
             var colors = new Color[vertices.Length];
             for (int z = 0; z <= n; z++)

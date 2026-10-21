@@ -190,3 +190,10 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
   up to 0.5 flow (shortboard 0.35). Foamie: x0.75, only carves/bottom turns, never pearls, PERFECT take-off window x1.6.
   Longboard: x0.9 (x0.75 on Pro), no airs/snaps/tail slides, never pearls, take-off window x1.3, HANG FIVE 100 after
   1.5 s at the nose, HANG TEN 200 after 3 s (not on Pro waves). Could later be sold at the gear shop instead.
+
+## The Cove (2026-10-22, proposals)
+- Upgrade `pool_cove`: L22, $150k, needs the Lagoon. A pier of 16 wave modules down the middle of a 2 x 50 x 80 m
+  lagoon east of the main pool: every set makes a right (east side) and a left (west side) at once, from one console.
+- Each side: travel 0.45, peel 2.0, size 1.1, sessions x4 the base price, daily water 70 each. +6 surfers (two
+  lineups). Power is paid per side (a set costs twice). ~10 s rides, ~45 m down the line.
+

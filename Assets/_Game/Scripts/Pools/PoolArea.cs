@@ -59,6 +59,8 @@ namespace SurfPool
         [SerializeField] GameObject solarPanels;
         [Tooltip("Shown when Water Recycling is bought (tanks next to the machine house).")]
         [SerializeField] GameObject waterTanks;
+        [Tooltip("How far the machine reaches behind the pool's deep end (m): 14.5 for the air wall, less for a Cove pier.")]
+        [SerializeField] float machineDepth = 14.5f;
 
         public string DisplayName => displayName;
         public float SouthEdge => southEdge;
@@ -139,24 +141,44 @@ namespace SurfPool
         /// <summary>The pool's water on the ground (x, z), grown by a margin. Walkers and litter stay out of it.</summary>
         public Rect Footprint(float margin)
         {
-            float length = water.Length, width = water.Width, zc = water.transform.position.z;
-            return Rect.MinMaxRect(-margin, zc - width / 2f - margin, length + margin, zc + width / 2f + margin);
+            float length = water.Length, width = water.Width;
+            return LocalRect(0f, length, -width / 2f, width / 2f, margin);
+        }
+
+        /// <summary>
+        /// A rectangle in the water's own frame (x = out from the machine, z = across the pool) as a ground rectangle
+        /// (x, z) in the world. Pools face any way in 90 degree steps, so it stays axis-aligned.
+        /// </summary>
+        Rect LocalRect(float x0, float x1, float z0, float z1, float margin)
+        {
+            var w = water.transform;
+            Vector3 a = w.TransformPoint(new Vector3(x0, 0f, z0)), b = w.TransformPoint(new Vector3(x1, 0f, z1));
+            return Rect.MinMaxRect(Mathf.Min(a.x, b.x) - margin, Mathf.Min(a.z, b.z) - margin, Mathf.Max(a.x, b.x) + margin, Mathf.Max(a.z, b.z) + margin);
+        }
+
+        /// <summary>Across-the-pool (local z) range of the pool at full size, from the fixed south wall.</summary>
+        (float z0, float z1) FullAcross()
+        {
+            if (StageCount == 0) return (-water.Width / 2f, water.Width / 2f);
+            float south = water.transform.InverseTransformPoint(new Vector3(water.transform.position.x, 0f, southEdge)).z;
+            return (south, south + stages[StageCount - 1].width);
         }
 
         /// <summary>The pool at its biggest size (all stages), grown by a margin. Nothing gets built there.</summary>
         public Rect FullFootprint(float margin)
         {
             float length = StageCount > 0 ? stages[StageCount - 1].length : water.Length;
-            float width = StageCount > 0 ? stages[StageCount - 1].width : water.Width;
-            return Rect.MinMaxRect(-margin, southEdge - margin, length + margin, southEdge + width + margin);
+            var (z0, z1) = FullAcross();
+            return LocalRect(0f, length, z0, z1, margin);
         }
 
         /// <summary>The wave machine house next to the pool (x, z), grown by a margin.</summary>
         public Rect MachineHouseFootprint(float margin)
         {
             // The open "air wall" machine: chambers along the deep end (x -6..0) and the blowers behind (to x -14).
-            float width = StageCount > 0 ? stages[StageCount - 1].width : water.Width;
-            return Rect.MinMaxRect(-14.5f - margin, southEdge - margin, -0.2f + margin, southEdge + width + margin);
+            // A Cove's pier is narrower: just its machine depth.
+            var (z0, z1) = FullAcross();
+            return LocalRect(-machineDepth, -0.2f, z0, z1, margin);
         }
 
 
