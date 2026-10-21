@@ -98,7 +98,44 @@ namespace SurfPool.EditorTools
             SetString(counter, "moneyReason", reason);
             SetFloat(counter, "patience", patience);
             SetVector2(counter, "arrivalGap", gap);
+            QueueRopes(root, line.position, approach.position);
             SetFloat(counter, "workerTime", workerTime);
+        }
+
+        /// <summary>Rope stanchions along both sides of a shop's line (dressing only: customers queue between them).</summary>
+        static void QueueRopes(Transform root, Vector3 front, Vector3 back)
+        {
+            var gold = Mat("Gold", new Color(1f, 0.78f, 0.3f), 0.8f);
+            var rope = Mat("QueueRope", new Color(0.1f, 0.55f, 0.6f), 0.3f);
+            Vector3 along = back - front;
+            along.y = 0f;
+            float length = Mathf.Min(along.magnitude, 4.4f);
+            along.Normalize();
+            var side = new Vector3(-along.z, 0f, along.x);
+            var ropes = new GameObject("Queue Ropes").transform;
+            ropes.SetParent(root, true);
+            foreach (float s in new[] { -0.65f, 0.65f })
+            {
+                Vector3 start = front + along * 0.6f + side * s, end = front + along * length + side * s;
+                for (int i = 0; i < 3; i++)
+                {
+                    var post = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                    post.name = "Stanchion";
+                    Object.DestroyImmediate(post.GetComponent<Collider>());
+                    post.transform.SetParent(ropes, false);
+                    post.transform.position = Vector3.Lerp(start, end, i / 2f) + Vector3.up * 0.45f;
+                    post.transform.localScale = new Vector3(0.07f, 0.45f, 0.07f);
+                    post.GetComponent<MeshRenderer>().sharedMaterial = gold;
+                }
+                var line = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                line.name = "Rope";
+                Object.DestroyImmediate(line.GetComponent<Collider>());
+                line.transform.SetParent(ropes, false);
+                line.transform.position = (start + end) / 2f + Vector3.up * 0.8f;
+                line.transform.rotation = Quaternion.LookRotation(along);
+                line.transform.localScale = new Vector3(0.04f, 0.04f, (end - start).magnitude);
+                line.GetComponent<MeshRenderer>().sharedMaterial = rope;
+            }
         }
 
         static GameObject Worker(Transform root, ShopCounter counter, string name, Vector3 local, float localYaw, Color shirt, Material skinMat, int wage)
