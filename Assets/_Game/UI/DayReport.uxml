@@ -24,7 +24,14 @@
                     <ui:VisualElement name="factRows" class="report-facts" />
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:Label name="reportTotals" class="report-totals" />
+            <ui:VisualElement name="reportTotals" class="report-totals">
+                <ui:Label name="totalIncome" class="report-chip report-chip--income" />
+                <ui:Label name="totalSpent" class="report-chip report-chip--spent" />
+                <ui:VisualElement class="report-profit-box">
+                    <ui:Label text="PROFIT" class="section-title report-profit-label" />
+                    <ui:Label name="totalProfit" class="report-profit" />
+                </ui:VisualElement>
+            </ui:VisualElement>
             <ui:Button name="reportNext" text="Save &amp; start the next day" class="send-button story-button" />
         </ui:VisualElement>
     </ui:VisualElement>

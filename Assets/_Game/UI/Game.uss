@@ -1811,10 +1811,89 @@
     white-space: normal;
 }
 
+/* The report plays out (DayReportScreen): each row, review and the totals wait hidden, then slide in. */
+.report-beat--waiting {
+    opacity: 0;
+    translate: -12px 0;
+}
+
+.report-columns .stat-row,
+.review-card,
+.report-facts,
+.report-totals,
+.report-empty {
+    transition-property: opacity, translate;
+    transition-duration: 0.22s;
+    transition-timing-function: ease-out;
+}
+
+.review-card {
+    rotate: -1.5deg;
+}
+
+.review-card.report-beat--waiting {
+    translate: 0 -16px;
+}
+
 .report-totals {
-    font-size: 26px;
-    color: var(--money);
-    margin-top: 18px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+/* Income and Spent as two quiet chips, then the day's profit as a big slammed number. */
+.report-chip {
+    font-size: 24px;
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    color: var(--ink-soft);
+    background-color: var(--paper);
+    border-radius: 14px;
+    border-width: 2px;
+    border-bottom-width: 5px;
+    border-color: var(--sand-dark);
+    padding: 4px 16px 6px 16px;
+    margin-right: 14px;
+}
+
+.report-chip--spent {
+    color: var(--coral-dark);
+}
+
+.report-profit-box {
+    flex-direction: row;
+    align-items: center;
+    margin-left: 10px;
+}
+
+.report-profit-label {
+    margin: 0 12px 0 0;
+}
+
+.report-profit {
+    font-size: 56px;
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    color: white;
+    background-color: var(--money);
+    border-radius: 22px;
+    border-width: 3px;
+    border-bottom-width: 8px;
+    border-color: var(--ink);
+    padding: 0 26px 6px 26px;
+    text-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);
+    rotate: -2deg;
+    transition-property: scale, opacity, rotate;
+    transition-duration: 0.35s, 0.2s, 0.35s;
+    transition-timing-function: ease-out-back, ease-out, ease-out-back;
+}
+
+.report-profit--loss {
+    background-color: var(--coral);
+}
+
+.report-profit--slam {
+    scale: 1.35 1.35;
+    rotate: -9deg;
 }
 
 .pause-text {
