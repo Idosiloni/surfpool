@@ -91,6 +91,8 @@ namespace SurfPool
                 description = "A taco and smoothie kiosk by the exit. Happy surfers from the main pool stop for food ($10). Serve them at the grill (E)... and watch out for the wrappers." },
             new Upgrade { id = "smoothie_bar", category = UpgradeCategory.Park, title = "Bigger Snack Menu", cost = 2500, level = 8, requires = "snack_bar",
                 description = "Burritos and loaded fries join the fish tacos and smoothies. Every snack sells for $8 more (and acai shakes a little more too)." },
+            new Upgrade { id = "photo_tower", category = UpgradeCategory.Park, title = "Surf Photographer", cost = 4000, level = 9,
+                description = "A photo tower on the main pool's north deck. Aim the long lens, zoom, and catch surfers at their best moment: shots are graded C to S. Surfers buy prints of good ones, and S shots go on the Wall of Fame." },
             new Upgrade { id = "acai_bar", category = UpgradeCategory.Park, title = "Acai & Shake Shack", cost = 1500, level = 6,
                 description = "A purple fruit shack by the west deck. Customers order acai bowls and shakes: grab a bowl or cup, add their toppings, blend, serve. Fast service = tips!" },
             new Upgrade { id = "surf_shop", category = UpgradeCategory.Park, title = "Surf Gear Shop", cost = 3500, level = 10,
@@ -166,6 +168,7 @@ namespace SurfPool
         [SerializeField] GameObject snackCook;
         [SerializeField] GameObject fishingPier;
         [SerializeField] GameObject trashCans;
+        [SerializeField] GameObject photoSpot;
         [SerializeField] GameObject acaiBar;
         [SerializeField] GameObject acaiBarista;
         [SerializeField] GameObject gearClerk;
@@ -324,6 +327,9 @@ namespace SurfPool
                     break;
                 case "snack_bar":
                     if (snackBar != null) snackBar.SetActive(true);
+                    break;
+                case "photo_tower":
+                    if (photoSpot != null) photoSpot.SetActive(true);
                     break;
                 case "acai_bar":
                     if (acaiBar != null) acaiBar.SetActive(true);

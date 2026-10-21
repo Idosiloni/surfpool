@@ -32,6 +32,7 @@ namespace SurfPool
             public int shopSales;
             public int customBoards;
             public int legendVisits;
+            public int photosTaken, printsSold;
             public List<BuildMode.Placed> decorations = new();
             public List<int> treasuresFound = new();
             public int fishCaught, beachGuests;
@@ -100,6 +101,8 @@ namespace SurfPool
                 shopSales = GameStats.ShopSales,
                 customBoards = GameStats.CustomBoards,
                 legendVisits = FamousVisits.Visits,
+                photosTaken = PhotoTower.PhotosTaken,
+                printsSold = PhotoTower.PrintsSold,
                 decorations = BuildMode.Instance != null ? BuildMode.Instance.Export() : new List<BuildMode.Placed>(),
                 treasuresFound = Treasure.FoundIndices(Treasure.Total),
                 fishCaught = GameStats.FishCaught,
@@ -165,6 +168,8 @@ namespace SurfPool
             GameStats.ShopSales = data.shopSales;
             GameStats.CustomBoards = data.customBoards;
             FamousVisits.Visits = data.legendVisits;
+            PhotoTower.PhotosTaken = data.photosTaken;
+            PhotoTower.PrintsSold = data.printsSold;
             if (BuildMode.Instance != null) BuildMode.Instance.Restore(data.decorations);
             Treasure.Restore(data.treasuresFound);
             GameStats.FishCaught = data.fishCaught;

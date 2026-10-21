@@ -711,6 +711,97 @@ def status_lamp(name="StatusLamp"):
     return join(name, parts)
 
 
+# ================================================================ Surf photographer
+
+def photo_tower(name="PhotoTower"):
+    """A 3 m wooden photo tower: four legs, cross braces, a platform (top at z 3.0, 2.2 x 2.2) with a railing open on
+    the front (-Y), a ladder at the back and a striped sun umbrella. The camera sits at the front edge."""
+    parts = []
+    for x in (-0.95, 0.95):
+        for y in (-0.95, 0.95):
+            parts.append(box("Leg", (0.16, 0.16, 3.0), (x * 1.0, y * 1.0, 1.5), "Wood", rotation=(0, 0, 0)))
+    for z in (0.9, 2.0):
+        for y in (-0.95, 0.95):
+            parts.append(box("Brace", (2.0, 0.08, 0.1), (0, y, z), "DarkWood"))
+        for x in (-0.95, 0.95):
+            parts.append(box("Brace", (0.08, 2.0, 0.1), (x, 0, z), "DarkWood"))
+    parts.append(box("Platform", (2.3, 2.3, 0.14), (0, 0, 3.0), "Wood"))
+    for i in range(9):
+        parts.append(box("Plank", (0.02, 2.3, 0.142), (-1.1 + i * 0.275, 0, 3.0), "DarkWood"))
+    # Railing on three sides (the front stays open for the lens).
+    for x in (-1.12, 1.12):
+        parts.append(box("Rail", (0.06, 2.24, 0.06), (x, 0, 3.95), "White"))
+        parts.append(box("Rail Low", (0.06, 2.24, 0.05), (x, 0, 3.5), "White"))
+    parts.append(box("Rail Back", (2.24, 0.06, 0.06), (0, 1.12, 3.95), "White"))
+    for x in (-1.12, 1.12):
+        for y in (-1.12, 1.12):
+            parts.append(box("Rail Post", (0.07, 0.07, 1.0), (x, y, 3.55), "White"))
+    # Ladder at the back.
+    for x in (-0.25, 0.25):
+        parts.append(box("Ladder Side", (0.06, 0.06, 3.2), (x, 1.32, 1.55), "DarkWood", rotation=(math.radians(-8), 0, 0)))
+    for i in range(9):
+        parts.append(box("Rung", (0.5, 0.05, 0.05), (0, 1.3 + i * 0.045, 0.3 + i * 0.33), "Wood"))
+    # Sign plate and a striped umbrella.
+    parts.append(box("Sign", (1.4, 0.06, 0.32), (0, -1.16, 2.7), "Coral"))
+    parts.append(cylinder("Pole", 0.03, 2.4, (0.8, 0.8, 4.2), "Steel", vertices=6))
+    for i in range(8):
+        a = i * math.tau / 8
+        verts = [(0.8, 0.8, 5.45), (0.8 + math.cos(a) * 1.2, 0.8 + math.sin(a) * 1.2, 5.0),
+                 (0.8 + math.cos(a + math.tau / 8) * 1.2, 0.8 + math.sin(a + math.tau / 8) * 1.2, 5.0)]
+        parts.append(mesh_object("Canopy", verts, [(0, 1, 2)], "Coral" if i % 2 == 0 else "White", double_sided=True))
+    return join(name, parts)
+
+
+def camera_tripod(name="CameraTripod"):
+    """A pro camera with a long lens on a tripod; the lens points -Y. Lens tip at about (0, -0.55, 1.42)."""
+    parts = []
+    for i in range(3):
+        a = math.radians(90 + i * 120)
+        top, foot = Vector((0, 0, 1.2)), Vector((math.cos(a) * 0.45, math.sin(a) * 0.45, 0.0))
+        d = top - foot
+        leg = cylinder("Leg", 0.022, d.length, (top + foot) / 2, "Charcoal", vertices=6)
+        leg.rotation_mode = "QUATERNION"
+        leg.rotation_quaternion = Vector((0, 0, 1)).rotation_difference(d.normalized())
+        parts.append(leg)
+    parts.append(cylinder("Head", 0.06, 0.12, (0, 0, 1.25), "Charcoal", vertices=8))
+    parts.append(box("Body", (0.18, 0.14, 0.13), (0, 0.02, 1.38), "Charcoal"))
+    parts.append(box("Grip", (0.05, 0.1, 0.12), (0.11, 0.02, 1.37), "Black" if "Black" in PALETTE else "Charcoal"))
+    parts.append(cylinder("Lens", 0.055, 0.42, (0, -0.25, 1.4), "White", vertices=12, rotation=(math.radians(90), 0, 0)))
+    parts.append(cylinder("Lens Ring", 0.062, 0.06, (0, -0.4, 1.4), "Charcoal", vertices=12, rotation=(math.radians(90), 0, 0)))
+    parts.append(cylinder("Glass", 0.048, 0.01, (0, -0.465, 1.4), "Glass", vertices=12, rotation=(math.radians(90), 0, 0)))
+    parts.append(box("Viewfinder", (0.06, 0.06, 0.05), (0, 0.09, 1.47), "Charcoal"))
+    return join(name, parts)
+
+
+def photo_kiosk(name="PhotoKiosk"):
+    """A small photo shop counter (2.4 m) with a screen and a roof; prints pinned on the front."""
+    parts = [box("Counter", (2.4, 0.8, 1.05), (0, 0, 0.525), "White"),
+             box("Top", (2.5, 0.9, 0.06), (0, 0, 1.08), "DarkWood"),
+             box("Band", (2.42, 0.82, 0.16), (0, 0, 0.8), "Teal")]
+    for x in (-1.15, 1.15):
+        parts.append(box("Post", (0.1, 0.1, 2.4), (x, 0.35, 1.2), "DarkWood"))
+    parts.append(box("Roof", (2.8, 1.3, 0.1), (0, 0.05, 2.45), "Coral", rotation=(math.radians(-8), 0, 0)))
+    parts.append(box("Sign", (1.8, 0.08, 0.36), (0, -0.62, 2.72), "Navy"))
+    parts.append(box("Screen", (0.5, 0.05, 0.32), (0.6, 0.2, 1.3), "Screen", rotation=(math.radians(-10), 0, 0)))
+    parts.append(box("Printer", (0.36, 0.3, 0.18), (-0.6, 0.15, 1.2), "KeyGrey"))
+    for i in range(5):
+        parts.append(box("Print", (0.24, 0.01, 0.18), (-0.9 + i * 0.45, -0.41, 0.62 + (i % 2) * 0.06), "White",
+                         rotation=(0, math.radians(-5 + i * 3), 0)))
+    return join(name, parts)
+
+
+def photo_wall(name="PhotoWall"):
+    """Wall of fame: a 3.4 x 2.2 m board on two legs with 6 frames (the photos go on quads in Unity)."""
+    parts = [box("Board", (3.4, 0.12, 2.2), (0, 0, 1.9), "Navy"), box("Trim", (3.55, 0.08, 2.35), (0, 0.04, 1.9), "Sun" if "Sun" in PALETTE else "Yellow")]
+    for x in (-1.4, 1.4):
+        parts.append(box("Leg", (0.14, 0.14, 3.1), (x, 0.1, 1.55), "DarkWood"))
+    for i in range(6):
+        cx, cz = -1.05 + (i % 3) * 1.05, 2.35 - (i // 3) * 0.85
+        parts.append(box("Frame", (0.92, 0.04, 0.66), (cx, -0.07, cz), "White"))
+    parts.append(box("Title", (2.2, 0.04, 0.26), (0, -0.07, 3.2), "Coral"))
+    return join(name, parts)
+
+
 # ================================================================ build + export
 
 MODELS = (
@@ -726,6 +817,7 @@ MODELS = (
     shaper_shed, shaping_stand, foam_blank, spray_booth, spray_can, fin_box, wish_board,
     machine_chamber, chamber_piston, valve_wheel, blower_unit, blower_fan, pressure_dial, dial_needle,
     control_cabin, air_tank, timer_clock, famous_board, reef_switch, status_lamp,
+    photo_tower, camera_tripod, photo_kiosk, photo_wall,
 )
 
 

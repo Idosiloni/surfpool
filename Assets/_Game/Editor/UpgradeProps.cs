@@ -1,3 +1,4 @@
+using UnityEditor;
 using UnityEngine;
 
 namespace SurfPool.EditorTools
@@ -143,6 +144,76 @@ namespace SurfPool.EditorTools
             Signs.Text("NEW!", menu, menu.position + new Vector3(0f, 0.95f, -0.29f), 0f, 0.2f, Color.white, 0.8f).transform.rotation = Quaternion.Euler(-12f, 0f, 0f);
             Signs.Text("BURRITOS", menu, menu.position + new Vector3(0f, 0.68f, -0.24f), 0f, 0.13f, new Color(1f, 0.9f, 0.6f), 0.8f).transform.rotation = Quaternion.Euler(-12f, 0f, 0f);
             Signs.Text("+ FRIES", menu, menu.position + new Vector3(0f, 0.48f, -0.2f), 0f, 0.13f, new Color(1f, 0.9f, 0.6f), 0.8f).transform.rotation = Quaternion.Euler(-12f, 0f, 0f);
+        }
+
+        /// <summary>
+        /// The surf photographer (upgrade photo_tower): a photo tower on the main pool's north-east deck with a camera
+        /// you look through, and the photo kiosk with the Wall of Fame by the exit. Hidden until bought.
+        /// </summary>
+        static GameObject BuildPhotoSpot()
+        {
+            var root = new GameObject("Surf Photographer").transform;
+            const float towerYaw = 60f;
+            var towerAt = new Vector3(63f, 0f, 15.4f);
+            WorldArt.Model("PhotoTower", root, towerAt, towerYaw);
+            var tripodAt = towerAt + B(towerYaw, 0f, -0.75f, 3.07f);
+            WorldArt.Model("CameraTripod", root, tripodAt, towerYaw);
+            Signs.Text("SURF PHOTOS", root, towerAt + B(towerYaw, 0f, -1.21f, 2.7f), towerYaw, 0.2f, Color.white, 1.3f);
+
+            // The lens camera, at the tip of the long lens, looking out over the pool.
+            var lensGo = new GameObject("Photo Lens", typeof(Camera));
+            lensGo.transform.SetParent(root, false);
+            lensGo.transform.position = tripodAt + B(towerYaw, 0f, -0.5f, 1.42f);
+            lensGo.transform.rotation = Quaternion.Euler(6f, towerYaw + 180f, 0f);
+            var lens = lensGo.GetComponent<Camera>();
+            lens.fieldOfView = 30f;
+            lens.nearClipPlane = 0.2f;
+            lens.farClipPlane = 600f;
+            lens.enabled = false;
+
+            // Use it from the ground: E anywhere on the tower.
+            var station = new GameObject("Photo Tower (E)", typeof(BoxCollider));
+            station.transform.SetParent(root, false);
+            station.transform.SetPositionAndRotation(towerAt + Vector3.up * 1.5f, Quaternion.Euler(0f, towerYaw, 0f));
+            station.GetComponent<BoxCollider>().size = new Vector3(2.3f, 3f, 2.3f);
+            var tower = station.AddComponent<PhotoTower>();
+            Set(tower, "lens", lens);
+
+            // Photo kiosk and the Wall of Fame by the main pool's exit path.
+            const float kioskYaw = 90f;
+            var kioskAt = new Vector3(69.5f, 0f, -11.5f);
+            WorldArt.Model("PhotoKiosk", root, kioskAt, kioskYaw);
+            Signs.Text("SURF PHOTOS", root, kioskAt + B(kioskYaw, 0f, -0.67f, 2.72f), kioskYaw, 0.24f, Color.white, 1.7f);
+            var kioskBox = Box("Photo Kiosk Counter", root, kioskAt + Vector3.up * 0.55f, new Vector3(0.8f, 1.1f, 2.4f), Mat("MachineNavy", new Color(0.06f, 0.16f, 0.22f), 0.3f));
+            kioskBox.GetComponent<MeshRenderer>().enabled = false;
+            var wallAt = new Vector3(70f, 0f, -16.2f);
+            WorldArt.Model("PhotoWall", root, wallAt, kioskYaw);
+            Signs.Text("WALL OF FAME", root, wallAt + B(kioskYaw, 0f, -0.1f, 3.2f), kioskYaw, 0.2f, Color.white, 2f);
+            var photoMat = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/PhotoPrint.mat");
+            if (photoMat == null)
+            {
+                photoMat = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+                AssetDatabase.CreateAsset(photoMat, $"{MaterialFolder}/PhotoPrint.mat");
+            }
+            var frames = new Object[6];
+            for (int i = 0; i < 6; i++)
+            {
+                float cx = -1.05f + (i % 3) * 1.05f, cz = 2.35f - (i / 3) * 0.85f;
+                var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                quad.name = $"Photo {i + 1}";
+                Object.DestroyImmediate(quad.GetComponent<Collider>());
+                quad.transform.SetParent(root, false);
+                quad.transform.SetPositionAndRotation(wallAt + B(kioskYaw, cx, -0.1f, cz), Quaternion.Euler(0f, kioskYaw, 0f));
+                quad.transform.localScale = new Vector3(0.84f, 0.56f, 1f);
+                quad.GetComponent<MeshRenderer>().sharedMaterial = photoMat;
+                quad.SetActive(false);
+                frames[i] = quad.GetComponent<MeshRenderer>();
+            }
+            var wall = root.gameObject.AddComponent<PhotoWall>();
+            SetArray(wall, "frames", frames);
+            Set(tower, "wall", wall);
+            root.gameObject.SetActive(false);
+            return root.gameObject;
         }
 
         /// <summary>The OPEN / CLOSED sign by the ticket desk (flip it to end the day once everyone has gone home).</summary>

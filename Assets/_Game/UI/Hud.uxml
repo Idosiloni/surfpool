@@ -56,6 +56,21 @@
         </ui:VisualElement>
 
         <SurfPool.HoldRing name="holdRing" class="hold-ring hidden" />
+        <ui:VisualElement name="viewfinder" class="viewfinder hidden" picking-mode="Ignore">
+            <ui:VisualElement class="vf-corner vf-corner--tl" picking-mode="Ignore" />
+            <ui:VisualElement class="vf-corner vf-corner--tr" picking-mode="Ignore" />
+            <ui:VisualElement class="vf-corner vf-corner--bl" picking-mode="Ignore" />
+            <ui:VisualElement class="vf-corner vf-corner--br" picking-mode="Ignore" />
+            <ui:VisualElement class="vf-focus" picking-mode="Ignore" />
+            <ui:Label name="vfZoom" text="1.0x" class="vf-zoom" picking-mode="Ignore" />
+            <ui:Label text="Mouse  aim   ·   Scroll  zoom   ·   Click  shoot   ·   E  leave" class="vf-help" picking-mode="Ignore" />
+            <ui:VisualElement name="vfFlash" class="vf-flash hidden" picking-mode="Ignore" />
+            <ui:VisualElement name="vfPhoto" class="vf-photo hidden" picking-mode="Ignore">
+                <ui:VisualElement name="vfPhotoImage" class="vf-photo-image" picking-mode="Ignore" />
+                <ui:Label name="vfReason" class="vf-reason" picking-mode="Ignore" />
+                <ui:Label name="vfGrade" text="S" class="vf-grade" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
         <ui:Label name="replayOffer" text="R  Watch replay" class="replay-offer hidden" picking-mode="Ignore" />
         <ui:VisualElement name="replayOverlay" class="replay-overlay hidden" picking-mode="Ignore">
             <ui:VisualElement class="replay-bar" picking-mode="Ignore" />

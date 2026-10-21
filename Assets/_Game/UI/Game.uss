@@ -2801,3 +2801,135 @@
     padding: 6px 18px;
     -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
 }
+
+/* ---------- Surf photographer: the viewfinder ---------- */
+
+.hud-root--photo > * {
+    display: none;
+}
+
+.hud-root--photo > .viewfinder {
+    display: flex;
+}
+
+.viewfinder {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.vf-corner {
+    position: absolute;
+    width: 70px;
+    height: 70px;
+    border-color: rgba(255, 255, 255, 0.85);
+}
+
+.vf-corner--tl { left: 8%; top: 10%; border-left-width: 4px; border-top-width: 4px; }
+.vf-corner--tr { right: 8%; top: 10%; border-right-width: 4px; border-top-width: 4px; }
+.vf-corner--bl { left: 8%; bottom: 10%; border-left-width: 4px; border-bottom-width: 4px; }
+.vf-corner--br { right: 8%; bottom: 10%; border-right-width: 4px; border-bottom-width: 4px; }
+
+.vf-focus {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 120px;
+    height: 80px;
+    translate: -50% -50%;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.6);
+    border-radius: 6px;
+}
+
+.vf-zoom {
+    position: absolute;
+    right: 9%;
+    top: 12%;
+    font-size: 24px;
+    color: white;
+    -unity-text-outline-width: 1px;
+    -unity-text-outline-color: var(--ink);
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+}
+
+.vf-help {
+    position: absolute;
+    bottom: 5%;
+    left: 50%;
+    translate: -50% 0;
+    font-size: 17px;
+    color: var(--cream);
+    background-color: rgba(11, 46, 58, 0.7);
+    border-radius: 10px;
+    padding: 4px 14px;
+}
+
+.vf-flash {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.85);
+}
+
+/* The polaroid that pops up after a shot, with the grade stamp. */
+.vf-photo {
+    position: absolute;
+    right: 6%;
+    bottom: 14%;
+    width: 360px;
+    padding: 12px 12px 10px 12px;
+    background-color: var(--paper);
+    border-radius: 6px;
+    border-width: 2px;
+    border-color: var(--ink);
+    rotate: -3deg;
+}
+
+.vf-photo--enter {
+    scale: 0.7 0.7;
+    opacity: 0;
+}
+
+.vf-photo {
+    transition-property: scale, opacity;
+    transition-duration: 0.18s;
+}
+
+.vf-photo-image {
+    height: 210px;
+    background-color: var(--ink);
+    -unity-background-scale-mode: scale-and-crop;
+}
+
+.vf-reason {
+    font-size: 18px;
+    color: var(--ink);
+    margin-top: 8px;
+    -unity-font-style: bold;
+}
+
+.vf-grade {
+    position: absolute;
+    right: -18px;
+    top: -22px;
+    width: 72px;
+    height: 72px;
+    border-radius: 36px;
+    font-size: 44px;
+    -unity-text-align: middle-center;
+    color: white;
+    background-color: var(--muted);
+    border-width: 3px;
+    border-color: var(--ink);
+    rotate: 12deg;
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+}
+
+.vf-grade--b { background-color: var(--teal); }
+.vf-grade--a { background-color: var(--wave-intermediate); }
+.vf-grade--s { background-color: var(--sun-dark); }

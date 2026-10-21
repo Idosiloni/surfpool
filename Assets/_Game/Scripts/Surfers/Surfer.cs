@@ -236,6 +236,15 @@ namespace SurfPool
             Walk(State.WalkingIn, owner.PathIn, State.InDeskLine);
         }
 
+        // ---- for the photographer (PhotoTower) ----
+        public bool IsRidingWave => state == State.Riding;
+        public bool InBarrelNow => inBarrel;
+        public float LastTrickAt { get; private set; } = -10f;
+        public bool IsCelebrating => rig != null && rig.Gesturing;
+        public CharacterRig Rig => rig;
+        /// <summary>Best photo grade of this surfer so far (-1 none, 0 C .. 3 S). B or better sells a print when they leave happy.</summary>
+        public int PhotoGrade { get; set; } = -1;
+
         /// <summary>A visiting legend (null for everyone else): their own look, board, lines and signature trick.</summary>
         public FamousSurfer Famous { get; private set; }
 
@@ -959,6 +968,7 @@ namespace SurfPool
             else if (trick == "Floater!") StartMove(Move.Floater, 0.8f);
             else if (trick == "Bottom turn!") StartMove(Move.BottomTurn, 1f);
             tricksLanded++;
+            LastTrickAt = Time.time;
             Shout(trick, 1.3f, Random.value < 0.5f ? Sound.VoiceWoo : null);
             nextTrickAt = Time.time + TrickDelay();
         }
@@ -1016,6 +1026,7 @@ namespace SurfPool
             if (tip > 0) Wallet.Instance.Add(tip, "tip");
             if (Skill == WaveLevel.Beginner && ParkEffects.LessonFee > 0) Wallet.Instance.Add(SurfCoach.TeachLesson(), "surf lessons");
             if (happiness > 0.5f && ParkEffects.MerchPerHappySurfer > 0) Wallet.Instance.Add(ParkEffects.MerchPerHappySurfer, "surf shop");
+            if (happiness > 0.5f && PhotoGrade >= 1) PhotoTower.SellPrint(this);
             spawner.ReportServed(happiness);
             if (happiness > 0.5f) ParkLevel.Add(ParkLevel.XpForSurfer(Skill));
             // Main-pool surfers walking out (not carrying a rental board back) may stop at the snack bar.
