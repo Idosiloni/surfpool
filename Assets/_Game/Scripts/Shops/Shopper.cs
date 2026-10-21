@@ -107,6 +107,10 @@ namespace SurfPool
                 return;
             }
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(facing), 6f * Time.deltaTime);
+            // At the counter, look at you when you're close (you're the one serving them).
+            var cam = Camera.main;
+            rig.LookTarget = front && cam != null && (cam.transform.position - transform.position).sqrMagnitude < 36f
+                ? cam.transform.position : null;
             if (front && !AtCounter)
             {
                 AtCounter = true;
@@ -171,6 +175,7 @@ namespace SurfPool
 
         void GoHome()
         {
+            if (rig != null) rig.LookTarget = null;
             phase = Phase.Leaving;
             AtCounter = false;
             sitting = false;
