@@ -47,21 +47,25 @@ namespace SurfPool
             var filter = board.GetComponentInChildren<MeshFilter>();
             var renderer = filter != null ? filter.GetComponent<MeshRenderer>() : null;
             if (filter == null || renderer == null || filter.sharedMesh == null) return;
-            var (nose, tail) = Halves(filter.sharedMesh);
+            // A mesh we can't read (import Read/Write off) can't be cut: throw two squashed copies instead.
+            bool cut = filter.sharedMesh.isReadable;
+            var (nose, tail) = cut ? Halves(filter.sharedMesh) : (filter.sharedMesh, filter.sharedMesh);
             var materials = renderer.sharedMaterials;
             var t = filter.transform;
-            Throw(nose, materials, t, water, t.forward * 1.8f);
-            Throw(tail, materials, t, water, -t.forward * 1.4f);
+            Throw(nose, materials, t, water, t.forward * 1.8f, !cut);
+            Throw(tail, materials, t, water, -t.forward * 1.4f, !cut);
             board.gameObject.SetActive(false);
             Sfx.Play(Sound.CrashSmall, t.position, 0.9f, 1.4f); // the crack
             Sfx.Play(Sound.Splash, t.position, 0.8f);
         }
 
-        static void Throw(Mesh mesh, Material[] materials, Transform from, WaveWater water, Vector3 push)
+        static void Throw(Mesh mesh, Material[] materials, Transform from, WaveWater water, Vector3 push, bool squash)
         {
             var go = new GameObject("Board Half");
             go.transform.SetPositionAndRotation(from.position, from.rotation);
-            go.transform.localScale = from.lossyScale;
+            var scale = from.lossyScale;
+            if (squash) scale.z *= 0.5f;
+            go.transform.localScale = scale;
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             go.AddComponent<MeshRenderer>().sharedMaterials = materials;
             go.AddComponent<BrokenHalf>().Launch(push + Vector3.up * Random.Range(3.5f, 5f), water);
