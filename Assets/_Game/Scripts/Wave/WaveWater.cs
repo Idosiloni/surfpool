@@ -198,6 +198,26 @@ namespace SurfPool
         public float ChopRideQuality => 1f - 0.2f * Chop;
 
         float Ripple => rippleHeight * DailyEvents.WindChop * (1f + chopRipples * Chop);
+
+        // ---- backwash: each wave that hits the beach sends a low ripple back across the pool, fading as it goes ----
+        const float BackwashHeight = 0.07f, BackwashSpeed = 3.2f, BackwashLife = 9f, BackwashWidth = 2.5f;
+        readonly List<(float start, float height)> backwash = new();
+
+        /// <summary>Height of the reflected ripples at x (same for every z).</summary>
+        float BackwashAt(float x, float t)
+        {
+            float h = 0f;
+            foreach (var (start, height) in backwash)
+            {
+                float age = t - start;
+                if (age < 0f || age > BackwashLife) continue;
+                float cx = length * 0.92f - age * BackwashSpeed;
+                float d = (x - cx) / BackwashWidth;
+                if (d * d > 9f) continue;
+                h += height * (1f - age / BackwashLife) * Mathf.Exp(-d * d);
+            }
+            return h;
+        }
         public float Length => length;
         public float Width => width;
         float HalfWidth => width * 0.5f;
@@ -407,6 +427,9 @@ namespace SurfPool
                 {
                     if (WaveCenter(waves[i], t) <= RemoveAt(waves[i].type)) continue;
                     added += chopPerWave * (waves[i].type.level == WaveLevel.Beginner ? 0.4f : waves[i].type.level == WaveLevel.Pro ? 1.3f : 1f);
+                    // It bounces off the beach: a low ripple rolls back toward the machine.
+                    backwash.Add((t, waves[i].type.height * BackwashHeight));
+                    if (backwash.Count > 8) backwash.RemoveAt(0);
                     waves.RemoveAt(i);
                 }
                 Chop = Mathf.Clamp01(Chop * Mathf.Pow(0.5f, Time.deltaTime / Mathf.Max(0.1f, chopHalfLife)) + added);
@@ -440,7 +463,7 @@ namespace SurfPool
         MeshRenderer surfaceRenderer;
         WaveState[] stateArray = new WaveState[0];
         float[] rowEdge = new float[0], rowSin = new float[0];
-        float[] colSin = new float[0], colShallow = new float[0];
+        float[] colSin = new float[0], colShallow = new float[0], colBackwash = new float[0];
         int[] colStates = new int[0], colCount = new int[0];
         RowTerms[] rowTerms = new RowTerms[0];
         Vector2[] tubeShade = new Vector2[0];
@@ -452,7 +475,7 @@ namespace SurfPool
             if (stateArray.Length < count) stateArray = new WaveState[count * 2];
             states.CopyTo(stateArray);
             if (rowEdge.Length != nz) { rowEdge = new float[nz]; rowSin = new float[nz]; }
-            if (colSin.Length != nx) { colSin = new float[nx]; colShallow = new float[nx]; colCount = new int[nx]; }
+            if (colSin.Length != nx) { colSin = new float[nx]; colShallow = new float[nx]; colCount = new int[nx]; colBackwash = new float[nx]; }
             if (rowTerms.Length < count * nz) rowTerms = new RowTerms[count * nz * 2];
             if (tubeShade.Length != vertices.Length) tubeShade = new Vector2[vertices.Length];
             if (colStates.Length < count * nx)
@@ -472,6 +495,7 @@ namespace SurfPool
             {
                 float x = baseVertices[ix].x;
                 colSin[ix] = Ripple * Mathf.Sin(x * 0.7f + t * 1.3f);
+                colBackwash[ix] = backwash.Count > 0 ? BackwashAt(x, t) : 0f;
                 colShallow[ix] = Smooth(0.55f, 1f, x / length);
                 int n = 0;
                 for (int s = 0; s < count; s++)
@@ -494,7 +518,7 @@ namespace SurfPool
                 {
                     int i = iz * nx + ix;
                     Vector3 v = baseVertices[i];
-                    float h = colSin[ix] * zSin, foam = 0f, face = 0f, shade = 0f;
+                    float h = colSin[ix] * zSin + colBackwash[ix], foam = 0f, face = 0f, shade = 0f;
                     for (int k = 0; k < colCount[ix]; k++)
                     {
                         int c = ix * count + k, s = colStates[c];
@@ -775,7 +799,7 @@ namespace SurfPool
 
         float LocalHeight(float x, float z, float t)
         {
-            float h = Ripple * Mathf.Sin(x * 0.7f + t * 1.3f) * Mathf.Sin(z * 0.9f + t * 1.1f);
+            float h = Ripple * Mathf.Sin(x * 0.7f + t * 1.3f) * Mathf.Sin(z * 0.9f + t * 1.1f) + BackwashAt(x, t);
             float edge = z / HalfWidth;
             float edgeScale = 1f - edgeDrop * edge * edge;
             foreach (var state in states)

@@ -26,6 +26,8 @@ Shader "SurfPool/StylizedWater"
         _FoamThreshold ("Foam threshold", Range(0, 1)) = 0.3
         _FresnelPower ("Fresnel power", Float) = 3
         _SparkleSize ("Sparkle size", Range(10, 400)) = 140
+        _RippleNormal ("Ripple detail (lighting only)", Range(0, 1)) = 0.6
+        _StreakStrength ("Face streaks", Range(0, 0.5)) = 0.18
     }
 
     SubShader
@@ -61,6 +63,8 @@ Shader "SurfPool/StylizedWater"
                 half _FoamThreshold;
                 half _FresnelPower;
                 half _SparkleSize;
+                half _RippleNormal;
+                half _StreakStrength;
             CBUFFER_END
             float _LipSeeThrough; // global, set by PlayerSurfing
 
@@ -138,6 +142,10 @@ Shader "SurfPool/StylizedWater"
                 half3 water = lerp(deep, faceColor, onWave);
                 half lip = smoothstep(0.9, 1.0, hf) * saturate(steep * 2.5); // only a steep, thin crest glows
                 water = lerp(water, _LipBright.rgb, lip * 0.85);
+                // Streaks down the face: water being drawn up the wave leaves faint lines running down it.
+                float streak = ValueNoise(float2(input.positionWS.z * 2.6, input.positionWS.y * 0.4 + 7.0));
+                half streakMask = smoothstep(0.62, 0.72, streak) * onWave * smoothstep(0.15, 0.4, hf) * (1.0 - smoothstep(0.85, 0.95, hf));
+                water = lerp(water, _FaceTop.rgb, streakMask * _StreakStrength);
                 water = lerp(water, _TubeColor.rgb, inside * 0.7);
                 // Inside the tube: the lip roofs the face, so it sits in a deep teal shadow.
                 half tube = saturate(input.tubeLip.x);
@@ -157,24 +165,40 @@ Shader "SurfPool/StylizedWater"
                 foam *= lerp(1.0, vein, saturate(age * 1.3));
                 half3 albedo = lerp(water, _FoamColor.rgb, foam);
 
+                // Small moving ripples for the lighting only (the mesh stays smooth): calm water shades and sparkles
+                // instead of looking like plastic. Fades on steep faces, foam and the tube.
+                float2 rp = input.positionWS.xz;
+                float2 flowA = float2(_Time.y * 0.35, _Time.y * 0.2), flowB = float2(-_Time.y * 0.5, _Time.y * 0.3);
+                const float e = 0.12;
+                float r0 = ValueNoise(rp * 0.9 + flowA) + 0.5 * ValueNoise(rp * 2.3 + flowB);
+                float rx = ValueNoise((rp + float2(e, 0)) * 0.9 + flowA) + 0.5 * ValueNoise((rp + float2(e, 0)) * 2.3 + flowB);
+                float rz = ValueNoise((rp + float2(0, e)) * 0.9 + flowA) + 0.5 * ValueNoise((rp + float2(0, e)) * 2.3 + flowB);
+                half calm = (1.0 - steep) * (1.0 - foam) * (1.0 - tube);
+                float3 litNormal = normalize(normal + float3(r0 - rx, 0, r0 - rz) / e * 0.12 * _RippleNormal * calm);
+
                 Light mainLight = GetMainLight(TransformWorldToShadowCoord(input.positionWS));
-                half ndl = saturate(dot(normal, mainLight.direction));
+                half ndl = saturate(dot(litNormal, mainLight.direction));
                 half toon = lerp(0.6, 1.0, smoothstep(0.05, 0.5, ndl));
                 half shadow = lerp(0.65, 1.0, mainLight.shadowAttenuation);
-                half3 ambient = SampleSH(normal) * 0.45;
+                half3 ambient = SampleSH(litNormal) * 0.45;
                 half3 color = albedo * (mainLight.color * toon * shadow * (1.0 - 0.45 * tube) + ambient);
 
                 // Sun shining through a steep, thin face from behind it: a bright lagoon glow (strongest near the
                 // top, where the water is thinnest).
                 half behind = pow(saturate(dot(viewDir, -mainLight.direction) * 0.5 + 0.5), 3.0);
                 half thin = smoothstep(0.6, 1.0, hf) * saturate(0.4 + steep);
-                color += _GlowColor.rgb * mainLight.color * behind * thin * _GlowStrength * (1.0 - foam) * shadow * (1.0 - tube);
+                // Golden hour: with the sun low the backlit lip glows stronger and warmer.
+                half sunLow = 1.0 - saturate(mainLight.direction.y * 2.5);
+                half3 glowColor = lerp(_GlowColor.rgb, _GlowColor.rgb * half3(1.25, 1.0, 0.65), sunLow * 0.7);
+                color += glowColor * mainLight.color * behind * thin * _GlowStrength * (1.0 + 0.6 * sunLow) * (1.0 - foam) * shadow * (1.0 - tube);
 
                 // Hard-edged sun sparkle and a light rim at grazing angles, both only on open water.
                 half3 halfDir = normalize(mainLight.direction + viewDir);
-                half sparkle = step(0.5, pow(saturate(dot(normal, halfDir)), _SparkleSize));
+                // Sun glints: broken into many small sparkles (not solid blobs) by a fine moving noise.
+                half sparkle = step(0.5, pow(saturate(dot(litNormal, halfDir)), _SparkleSize))
+                    * step(0.62, ValueNoise(rp * 7.0 + flowB * 2.0));
                 color += mainLight.color * sparkle * 0.5 * (1.0 - foam) * (1.0 - tube);
-                half fresnel = pow(1.0 - saturate(dot(normal, viewDir)), _FresnelPower);
+                half fresnel = pow(1.0 - saturate(dot(litNormal, viewDir)), _FresnelPower);
                 color = lerp(color, _FaceColor.rgb * 1.15, fresnel * 0.3 * (1.0 - foam));
 
                 color = MixFog(color, input.fogFactor);
