@@ -113,8 +113,10 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
 - Camp leader tips $12 per camper who got a session, doubled if all were paid in within 150 s and nobody gave up
   (8 campers perfect = $192, plus their session prices).
 
-## Sneak-ins (2026-10-21, proposal)
-- From day 2, one sneak-in every 2.5-5 minutes while the park is open (one at a time). Catching one: +20 XP.
+## Sneak-ins and bad customers (2026-10-21, proposal)
+- From day 2, one troublemaker every 2.5-5 minutes while the park is open (one at a time). Kicking one out: +20 XP.
+  From day 3: 30% wave hogs (pay, want 6 waves, drop in on everyone: each victim's mood takes a 0.2 hit),
+  25% litterbugs (pay, drop trash on the deck or junk in the pool every 6-11 s), the rest sneak-ins.
   Missing one costs nothing directly: they take waves and a lineup spot from paying surfers, then brag.
 
 ## Kook rescue (2026-10-21, proposal)

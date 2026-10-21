@@ -191,7 +191,12 @@ namespace SurfPool
         {
             get
             {
-                if (IsSneaking) return "Kick out the sneak-in!";
+                if (IsRuleBreaker) return rudeness switch
+                {
+                    Rudeness.WaveHog => "Kick out the wave hog!",
+                    Rudeness.Litterbug => "Kick out the litterbug!",
+                    _ => "Kick out the sneak-in!",
+                };
                 if (InTrouble) return RescuePost.Holder != null ? "Throw the rescue ring!" : "In trouble! Grab a ring from a red post";
                 if (!WaitingForBoard) return null;
                 var carry = PlayerCarry.Instance;
@@ -203,7 +208,7 @@ namespace SurfPool
 
         public void Interact()
         {
-            if (IsSneaking)
+            if (IsRuleBreaker)
             {
                 ThrowOut();
                 return;
@@ -326,9 +331,20 @@ namespace SurfPool
             MaxPrice = spawner.Pricing.FairFor(Skill, pool) * Random.Range(1f, 1.4f); // the camp pays
         }
 
-        // ---- rule-breakers (RuleBreakers): sneak-ins who skip the desk ----
+        // ---- rule-breakers (RuleBreakers): sneak-ins who skip the desk, wave hogs, litterbugs ----
+        /// <summary>The kinds of bad customers.</summary>
+        public enum Rudeness { None, SneakIn, WaveHog, Litterbug }
+
         bool sneaking, caught;
         float nextSneakLine;
+        Rudeness rudeness;
+
+        public Rudeness BadKind => rudeness;
+
+        static readonly string[] HogLines = { "Out of my way!", "MY wave!", "Snake snake!", "Move, kook!", "I was here first. Always." };
+        static readonly string[] LitterLines = { "*tosses cup*", "*drops wrapper*", "Bin? What bin?", "*flicks bottle cap*" };
+        static readonly string[] HogCaughtLines = { "Whatever, this pool sucks anyway!", "Fine! FINE!", "You can't kick ME out!", "Ugh. Rules." };
+        static readonly string[] LitterCaughtLines = { "It's just a cup, man!", "Okay, okay, I'll go!", "Somebody else will pick it up!" };
 
         static readonly string[] InnocentLines =
         {
@@ -344,10 +360,27 @@ namespace SurfPool
         /// <summary>Snuck in without paying and not caught yet: look at them and press E (even from far away).</summary>
         public bool IsSneaking => sneaking && !caught && state is not (State.WalkingOut or State.SwimmingToBeach);
 
+        /// <summary>Any bad customer not thrown out yet (a sneak-in, or a wave hog / litterbug past the desk).</summary>
+        public bool IsRuleBreaker => rudeness != Rudeness.None && !caught && !angry
+            && (rudeness == Rudeness.SneakIn ? IsSneaking
+                : (HasPaid || rudeness == Rudeness.Litterbug) && state is not (State.WalkingOut or State.SwimmingToBeach or State.InTrouble));
+
+        /// <summary>
+        /// A paying customer with bad manners. Wave hogs drop in on everyone and want lots of waves; litterbugs toss
+        /// cups and wrappers on the deck and into the pool. Both show it with a loud line, so you can spot them.
+        /// </summary>
+        public void MakeRude(Rudeness kind)
+        {
+            rudeness = kind;
+            if (kind == Rudeness.WaveHog) wavesPerSession = Mathf.Max(wavesPerSession, 6);
+            nextSneakLine = Time.time + 4f;
+        }
+
         /// <summary>This new arrival skips the desk and walks straight to the water, whistling innocently.</summary>
         public void MakeSneaker()
         {
             sneaking = true;
+            rudeness = Rudeness.SneakIn;
             isRenter = false;
             board.gameObject.SetActive(true);
             lineupTarget = FreeLineupSpot();
@@ -358,14 +391,27 @@ namespace SurfPool
         /// <summary>Caught! Out they go, with an excuse.</summary>
         public void ThrowOut()
         {
-            if (!IsSneaking) return;
+            if (!IsRuleBreaker) return;
             caught = true;
-            Shout(CaughtLines[Random.Range(0, CaughtLines.Length)], 3f, Sound.VoiceAah);
+            var lines = rudeness switch { Rudeness.WaveHog => HogCaughtLines, Rudeness.Litterbug => LitterCaughtLines, _ => CaughtLines };
+            Shout(lines[Random.Range(0, lines.Length)], 3f, Sound.VoiceAah);
+            if (rudeness == Rudeness.WaveHog)
+                foreach (var other in All)
+                    if (other != this && other.pool == pool && other.state == State.WaitingForWave && Random.value < 0.6f)
+                    {
+                        other.hootAt = Time.time + Random.Range(0.3f, 1f); // the lineup cheers
+                        other.RecordMood(1f);
+                    }
             rig.ShowFace(SurfPool.Face.Scared, 2.5f);
             rig.LookTarget = null;
             Sfx.Play(Sound.Whistle, transform.position);
             RuleBreakers.Caught(this);
-            if (state is State.WalkingIn or State.WalkingToPool)
+            if (state is State.WalkingIn or State.InDeskLine or State.InRentalLine or State.WalkingToRental)
+            {
+                spawner.LeaveLines(this);
+                Walk(State.WalkingOut, new[] { spawner.Entrance }, State.WalkingOut);
+            }
+            else if (state is State.WalkingToPool or State.WalkingToSnack or State.InSnackLine)
                 Walk(State.WalkingOut, new[] { spawner.Entrance }, State.WalkingOut);
             else if (state is State.Riding or State.Wipeout) wavesPerSession = ridesDone + 1; // FinishRide sends them in
             else state = State.SwimmingToBeach;
@@ -373,6 +419,7 @@ namespace SurfPool
 
         void SneakAround()
         {
+            if (rudeness == Rudeness.Litterbug) LitterAround();
             if (!sneaking || caught || Time.time < nextSneakLine) return;
             if (state is not (State.WalkingToPool or State.Paddling or State.WaitingForWave)) return;
             nextSneakLine = Time.time + Random.Range(5f, 9f);
@@ -381,6 +428,20 @@ namespace SurfPool
             // A shifty glance back at the desk.
             rig.LookTarget = spawner.PathIn[spawner.PathIn.Length - 1] + Vector3.up * 1.5f;
             lookUntil = Time.time + 1.2f;
+        }
+
+        /// <summary>A litterbug drops something every few seconds: on the deck while walking, into the pool while surfing.</summary>
+        void LitterAround()
+        {
+            if (caught || angry || Time.time < nextSneakLine) return;
+            bool walking = state is State.WalkingIn or State.InDeskLine or State.WalkingToPool or State.WalkingToRental;
+            bool inWater = state is State.Paddling or State.WaitingForWave or State.PaddlingBack;
+            if (!walking && !inWater) return;
+            nextSneakLine = Time.time + Random.Range(6f, 11f);
+            Shout(LitterLines[Random.Range(0, LitterLines.Length)], 2f);
+            rig.ShowFace(SurfPool.Face.Grumpy, 2f);
+            if (walking && Trash.All.Count < Trash.MaxPieces) Trash.Spawn(transform.position + transform.right * 0.5f);
+            else if (inWater && PoolDirt.Instance != null) PoolDirt.Instance.Spawn(pool, transform.position + transform.right * 0.8f);
         }
 
         // ---- kook rescue (KookRescue): tired beginners who need a ring buoy ----
@@ -393,7 +454,7 @@ namespace SurfPool
         public bool InTrouble => state == State.InTrouble;
 
         /// <summary>Something the player can whistle or throw at from far away (a sneak-in, a surfer in trouble).</summary>
-        public bool WantsFarAttention => IsSneaking || InTrouble;
+        public bool WantsFarAttention => IsRuleBreaker || InTrouble;
 
         bool MaybeGetInTrouble()
         {
@@ -961,8 +1022,8 @@ namespace SurfPool
                 // (Whitewater is shared; riders there just keep their distance.)
                 dropInVictim = null;
                 var near = whitewash ? null : RiderNear(wave, water.transform.InverseTransformPoint(transform.position).z, DropInSpace);
-                if (near != null && archetype == Archetype.Kook && Random.value < 0.1f)
-                    dropInVictim = near; // kooks don't always know the rules...
+                if (near != null && (rudeness == Rudeness.WaveHog && !caught || archetype == Archetype.Kook && Random.value < 0.1f))
+                    dropInVictim = near; // kooks don't always know the rules... and wave hogs don't care
                 else if (near != null)
                 {
                     skippedWave = wave;
@@ -1028,7 +1089,9 @@ namespace SurfPool
                     dropInVictim.rig.ShowFace(SurfPool.Face.Grumpy, 3f);
                     dropInVictim.visit.droppedInOn = true;
                     visit.droppedIn = true;
-                    Shout(SurferPersonalities.Line(archetype, Moment.DropInSorry), 2.5f);
+                    if (rudeness == Rudeness.WaveHog) Shout(HogLines[Random.Range(0, HogLines.Length)], 2.5f, Sound.VoiceHmm);
+                    else Shout(SurferPersonalities.Line(archetype, Moment.DropInSorry), 2.5f);
+                    dropInVictim.RecordMood(0.2f);
                     Lifeguard.Whistle();
                 }
                 HootForMe();
@@ -1326,7 +1389,7 @@ namespace SurfPool
                 kickOutTime = celebrate ? 1.4f : 0.7f;
             }
             ridesDone++;
-            if (sneaking)
+            if (sneaking || caught)
             {
                 // Free waves: no money, no review. Out they go after their waves (or right away if caught).
                 if (!caught && ridesDone < wavesPerSession)

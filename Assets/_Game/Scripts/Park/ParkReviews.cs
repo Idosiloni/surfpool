@@ -229,7 +229,7 @@ namespace SurfPool
             if (barrelsToday > 0) facts.Add($"Barrels today: {barrelsToday}");
             facts.AddRange(extraFacts);
             if (SneaksCaught + SneaksEscaped > 0)
-                facts.Add($"Sneak-ins: {SneaksCaught} caught" + (SneaksEscaped > 0 ? $", {SneaksEscaped} got away" : ""));
+                facts.Add($"Troublemakers: {SneaksCaught} kicked out" + (SneaksEscaped > 0 ? $", {SneaksEscaped} sneak-ins got away" : ""));
             return facts;
         }
     }

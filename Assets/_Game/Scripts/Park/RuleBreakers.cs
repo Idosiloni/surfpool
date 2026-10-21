@@ -3,8 +3,9 @@ using UnityEngine;
 namespace SurfPool
 {
     /// <summary>
-    /// Sneak-ins (from day 2): now and then a surfer skips the ticket desk and walks straight into the water,
-    /// whistling innocently and glancing back at the desk. Look at them (from up to 30 m, even in the water) and
+    /// Bad customers. Sneak-ins (from day 2): now and then a surfer skips the ticket desk and walks straight into the
+    /// water, whistling innocently and glancing back at the desk. From day 3 also wave hogs (drop in on everyone,
+    /// "Out of my way!") and litterbugs ("*tosses cup*"), who pay like anyone else. Look at them (from up to 30 m, even in the water) and
     /// press E to throw them out for a little XP. If nobody catches them, they surf for free and brag about it.
     /// One at a time.
     /// </summary>
@@ -36,7 +37,20 @@ namespace SurfPool
             if (next < 0f) next = Time.time + Random.Range(gap.x, gap.y) * 0.5f;
             if (Time.time < next) return;
             next = Time.time + Random.Range(gap.x, gap.y);
-            SneakIn();
+            // From day 3 the troublemakers get more varied: wave hogs and litterbugs (they pay, then misbehave).
+            float roll = Random.value;
+            if (day.Day >= 3 && roll < 0.3f) SendRude(Surfer.Rudeness.WaveHog);
+            else if (day.Day >= 3 && roll < 0.55f) SendRude(Surfer.Rudeness.Litterbug);
+            else SneakIn();
+        }
+
+        /// <summary>Sends a paying customer with bad manners (a wave hog or a litterbug) right now (also for testing).</summary>
+        public Surfer SendRude(Surfer.Rudeness kind)
+        {
+            current = Instantiate(surferPrefab, spawner.Entrance, Quaternion.identity);
+            current.Init(spawner, false);
+            current.MakeRude(kind);
+            return current;
         }
 
         /// <summary>Sends a sneak-in right now (also for testing).</summary>
@@ -57,7 +71,13 @@ namespace SurfPool
             int xp = instance != null ? instance.xpForCatch : 20;
             ParkLevel.Add(xp);
             ParkReviews.SneaksCaught++;
-            Notifications.Post($"Caught {surfer.FirstName} sneaking in! +{xp} XP", Notice.Good);
+            string what = surfer.BadKind switch
+            {
+                Surfer.Rudeness.WaveHog => $"Kicked out {surfer.FirstName} the wave hog! The lineup cheers.",
+                Surfer.Rudeness.Litterbug => $"Kicked out {surfer.FirstName} the litterbug!",
+                _ => $"Caught {surfer.FirstName} sneaking in!",
+            };
+            Notifications.Post($"{what} +{xp} XP", Notice.Good);
         }
 
         public static void GotAway(Surfer surfer)

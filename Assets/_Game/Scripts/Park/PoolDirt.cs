@@ -59,14 +59,15 @@ namespace SurfPool
             }
         }
 
-        /// <summary>Drops a random piece into a pool (also for testing).</summary>
-        public PoolDebris Spawn(PoolArea pool)
+        /// <summary>Drops a random piece into a pool, at a spot or anywhere (also for testing).</summary>
+        public PoolDebris Spawn(PoolArea pool, Vector3? at = null)
         {
             var water = pool.Water;
-            bool duck = duckModel != null && Random.value < duckChance;
+            bool duck = at == null && duckModel != null && Random.value < duckChance;
             var model = duck ? duckModel : debrisModels[Random.Range(0, debrisModels.Length)];
             var local = new Vector3(Random.Range(3f, water.Length - 11f), 0f, Random.Range(-1f, 1f) * (water.Width * 0.5f - 1.5f));
-            var go = Instantiate(model, water.transform.TransformPoint(local), Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
+            var where = at ?? water.transform.TransformPoint(local);
+            var go = Instantiate(model, where, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
             go.name = duck ? "Rubber Duck" : "Pool Debris";
             go.transform.localScale = Vector3.one * (duck ? 2.4f : 1.9f); // cartoon-big, so you can spot it from the deck
             foreach (var r in go.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
