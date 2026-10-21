@@ -87,6 +87,12 @@ namespace SurfPool
             GameStats.BeachGuests++;
         }
 
+        /// <summary>Closing time: pack up and go.</summary>
+        public void GoHome()
+        {
+            if (phase != Phase.WalkingOut) LeaveForHome();
+        }
+
         void LeaveForHome()
         {
             if (seatOwner != null && seat != null) seatOwner.ReleaseSeat(seat);

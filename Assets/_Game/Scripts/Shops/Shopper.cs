@@ -162,6 +162,13 @@ namespace SurfPool
             if (shop != null && shop.InLine(this)) shop.Leave(this);
         }
 
+        /// <summary>Closing time: anyone not being served goes home (<paramref name="now"/>: everyone).</summary>
+        public void GoHome(bool now)
+        {
+            if (phase == Phase.Leaving) return;
+            if (now || !AtCounter && phase != Phase.Waiting) GiveUp("Closing time? Aww.");
+        }
+
         /// <summary>Gives up on the shop (too slow, or it closed).</summary>
         public void GiveUp(string line)
         {

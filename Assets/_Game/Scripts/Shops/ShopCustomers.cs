@@ -16,6 +16,7 @@ namespace SurfPool
 
         void Update()
         {
+            if (!DayCycle.Open) return;
             foreach (var shop in ShopCounter.All)
             {
                 if (!nextArrival.TryGetValue(shop, out float due))

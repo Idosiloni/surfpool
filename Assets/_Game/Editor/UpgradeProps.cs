@@ -145,6 +145,25 @@ namespace SurfPool.EditorTools
             Signs.Text("+ FRIES", menu, menu.position + new Vector3(0f, 0.48f, -0.2f), 0f, 0.13f, new Color(1f, 0.9f, 0.6f), 0.8f).transform.rotation = Quaternion.Euler(-12f, 0f, 0f);
         }
 
+        /// <summary>The OPEN / CLOSED sign by the ticket desk (flip it to end the day once everyone has gone home).</summary>
+        static void BuildParkSign()
+        {
+            var at = new Vector3(16.6f, 0f, -24.8f);
+            var root = new GameObject("Park Sign").transform;
+            root.position = at;
+            var wood = Mat("TikiPole", new Color(0.45f, 0.3f, 0.18f));
+            Box("Sign Post", root, at + new Vector3(0f, 0.9f, 0.05f), new Vector3(0.1f, 1.8f, 0.1f), wood);
+            Box("Sign Foot", root, at + new Vector3(0f, 0.04f, 0.05f), new Vector3(0.6f, 0.08f, 0.4f), wood);
+            var board = new GameObject("Board").transform;
+            board.SetParent(root, false);
+            board.position = at + new Vector3(0f, 1.55f, 0f);
+            Box("Open Face", board, board.position + new Vector3(0f, 0f, -0.03f), new Vector3(1.1f, 0.5f, 0.04f), Mat("SignOpen", new Color(0.12f, 0.7f, 0.45f), 0.35f));
+            Box("Closed Face", board, board.position + new Vector3(0f, 0f, 0.03f), new Vector3(1.1f, 0.5f, 0.04f), Mat("SignClosed", new Color(0.9f, 0.25f, 0.25f), 0.35f));
+            Signs.Text("OPEN", board, board.position + new Vector3(0f, 0f, -0.06f), 0f, 0.3f, Color.white, 1f);
+            Signs.Text("CLOSED", board, board.position + new Vector3(0f, 0f, 0.06f), 180f, 0.3f, Color.white, 1f);
+            Set(root.gameObject.AddComponent<ParkSign>(), "board", board);
+        }
+
         /// <summary>A root for one upgrade's props: a GlowItem that shows once the upgrade is owned (hidden at start).</summary>
         static Transform Prop(Transform root, string name, string upgrade, Vector3 position)
         {

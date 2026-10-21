@@ -147,7 +147,7 @@ namespace SurfPool
 
         void Update()
         {
-            if (Surfer.All.Count >= maxSurfers || Time.time < nextSpawnTime) return;
+            if (!DayCycle.Open || Surfer.All.Count >= maxSurfers || Time.time < nextSpawnTime) return;
             var surfer = Instantiate(surferPrefab, pathIn[0].position, pathIn[0].rotation);
             surfer.Init(this, Random.value < renterChance);
             nextSpawnTime = Time.time + CurrentSpawnDelay;

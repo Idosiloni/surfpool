@@ -1028,6 +1028,35 @@ namespace SurfPool
             state = State.SwimmingToBeach;
         }
 
+        /// <summary>
+        /// Closing time. People who haven't paid head home (no hard feelings); paid surfers finish the wave they're on
+        /// and then get out. With <paramref name="now"/> (stragglers, a while after closing) surfers in the water
+        /// end their session right away.
+        /// </summary>
+        public void GoHome(bool now)
+        {
+            if (angry || state is State.WalkingOut or State.SwimmingToBeach or State.WalkingToSnack or State.InSnackLine) return;
+            if (state is State.WalkingIn or State.InDeskLine or State.WalkingToRental or State.InRentalLine)
+            {
+                if (paidPrice > 0 && isRenter) return; // paid, waiting for a board: let them have their surf
+                if (paidPrice <= 0)
+                {
+                    spawner.LeaveLines(this);
+                    Shout(Random.value < 0.5f ? "Aw, closing already?" : "See you tomorrow!", 3f);
+                    if (state == State.InRentalLine || state == State.WalkingToRental)
+                        Walk(State.WalkingOut, new[] { spawner.Entrance }, State.WalkingOut);
+                    else Walk(State.WalkingOut, spawner.PathBackOut, State.WalkingOut);
+                    return;
+                }
+            }
+            wavesPerSession = Mathf.Min(wavesPerSession, ridesDone + 1);
+            if (now && state is State.Paddling or State.WaitingForWave or State.PaddlingBack)
+            {
+                wavesPerSession = ridesDone + 1;
+                FinishRide(true); // no kick-out move: just head in
+            }
+        }
+
         void LeaveAngry(string message)
         {
             if (angry) return;

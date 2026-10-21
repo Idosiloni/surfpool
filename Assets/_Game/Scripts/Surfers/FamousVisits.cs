@@ -41,7 +41,7 @@ namespace SurfPool
 
         void Update()
         {
-            if (current != null) return;
+            if (current != null || !DayCycle.Open) return;
             int level = ParkLevel.Instance != null ? ParkLevel.Instance.Level : 1;
             if (shop == null) shop = FindAnyObjectByType<UpgradeShop>();
             if (level < firstLevel || shop == null || !shop.IsOwned("pro_waves")) return;

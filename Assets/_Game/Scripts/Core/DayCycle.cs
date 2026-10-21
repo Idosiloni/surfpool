@@ -27,7 +27,9 @@ namespace SurfPool
 
     /// <summary>
     /// The park day: 8 AM to 8 PM over a few real minutes. The sun moves across the sky and turns golden in the
-    /// evening. At closing time the game pauses and the day report is shown (see <see cref="DayReportScreen"/>).
+    /// evening. At 8 PM the park closes: no new guests, the people still here finish up and go home while the sun
+    /// sets, and once everyone is gone you flip the OPEN/CLOSED sign at the ticket desk (<see cref="ParkSign"/>) to
+    /// end the day: bills and taxes are paid and the day report shows (<see cref="DayReportScreen"/>).
     /// </summary>
     public class DayCycle : MonoBehaviour
     {
@@ -40,6 +42,11 @@ namespace SurfPool
         [SerializeField] Color morningLight = new(1f, 0.82f, 0.68f);
         [SerializeField] Color noonLight = new(1f, 0.95f, 0.85f);
         [SerializeField] Color eveningLight = new(1f, 0.62f, 0.4f);
+        [SerializeField] Color duskLight = new(0.55f, 0.45f, 0.8f);
+        [Tooltip("Real seconds the sun takes to set after closing time.")]
+        [SerializeField] float duskLength = 50f;
+        [Tooltip("Seconds after closing before surfers still in the water are told to come in right away.")]
+        [SerializeField] float lastCall = 35f;
 
         float time;
         int servedAtStart, lostAtStart;
@@ -49,6 +56,25 @@ namespace SurfPool
         public int Day { get; private set; } = 1;
         public float Progress => Mathf.Clamp01(time / dayLength);
         public bool Closed { get; private set; }
+
+        /// <summary>Past closing time: no new guests; waiting for the last ones to leave and for you to end the day.</summary>
+        public bool ParkClosed { get; private set; }
+
+        /// <summary>Is the park letting guests in right now?</summary>
+        public static bool Open => Instance == null || !Instance.ParkClosed && !Instance.Closed;
+
+        /// <summary>Guests still in the park (surfers, shoppers, beach guests).</summary>
+        public static int GuestsLeft => Surfer.All.Count + Shopper.All.Count + BeachGuest.All.Count;
+
+        public bool CanEndDay => ParkClosed && !Closed && GuestsLeft == 0;
+
+        /// <summary>Fires when the park closes for the night (8 PM).</summary>
+        public event Action ParkClosing;
+
+        float lastCallAt, nextNudge;
+        bool emptyAnnounced;
+        float ambientIntensity = -1f;
+        Color ambientColor;
 
         /// <summary>Money earned so far today.</summary>
         public int IncomeToday => today != null ? today.TotalIncome : 0;
@@ -61,7 +87,7 @@ namespace SurfPool
         {
             get
             {
-                float hours = 8f + Progress * 12f;
+                float hours = 8f + time / dayLength * 12f; // keeps going after 8 PM while people leave
                 int h = Mathf.FloorToInt(hours);
                 int m = Mathf.FloorToInt((hours - h) * 60f / 10f) * 10;
                 int h12 = h % 12 == 0 ? 12 : h % 12;
@@ -83,9 +109,95 @@ namespace SurfPool
             if (Closed) return;
 
             time += Time.deltaTime;
-            UpdateSun();
-            if (DailyEvents.Instance != null) DailyEvents.Instance.Tick(Progress);
-            if (time >= dayLength) EndDay();
+            if (!ParkClosed)
+            {
+                UpdateSun();
+                if (DailyEvents.Instance != null) DailyEvents.Instance.Tick(Progress);
+                if (time >= dayLength) CloseGates();
+                return;
+            }
+
+            UpdateDusk();
+            if (Time.time >= lastCallAt && Time.time >= nextNudge)
+            {
+                // Last call, then every 30 s for anyone still dawdling.
+                nextNudge = Time.time + 30f;
+                SendHome(true);
+            }
+            if (!emptyAnnounced && GuestsLeft == 0)
+            {
+                emptyAnnounced = true;
+                Sfx.Play(Sound.Mission);
+                Notifications.Post("Everyone's gone home. Flip the sign at the ticket desk to end the day.", Notice.Good);
+            }
+        }
+
+        /// <summary>8 PM: lock the gates, announce it, and send the people who haven't started surfing home.</summary>
+        void CloseGates()
+        {
+            ParkClosed = true;
+            emptyAnnounced = false;
+            lastCallAt = Time.time + lastCall;
+            nextNudge = 0f;
+            Sfx.Play(Sound.PaChime, null, 0.9f);
+            Lifeguard.Whistle();
+            Notifications.Post("Closing time! No new guests. Let the last surfers finish their wave.", Notice.Info);
+            SendHome(false);
+            ParkClosing?.Invoke();
+        }
+
+        static void SendHome(bool now)
+        {
+            foreach (var surfer in Surfer.All.ToArray()) surfer.GoHome(now);
+            foreach (var shopper in Shopper.All.ToArray()) shopper.GoHome(now);
+            foreach (var guest in BeachGuest.All.ToArray()) guest.GoHome();
+        }
+
+        /// <summary>The sun sinks below the horizon and the world goes dusky blue while the last guests leave.</summary>
+        void UpdateDusk()
+        {
+            if (sun == null) return;
+            float k = Mathf.Clamp01((time - dayLength) / duskLength);
+            float s = k * k * (3f - 2f * k);
+            sun.transform.rotation = Quaternion.Euler(Mathf.Lerp(168f, 182f, s), -35f, 0f);
+            sun.color = Color.Lerp(eveningLight, duskLight, s);
+            sun.intensity = Mathf.Lerp(0.9f, 0.18f, s) * DailyEvents.SunMultiplier;
+            if (ambientIntensity < 0f)
+            {
+                ambientIntensity = RenderSettings.ambientIntensity;
+                ambientColor = RenderSettings.ambientLight;
+            }
+            RenderSettings.ambientIntensity = Mathf.Lerp(ambientIntensity, ambientIntensity * 0.5f, s);
+            RenderSettings.ambientLight = Color.Lerp(ambientColor, ambientColor * new Color(0.55f, 0.55f, 0.8f), s);
+
+            // A dusky sky: a copy of the skybox (never the asset) gets darker and purpler.
+            if (daySky == null && RenderSettings.skybox != null)
+            {
+                daySky = RenderSettings.skybox;
+                duskSky = new Material(daySky);
+                RenderSettings.skybox = duskSky;
+            }
+            if (duskSky != null)
+            {
+                if (duskSky.HasProperty("_Exposure")) duskSky.SetFloat("_Exposure", Mathf.Lerp(daySky.GetFloat("_Exposure"), 0.35f, s));
+                if (duskSky.HasProperty("_SkyTint")) duskSky.SetColor("_SkyTint", Color.Lerp(daySky.GetColor("_SkyTint"), new Color(0.35f, 0.3f, 0.7f), s));
+                if (Time.time >= nextGiUpdate)
+                {
+                    nextGiUpdate = Time.time + 0.5f;
+                    DynamicGI.UpdateEnvironment();
+                }
+            }
+        }
+
+        Material daySky, duskSky;
+        float nextGiUpdate;
+
+        /// <summary>From the sign at the desk: end the day once everyone has left. Returns false if people are still here.</summary>
+        public bool EndDayNow()
+        {
+            if (!CanEndDay) return false;
+            EndDay();
+            return true;
         }
 
         void UpdateSun()
@@ -101,6 +213,19 @@ namespace SurfPool
         void BeginDay()
         {
             Closed = false;
+            ParkClosed = false;
+            if (ambientIntensity >= 0f)
+            {
+                RenderSettings.ambientIntensity = ambientIntensity;
+                RenderSettings.ambientLight = ambientColor;
+            }
+            if (daySky != null)
+            {
+                RenderSettings.skybox = daySky;
+                if (duskSky != null) Destroy(duskSky);
+                daySky = duskSky = null;
+                DynamicGI.UpdateEnvironment();
+            }
             time = 0f;
             today = new DayReport { day = Day, ratingStart = ParkReputation.Instance != null ? ParkReputation.Instance.Stars : 0f };
             if (spawner != null)

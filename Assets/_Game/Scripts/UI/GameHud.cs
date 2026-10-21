@@ -336,7 +336,9 @@ namespace SurfPool
                     incomeLastMinute -= recentIncome.Dequeue().amount;
                 SetText(incomeRate, (incomeLastMinute >= 0 ? "+" : "") + MoneyText.Format(incomeLastMinute) + " / min");
             }
-            if (DayCycle.Instance != null) SetText(dayLabel, $"Day {DayCycle.Instance.Day}  ·  {DayCycle.Instance.Clock}");
+            if (DayCycle.Instance != null)
+                SetText(dayLabel, $"Day {DayCycle.Instance.Day}  ·  {DayCycle.Instance.Clock}" + (DayCycle.Instance.ParkClosed
+                    ? DayCycle.GuestsLeft > 0 ? $"  ·  CLOSED ({DayCycle.GuestsLeft} left)" : "  ·  CLOSED: end the day at the desk sign" : ""));
             var dayEvent = DailyEvents.Instance != null ? DailyEvents.Instance.Today : DayEvent.None;
             eventLabel.EnableInClassList("hidden", dayEvent == DayEvent.None);
             SetText(eventLabel, "Today: " + DailyEvents.Title(dayEvent));

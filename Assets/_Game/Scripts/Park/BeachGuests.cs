@@ -22,7 +22,7 @@ namespace SurfPool
 
         void Update()
         {
-            if (!ParkEffects.BeachPassesOpen || Time.time < nextArrival) return;
+            if (!ParkEffects.BeachPassesOpen || !DayCycle.Open || Time.time < nextArrival) return;
             nextArrival = Time.time + Random.Range(arrivalGap.x, arrivalGap.y) / DailyEvents.ArrivalMultiplier;
             if (Decoration.FreeSeats <= 0) return;
             var guest = Instantiate(guestPrefab);
