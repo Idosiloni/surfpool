@@ -41,7 +41,7 @@ namespace SurfPool
         /// <summary>Famous wave presets on the wave consoles (Famous Waves Pack).</summary>
         public static bool FamousWavesUnlocked;
 
-        /// <summary>Added to the snack price (Smoothie Bar).</summary>
+        /// <summary>Added to the snack price (Bigger Snack Menu, id smoothie_bar); acai shakes get half.</summary>
         public static int SnackPriceBonus;
 
         /// <summary>Multiplies how often surfers drop litter. Trash Cans lower it.</summary>

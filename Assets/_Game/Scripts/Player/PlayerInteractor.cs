@@ -45,8 +45,9 @@ namespace SurfPool
             var ray = new Ray(origin, forward);
 
             // Exact aim first.
+            // (Skips the player's own capsule: looking steeply down at a counter, the ray can clip its top.)
             float blockedAt = reach + aimAssist;
-            if (Physics.Raycast(ray, out var direct, reach, ~0, QueryTriggerInteraction.Ignore))
+            if (RaycastIgnoringPlayer(ray, out var direct))
             {
                 var exact = Usable(direct.collider);
                 if (exact != null) return exact;
@@ -74,6 +75,20 @@ namespace SurfPool
                 }
             }
             return best;
+        }
+
+        bool RaycastIgnoringPlayer(Ray ray, out RaycastHit nearest)
+        {
+            nearest = default;
+            int count = Physics.RaycastNonAlloc(ray, hits, reach, ~0, QueryTriggerInteraction.Ignore);
+            float best = float.MaxValue;
+            for (int i = 0; i < count; i++)
+            {
+                if (hits[i].distance >= best || hits[i].collider.GetComponentInParent<FirstPersonController>() != null) continue;
+                best = hits[i].distance;
+                nearest = hits[i];
+            }
+            return best < float.MaxValue;
         }
 
         /// <summary>The usable thing on this collider, if it has something to say right now.</summary>

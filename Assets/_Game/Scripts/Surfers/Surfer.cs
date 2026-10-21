@@ -572,7 +572,7 @@ namespace SurfPool
         public void ReceiveSnack()
         {
             ateSnack = true;
-            Shout(Random.value < 0.5f ? "Yum, tacos!" : "Smoothie time!", 2.5f);
+            Shout(Random.value < 0.5f ? "Yum, tacos!" : "Burrito time!", 2.5f);
             ExitPark();
         }
 
