@@ -262,6 +262,15 @@ namespace SurfPool
         }
 
         /// <summary>Restores the day number from a save.</summary>
-        public void Restore(int day) => Day = Mathf.Max(1, day);
+        public void Restore(int day)
+        {
+            Day = Mathf.Max(1, day);
+            // The day may already have begun (Start order isn't fixed): today's report must carry the loaded day.
+            if (today != null)
+            {
+                today.day = Day;
+                if (ParkReputation.Instance != null) today.ratingStart = ParkReputation.Instance.Stars;
+            }
+        }
     }
 }

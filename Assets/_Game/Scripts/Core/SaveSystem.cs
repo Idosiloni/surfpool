@@ -129,12 +129,15 @@ namespace SurfPool
             File.WriteAllText(SavePath, JsonUtility.ToJson(data, true));
         }
 
-        void Load()
+        void Load() => LoadFile(SavePath);
+
+        /// <summary>Loads a save from any file into the running game (agent playtests load a copy of a real save this way).</summary>
+        public void LoadFile(string path)
         {
             SaveData data;
             try
             {
-                data = JsonUtility.FromJson<SaveData>(File.ReadAllText(SavePath));
+                data = JsonUtility.FromJson<SaveData>(File.ReadAllText(path));
             }
             catch (Exception e)
             {
