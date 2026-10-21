@@ -96,3 +96,11 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
 - They ride the best open pool as pros and will pay up to 4x the fair Pro price (so a high price works on them).
 - Leaving happy: appearance bonus = 8x what they paid (times happiness), +150 XP, and 3 perfect reviews for the rating.
   Leaving unhappy: nothing extra and a "left unimpressed" toast.
+
+## Surf photographer (2026-10-21, proposals)
+- Upgrade "Surf Photographer": $4000, park level 9. Climb the tower, zoom and shoot surfers.
+- Grade = 45% moment (barrel 1, trick in the last 0.8 s 0.85, celebrating 0.6, just riding 0.4) + 20% centered
+  + 20% size in frame + 15% surfer skill. S >= 0.82, A >= 0.62, B >= 0.45, else C (C prints don't sell).
+- A surfer who leaves happy buys their best print: B $15, A $30, S $80, times skill (beginner 1, intermediate 1.5,
+  pro 2.5, legend 3). So an S shot of a legend = $240.
+- S shots go on the Wall of Fame by the kiosk (the last 6).
