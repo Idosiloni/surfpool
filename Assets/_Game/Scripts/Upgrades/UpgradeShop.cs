@@ -43,6 +43,8 @@ namespace SurfPool
                 description = "The biggest, deepest pool in the park. Huge waves. Room for 5 more surfers, and every session there costs 5x." },
             new Upgrade { id = "pool_cove", category = UpgradeCategory.Pools, title = "Build the Cove", cost = 150000, level = 22, requires = "pool_lagoon",
                 description = "A pier of wave paddles down the middle of a lagoon, east of the main pool: every set makes a right on one side and a left on the other at once. Two lineups, room for 6 more surfers, and sessions cost 4x." },
+            new Upgrade { id = "pool_ranch", category = UpgradeCategory.Pools, title = "Build the Surf Ranch", cost = 300000, level = 25, requires = "pool_cove",
+                description = "A 200 m strip where a foil on a rail drags one perfect wave down the line: 25-second rides, one wave every 20 seconds. Room for 3 more surfers, and sessions cost 10x." },
 
             // Waves
             new Upgrade { id = "faster_machine", category = UpgradeCategory.Waves, title = "Turbo Pump", cost = 75, level = 1,
@@ -415,6 +417,7 @@ namespace SurfPool
                 case "pool_reef":
                 case "pool_lagoon":
                 case "pool_cove":
+                case "pool_ranch":
                     OpenPool(id);
                     break;
                 case "more_surfers":
@@ -519,7 +522,7 @@ namespace SurfPool
                     if (IsOwned(wave)) ApplyWaveUpgrade(wave, pool);
                 if (IsOwned("intermediate_waves")) pool.Machine.Select(WaveLevel.Intermediate);
             }
-            spawner.MaxSurfers += upgradeId switch { "pool_lagoon" => 5, "pool_cove" => 6, _ => 4 };
+            spawner.MaxSurfers += upgradeId switch { "pool_lagoon" => 5, "pool_cove" => 6, "pool_ranch" => 3, _ => 4 };
         }
     }
 }

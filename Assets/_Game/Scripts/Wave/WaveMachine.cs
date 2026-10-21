@@ -32,6 +32,12 @@ namespace SurfPool
         [Tooltip("This side follows another machine (its console and timer drive both sides).")]
         [SerializeField] WaveMachine leader;
 
+        [Header("Limits (the Surf Ranch: one long wave per pass of the foil)")]
+        [Tooltip("Never recharges faster than this, whatever the upgrades (0 = no limit).")]
+        [SerializeField] float minCooldown;
+        [Tooltip("Most waves per press, whatever the upgrades (0 = no limit).")]
+        [SerializeField] int maxSetSize;
+
         readonly HashSet<WaveLevel> unlocked = new() { WaveLevel.Beginner };
         bool directionsUnlocked;
         readonly List<(float time, WaveLevel level, WaveDirection direction, FamousWave preset, WaveShape shape)> pending = new();
@@ -95,7 +101,7 @@ namespace SurfPool
 
         public float Cooldown
         {
-            get => cooldown;
+            get => Mathf.Max(cooldown, minCooldown);
             set => cooldown = Mathf.Max(0.5f, value);
         }
 
@@ -107,7 +113,7 @@ namespace SurfPool
 
         public int WavesPerSet
         {
-            get => wavesPerSet;
+            get => MaxSet;
             set => wavesPerSet = Mathf.Max(1, value);
         }
 
@@ -126,6 +132,9 @@ namespace SurfPool
 
         /// <summary>A Cove side: always the same way (no picking), whatever upgrades you own.</summary>
         public bool HasFixedDirection => fixedDirection != WaveDirection.Peak;
+
+        /// <summary>A Cove: the other side of the pier fires with this one.</summary>
+        public bool HasTwin => twin != null || leader != null;
 
         /// <summary>The machine whose console runs this one (itself unless it's the follower side of a Cove).</summary>
         public WaveMachine Leader => leader != null ? leader : this;
@@ -165,9 +174,11 @@ namespace SurfPool
         /// <summary>Waves per press chosen on the console (1 up to what the upgrades allow; 0 = the most).</summary>
         int chosenSetSize;
 
-        public int SetSize => chosenSetSize > 0 ? Mathf.Min(chosenSetSize, wavesPerSet) : wavesPerSet;
+        int MaxSet => maxSetSize > 0 ? Mathf.Min(maxSetSize, wavesPerSet) : wavesPerSet;
 
-        public void ChooseSetSize(int size) => chosenSetSize = Mathf.Clamp(size, 1, wavesPerSet);
+        public int SetSize => chosenSetSize > 0 ? Mathf.Min(chosenSetSize, MaxSet) : MaxSet;
+
+        public void ChooseSetSize(int size) => chosenSetSize = Mathf.Clamp(size, 1, MaxSet);
 
         /// <summary>The famous wave picked on the console (null = a plain wave).</summary>
         public FamousWave Preset { get; private set; }
@@ -250,7 +261,7 @@ namespace SurfPool
             if (OperatingCosts.Instance != null) OperatingCosts.Instance.MeterWaves(level, Pool, count);
             Sfx.Play(Sound.WaveMachine, transform.position);
             if (Service != null) Service.AddWear(level, count);
-            chargeDuration = cooldown + setLead + (count - 1) * setSpacing;
+            chargeDuration = Cooldown + setLead + (count - 1) * setSpacing;
             readyAt = Time.time + chargeDuration;
             SetCount = count;
             SetFired = 0;

@@ -269,6 +269,7 @@ namespace SurfPool.EditorTools
             });
 
             var cove = BuildCove();
+            var ranch = BuildRanch();
 
             var spawnerGo = new GameObject("Surfer Spawner");
             var spawner = spawnerGo.AddComponent<SurferSpawner>();

@@ -144,11 +144,15 @@ namespace SurfPool
             if (machine.HasFixedDirection)
             {
                 // A Cove: the pier makes rights on one side and lefts on the other, every time, both at once.
-                var fixedLabel = new Label($"{machine.SelectedDirection}s on this side, {(machine.SelectedDirection == WaveDirection.Right ? "lefts" : "rights")} on the far side");
+                var fixedLabel = new Label(machine.HasTwin
+                    ? $"{machine.SelectedDirection}s on this side, {(machine.SelectedDirection == WaveDirection.Right ? "lefts" : "rights")} on the far side"
+                    : $"{machine.SelectedDirection}s only");
                 fixedLabel.AddToClassList("segment");
                 fixedLabel.AddToClassList("segment--selected");
                 directionRow.Add(fixedLabel);
-                directionHint.text = "A Cove's pier can't make peaks: every set is a right on one side and a left on the other.";
+                directionHint.text = machine.HasTwin
+                    ? "A Cove's pier can't make peaks: every set is a right on one side and a left on the other."
+                    : "The foil makes one long wave per pass down the rail, always the same way.";
                 return;
             }
             foreach (WaveDirection direction in Enum.GetValues(typeof(WaveDirection)))

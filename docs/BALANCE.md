@@ -197,3 +197,12 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
 - Each side: travel 0.45, peel 2.0, size 1.1, sessions x4 the base price, daily water 70 each. +6 surfers (two
   lineups). Power is paid per side (a set costs twice). ~10 s rides, ~45 m down the line.
 
+## The Surf Ranch (2026-10-22, proposals)
+- Upgrade `pool_ranch`: L25, $300k, needs the Cove. A 45 x 200 m strip north of the Cove; a foil on a rail makes one
+  right per pass. Travel 0.2, peel 2.6 (~7 m/s down the line), breaks right by the rail (breakAt x0.4, 5 s head
+  start). Measured: an Intermediate wave breaks ~3 s after it leaves and gives a ~24 s ride over ~170 m.
+- One wave at a time (no sets), at least 20 s between waves whatever the Turbo upgrades. Sessions x10, daily water
+  200, +3 surfers. Everyone waits at the takeoff end; after a ride they paddle ~170 m back (~1 min): a return lane or
+  a jet-ski tow back would be a nice upgrade later.
+- Open question: ride scores on 24 s rides are much higher than on 10 s rides (points pile up). Cap or scale?
+

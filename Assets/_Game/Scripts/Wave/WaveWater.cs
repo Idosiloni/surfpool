@@ -36,6 +36,10 @@ namespace SurfPool
         [SerializeField] float peelSpeedMultiplier = 1f;
         [Tooltip("How fast waves travel down the pool (x the wave type's speed). Slower = longer rides in long pools.")]
         [SerializeField] float travelSpeedMultiplier = 1f;
+        [Tooltip("Scales how far out waves start breaking (the Surf Ranch's foil makes it break right by the rail).")]
+        [SerializeField] float breakAtMultiplier = 1f;
+        [Tooltip("Seconds of travel a new wave starts with (slow waves would otherwise crawl out of the machine).")]
+        [SerializeField] float headStart;
         [Tooltip("Where a peeling wave starts breaking, measured from the middle of the pool (m).")]
         [SerializeField] float peakOffset = 4f;
         [Tooltip("If above 0: peeling waves start this far from a side wall instead (follows the pool's width as it grows).")]
@@ -163,6 +167,21 @@ namespace SurfPool
         public int ActiveWaves => waves.Count;
 
         /// <summary>
+        /// Where to sit (local x) to take off on a peeling wave of this level, `along` meters down the line from where
+        /// it starts breaking: the crest is that far out when the break point reaches you.
+        /// </summary>
+        public float TakeoffX(WaveLevel level, float along)
+        {
+            var type = Scaled(TypeOf(level));
+            float peel = Mathf.Max(0.1f, type.peelSpeed);
+            return type.breakAt * length + type.speed * Mathf.Abs(along) / peel;
+        }
+
+        /// <summary>Where a left or a right starts breaking (local z); 0 for a peak.</summary>
+        public float PeelStartZ(WaveDirection direction) =>
+            direction == WaveDirection.Right ? PeakOffset : direction == WaveDirection.Left ? -PeakOffset : 0f;
+
+        /// <summary>
         /// Leftover chop from waves that hit the beach and bounced back: 0 = glassy, 1 = a washing machine. It settles
         /// during the lull between sets, so real pools wait before the next set; rides on choppy water score less.
         /// </summary>
@@ -202,7 +221,7 @@ namespace SurfPool
             speed = type.speed * travelSpeedMultiplier,
             frontWidth = type.frontWidth,
             backWidth = type.backWidth,
-            breakAt = type.breakAt,
+            breakAt = type.breakAt * breakAtMultiplier,
             closeout = type.closeout,
             peelSpeed = type.peelSpeed * peelSpeedMultiplier,
             whitewashHeight = type.whitewashHeight,
@@ -309,7 +328,7 @@ namespace SurfPool
                     type.barrel = true;
                 }
             }
-            var spawned = new ActiveWave { start = Now, type = type, direction = direction, famous = preset?.name, shape = shape };
+            var spawned = new ActiveWave { start = Now - headStart, type = type, direction = direction, famous = preset?.name, shape = shape };
             waves.Add(spawned);
             if (recording) recorded.Add(spawned);
         }

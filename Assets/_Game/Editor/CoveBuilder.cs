@@ -44,8 +44,19 @@ namespace SurfPool.EditorTools
             var westConsole = west.built.Find("Wave Console");
             if (westConsole != null) Object.DestroyImmediate(westConsole.gameObject);
 
+            TakeoffLineup(east, CoveWidth / 2f - 3f - 6f, 6f);
+            TakeoffLineup(west, -(CoveWidth / 2f - 3f - 6f), 6f);
             BuildCovePier(east, west);
             return (east, west);
+        }
+
+        /// <summary>Moves a one-way pool's lineup (where you jump in) to the takeoff end: localZ along it, as far out
+        /// as an Intermediate wave's crest is when the break reaches there.</summary>
+        static void TakeoffLineup(PoolBuild pool, float localZ, float along)
+        {
+            var lineup = pool.area.Lineup;
+            float x = pool.water.TakeoffX(WaveLevel.Intermediate, along) + 1.5f;
+            lineup.position = pool.water.transform.TransformPoint(new Vector3(x, 0f, localZ));
         }
 
         static void SetEnum(Object target, string field, int value)

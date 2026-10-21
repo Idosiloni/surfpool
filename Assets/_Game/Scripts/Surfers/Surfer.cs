@@ -669,6 +669,15 @@ namespace SurfPool
                 // Beginners wait on the inside, nearer the beach, where bigger waves have already turned to whitewater.
                 if (Skill == WaveLevel.Beginner) local.x = water.Length * InsideLineup + Random.Range(-1.5f, 1.5f);
                 local.z = Random.Range(-halfWidth, halfWidth);
+                // Pools that only make one way (the Cove's sides, the Surf Ranch): everyone sits at the takeoff end.
+                if (pool.Machine != null && pool.Machine.HasFixedDirection && Skill != WaveLevel.Beginner)
+                {
+                    float start = water.PeelStartZ(pool.Machine.SelectedDirection);
+                    float along = Random.Range(1f, Mathf.Min(18f, halfWidth));
+                    local.z = start - Mathf.Sign(start) * along;
+                    // Just inside of where the crest will be when the break reaches this spot.
+                    local.x = water.TakeoffX(Skill, along) + 1.5f + Random.Range(-1f, 1f);
+                }
                 var spot = water.transform.TransformPoint(local);
                 float gap = float.MaxValue;
                 foreach (var other in All)

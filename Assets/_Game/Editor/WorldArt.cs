@@ -59,7 +59,12 @@ namespace SurfPool.EditorTools
             void Slab(string name, float x0, float x1, float z0, float z1) =>
                 SandSlab(sand, name, new Vector3((x0 + x1) / 2f, -0.6f, (z0 + z1) / 2f), new Vector3(x1 - x0, 1, z1 - z0), sandMat);
             Slab("East", 80f, coveW, -40f, DecksNorth);
-            Slab("East North", coveW, IslandEast, coveN, DecksNorth);
+            // North of the Cove, around the Surf Ranch's water (its decks cover the rest).
+            var ranch = GreyboxBuilder.RanchBasin;
+            Slab("East North W", coveW, ranch.xMin, coveN, DecksNorth);
+            Slab("East North E", ranch.xMax, IslandEast, coveN, DecksNorth);
+            Slab("Ranch South", ranch.xMin, ranch.xMax, coveN, ranch.yMin);
+            if (ranch.yMax < DecksNorth) Slab("Ranch North", ranch.xMin, ranch.xMax, ranch.yMax, DecksNorth);
             Slab("East Beach", coveE, IslandEast, coveS, coveN);
             Slab("South East", 150f, IslandEast, -100f, coveS);
             Slab("North East", 160f, IslandEast, DecksNorth, DecksNorth + 60f);
@@ -113,7 +118,7 @@ namespace SurfPool.EditorTools
                 float angle = Range(0, Mathf.PI * 2);
                 float radius = Range(100, 120);
                 var spot = new Vector3(30 + Mathf.Cos(angle) * radius, -0.3f, 52 + Mathf.Sin(angle) * radius * 1.3f);
-                bool inPark = spot.x > -25 && spot.x < IslandEast && spot.z > -45 && spot.z < 186;
+                bool inPark = spot.x > -25 && spot.x < IslandEast && spot.z > -45 && spot.z < DecksNorth + 12f;
                 if (inPark || spot.z < -95 || spot.z > 238) continue;
                 Model("Rock", rocks, spot, Range(0, 360), Range(0.8f, 2.4f));
             }
