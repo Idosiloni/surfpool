@@ -135,7 +135,7 @@ namespace SurfPool
         {
             cardRating.text = rating;
             cardScore.text = total.ToString("N0");
-            cardDetails.text = $"Best combo x{bestCombo:0.#}   ·   Top speed {topSpeedKmh:0} km/h   ·   Airs {airs}";
+            cardDetails.text = $"{surfing.LastRideSeconds:0.0} s ride   ·   {surfing.LastRideLine:0} m down the line   ·   Best combo x{bestCombo:0.#}   ·   Top speed {topSpeedKmh:0} km/h";
             cardUntil = Time.unscaledTime + CardSeconds;
         }
     }

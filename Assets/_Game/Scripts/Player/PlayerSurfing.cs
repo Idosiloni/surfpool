@@ -102,6 +102,13 @@ namespace SurfPool
         // in; a green face = carves, bottom turns, snaps, cutbacks, floaters; a steep, fast pro wave = airs too.
         WaveLevel waveLevel;
         bool boardSnapped;
+        // Down the line: meters ridden sideways along the wave, and whether you've been warned about the whitewash.
+        float lineMeters, lastRideZ, behindSince = -1f;
+        bool warnedBehind;
+
+        /// <summary>The last finished ride: seconds and meters ridden sideways down the line (for the score card).</summary>
+        public float LastRideSeconds { get; private set; }
+        public float LastRideLine { get; private set; }
 
         /// <summary>A spare board when yours snaps (it never stops you surfing).</summary>
         const int SpareBoardCost = 40;
@@ -525,6 +532,10 @@ namespace SurfPool
                     Grab = 0f;
                     partyAwarded = false;
                     waveLevel = water.LevelOf(wave);
+                    lineMeters = 0f;
+                    lastRideZ = rideZ;
+                    behindSince = -1f;
+                    warnedBehind = false;
                     movesThisRide.Clear();
                     pumpStep = pumpsInRow = 0;
                     pumpGlow = pumpFlow = 0f;
@@ -760,6 +771,7 @@ namespace SurfPool
             landSquash = Mathf.MoveTowards(landSquash, 0f, dt * 2.5f);
 
             UpdateTube(water, dt);
+            DownTheLine(water, dt);
             Floater(water, keyboard, dt);
             PartyWave(water);
             twist = Mathf.MoveTowards(twist, 0f, 90f * dt);
@@ -927,6 +939,37 @@ namespace SurfPool
             }
         }
 
+        /// <summary>
+        /// Riding the wave the way real surfers do: along it, just ahead of where it's breaking (the pocket, where
+        /// the power is). Staying in that zone keeps flow up; falling behind the break into the whitewater drains
+        /// it (with a nudge to get back in front). Sideways meters add up for the DOWN THE LINE bonus at the end.
+        /// </summary>
+        void DownTheLine(WaveWater water, float dt)
+        {
+            lineMeters += Mathf.Abs(rideZ - lastRideZ);
+            lastRideZ = rideZ;
+            if (waveLevel == WaveLevel.Beginner || AirLift > 0f) return;
+            int side = rideVelocity >= 0f ? 1 : -1;
+            if (!water.TryGetPocket(rideWave, side, out float pocketZ, out int direction, out bool breaking, out bool finished, out _)
+                || !breaking || finished) return;
+            float ahead = (rideZ - pocketZ) * direction; // + = in front of the break, on the clean face
+            if (ahead > 0f && ahead < 8f)
+            {
+                flow = Mathf.Clamp01(flow + 0.05f * dt); // in the pocket
+                behindSince = -1f;
+            }
+            else if (ahead < -2f)
+            {
+                flow = Mathf.Max(0f, flow - 0.2f * dt); // bogged down in the whitewater behind the break
+                if (behindSince < 0f) behindSince = Time.time;
+                if (!warnedBehind && Time.time - behindSince > 1f)
+                {
+                    warnedBehind = true;
+                    Called?.Invoke("In the whitewater! Ride along the wave, in front of where it breaks", Notice.Info);
+                }
+            }
+        }
+
         /// <summary>Someone else riding your wave a good distance away: party wave! (Once a ride.)</summary>
         void PartyWave(WaveWater water)
         {
@@ -1011,6 +1054,14 @@ namespace SurfPool
         {
             state = State.Paddling;
             BankCombo();
+            if (lineMeters >= 20f && waveLevel != WaveLevel.Beginner)
+            {
+                int lineBonus = Mathf.RoundToInt(lineMeters * 6f);
+                score += lineBonus;
+                Called?.Invoke($"DOWN THE LINE {lineMeters:0} m  +{lineBonus}", Notice.Reward);
+            }
+            LastRideSeconds = Time.time - rideStart;
+            LastRideLine = lineMeters;
             // On whitewater the goal is simple: stand up and ride it all the way in.
             if (waveLevel == WaveLevel.Beginner)
             {

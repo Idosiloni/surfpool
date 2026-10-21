@@ -161,3 +161,5 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
   (green: ~4.2 m/s toward the beach, ~4.9 m/s sideways) from 3 m off a side wall. Full size: an 11 s ride, 41 m
   sideways (measured). The daily water bill is unchanged at full size (it scales by the share of the full area).
 - Replaces the earlier "main pool waves travel 0.75" note.
+- Down the line: in the pocket (0-8 m in front of the break) flow +0.05/s; 2+ m behind it (whitewater) flow -0.2/s
+  with a nudge. Rides with 20+ m sideways on green waves get DOWN THE LINE: 6 points per meter (41 m = +245).
