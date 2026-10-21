@@ -2,7 +2,8 @@ using UnityEngine;
 
 namespace SurfPool
 {
-    /// <summary>Player settings kept between games (PlayerPrefs): mouse sensitivity and invert, graphics quality, fullscreen.</summary>
+    /// <summary>Player settings kept between games (PlayerPrefs): mouse sensitivity and invert, graphics quality, fullscreen,
+    /// surf camera.</summary>
     public static class GameSettings
     {
         public static float MouseSensitivity { get; private set; } = 1f;
@@ -11,13 +12,23 @@ namespace SurfPool
         /// <summary>0 = Fast, 1 = Balanced, 2 = Pretty (mapped onto the project's quality levels).</summary>
         public static int Quality { get; private set; } = 2;
 
+        /// <summary>Surfing camera: true = chase cam behind your surfer (see your moves), false = first person.</summary>
+        public static bool ChaseCam { get; private set; } = true;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Load()
         {
             MouseSensitivity = PlayerPrefs.GetFloat("mouse_sensitivity", 1f);
             InvertY = PlayerPrefs.GetInt("invert_y", 0) == 1;
             Quality = PlayerPrefs.GetInt("quality_tier", 2);
+            ChaseCam = PlayerPrefs.GetInt("surf_chase_cam", 1) == 1;
             ApplyQuality();
+        }
+
+        public static void SetChaseCam(bool chase)
+        {
+            ChaseCam = chase;
+            PlayerPrefs.SetInt("surf_chase_cam", chase ? 1 : 0);
         }
 
         public static void SetMouse(float sensitivity, bool invert)

@@ -9,7 +9,8 @@ namespace SurfPool
     /// <summary>
     /// Lets the player surf their own pool. Paddle with W (steer by looking), Space to pop up when a wave reaches
     /// you, A/D to carve along the wave, W/S to move up or down the face, Space for an air, F to send a wave
-    /// from the water, Q to get out. Rides earn style points, a small sponsor bonus and a better park rating.
+    /// from the water, Q to get out, V to switch between the chase cam (see your surfer, the default) and first
+    /// person. Rides earn style points, a small sponsor bonus and a better park rating.
     /// Feel: carving builds up speed (no instant sideways sliding), the board lies on the wave face and leans into
     /// turns and throws spray, the camera leans with you, widens and shakes with speed (with rushing wind), rises
     /// as you pop up, squashes on landings and tumbles under the water in a wipeout (a hit-pause, muffled sound).
@@ -19,6 +20,11 @@ namespace SurfPool
     /// of the ride and lost in a wipeout. The ride ends with a score card. SurfHud shows all of this.
     /// Barrels: high on the face just ahead of the break point of a barreling wave you're in the tube: the world
     /// goes muffled and green-dark at the edges, tube time scores fast, and coming out is a combo trick.
+    /// Moves follow real surfing (docs/research/surf-maneuvers.md): the wave decides what's possible. Whitewater =
+    /// stand up, angle, ride it in. A green face = carves, bottom turns, top turns (snaps need speed: flow 0.4+),
+    /// cutbacks, floaters at the breaking section, and pumping (tap W/S in rhythm) to make speed. Steep, fast Pro
+    /// waves add airs with A/D spins and SHIFT/click grabs (land near a half turn or wipe out). Repeating a move
+    /// in one ride scores less (variety). Party waves and drop-ins with NPC surfers on the same wave.
     /// See docs/research/surf-feel.md.
     /// </summary>
     public class PlayerSurfing : MonoBehaviour
@@ -87,6 +93,19 @@ namespace SurfPool
         float comboUntil, bestMultiplier = 1f, hitPauseUntil = -1f;
         float tube, tubeTime;
         bool inTube;
+        Vector3 chaseVelocity, chaseLook;
+        // Maneuvers: air spins and grabs, snaps and cutbacks (a twist of the body), floaters (arms up).
+        float spin, grabTime, airDuration = 0.8f, airHeight = 1.1f, twist, armsUp, floatTime;
+        bool partyAwarded;
+        // The wave you're on decides what's possible (like real surfing): whitewater = stand up, angle and ride it
+        // in; a green face = carves, bottom turns, snaps, cutbacks, floaters; a steep, fast pro wave = airs too.
+        WaveLevel waveLevel;
+        // Pumping (W/S up and down the face in rhythm) makes speed on green waves; repeated moves score less.
+        int pumpStep, pumpsInRow, lastPumpIndex = -1;
+        float lastPumpKey = -10f, pumpGlow;
+        readonly System.Collections.Generic.Dictionary<string, int> movesThisRide = new();
+        float travelSign = 1f;
+        bool chaseSnap = true;
         AudioSource wind;
         AudioLowPassFilter underwater;
         Volume tubeVolume;
@@ -101,8 +120,19 @@ namespace SurfPool
         public float Turn => feel.Turn;
         /// <summary>0..1 height of an air right now.</summary>
         public float AirLift { get; private set; }
-        /// <summary>The board's tilt under you (heading frame).</summary>
+        /// <summary>The board's tilt under you (heading frame), including air spins.</summary>
         public Quaternion BoardTilt => surfBoard.transform.localRotation;
+        /// <summary>0..1 grabbing the rail in the air.</summary>
+        public float Grab { get; private set; }
+        /// <summary>Degrees the body twists back (snaps and cutbacks).</summary>
+        public float Twist => twist;
+        /// <summary>0..1 arms up (floaters).</summary>
+        public float ArmsUp => armsUp;
+
+        /// <summary>For tests: spin input in the air (-1..1, positive = A) used when no key is held.</summary>
+        public float SpinOverride { get; set; }
+        /// <summary>For tests: hold a grab in the air.</summary>
+        public bool GrabOverride { get; set; }
 
         /// <summary>You popped up and are riding a wave.</summary>
         public event Action RideStarted;
@@ -140,8 +170,14 @@ namespace SurfPool
         /// <summary>Controls hint for the HUD while surfing.</summary>
         public string Hint => state switch
         {
-            State.Paddling => "W paddle  ·  mouse steer  ·  SPACE stand up when a wave reaches you  ·  F send a wave  ·  Q get out",
-            State.Riding => "A/D carve (link turns for flow)  ·  W/S up and down the face  ·  SPACE air",
+            State.Paddling => "W paddle  ·  mouse steer  ·  SPACE stand up when a wave reaches you  ·  F send a wave  ·  V camera  ·  Q get out",
+            State.Riding => AirLift > 0f
+                ? "A/D spin  ·  hold SHIFT or click to grab  ·  land straight!"
+                : waveLevel == WaveLevel.Beginner
+                    ? "Whitewater: A/D angle  ·  stay on your feet and ride it in  ·  bigger waves unlock real turns  ·  V camera"
+                    : waveLevel == WaveLevel.Intermediate
+                        ? "A/D carve (switch at the top = snap, out on the shoulder = cutback)  ·  W/S up and down  ·  hold W at the lip = floater  ·  V camera"
+                        : "A/D carve, snap, cutback  ·  W/S up and down  ·  hold W at the lip = floater  ·  SPACE air (A/D spin, SHIFT grab)  ·  V camera",
             State.Wipeout => "Wipeout! Hold on...",
             _ => null,
         };
@@ -196,6 +232,8 @@ namespace SurfPool
             pitch = 10f;
             eye = PaddleEye;
             roll = tumble = 0f;
+            chaseSnap = true;
+            ApplyView();
             Notifications.Post($"Surf's up! You're in the {pool.DisplayName}.");
         }
 
@@ -241,6 +279,7 @@ namespace SurfPool
             if (keyboard.escapeKey.wasPressedThisFrame) FirstPersonController.LockCursor(false);
             if (keyboard.qKey.wasPressedThisFrame) { Exit(); return; }
             if (keyboard.fKey.wasPressedThisFrame) pool.Machine.TryTriggerWave();
+            if (keyboard.vKey.wasPressedThisFrame) ToggleView();
 
             switch (state)
             {
@@ -249,6 +288,69 @@ namespace SurfPool
                 case State.Wipeout: Wipeout(); break;
             }
             UpdateCamera();
+        }
+
+        /// <summary>Chase cam (see yourself surf) or first person. Remembered between games.</summary>
+        public void ToggleView()
+        {
+            GameSettings.SetChaseCam(!GameSettings.ChaseCam);
+            chaseSnap = true;
+            ApplyView();
+            Called?.Invoke(GameSettings.ChaseCam ? "CHASE CAM" : "FIRST PERSON", Notice.Info);
+        }
+
+        /// <summary>In the chase cam your own first-person board is hidden: the stand-in surfer (SurfReplay) has one.</summary>
+        void ApplyView()
+        {
+            foreach (var r in surfBoard.GetComponentsInChildren<Renderer>(true)) r.enabled = !GameSettings.ChaseCam;
+            if (GameSettings.ChaseCam) return;
+            cameraPivot.localPosition = new Vector3(0f, eye, 0f);
+        }
+
+        /// <summary>
+        /// The chase cam. Riding: behind you along the line you're surfing and out in front of the wave (beach side),
+        /// looking ahead down the line, so you see the face, your surfer and where you're going. Paddling and
+        /// wipeouts: behind you the way you face. It stays inside the pool walls and above the water.
+        /// </summary>
+        void ChaseCamera(float dt, Vector3 shake, float shakeRoll)
+        {
+            var water = pool.Water;
+            var w = water.transform;
+            Vector3 rider = transform.position;
+            Vector3 want, look;
+            if (state == State.Riding)
+            {
+                if (Mathf.Abs(rideVelocity) > 0.8f) travelSign = Mathf.Sign(rideVelocity);
+                Vector3 along = w.TransformDirection(Vector3.forward) * travelSign;
+                Vector3 toBeach = w.TransformDirection(Vector3.right);
+                want = rider - along * 4.4f + toBeach * 3.4f + Vector3.up * (2.2f + AirLift * 0.9f - tube * 0.6f);
+                look = rider + along * 2.6f + Vector3.up * (0.7f + AirLift * 0.6f);
+            }
+            else
+            {
+                Vector3 forward = transform.forward;
+                forward.y = 0f;
+                forward.Normalize();
+                want = rider - forward * 4.2f + Vector3.up * (2.1f + Mathf.Clamp(pitch, -20f, 40f) * 0.04f);
+                look = rider + forward * 3f + Vector3.up * 0.4f;
+            }
+            Vector3 local = w.InverseTransformPoint(want);
+            float limit = water.Width * 0.5f - 0.4f;
+            local.z = Mathf.Clamp(local.z, -limit, limit);
+            local.x = Mathf.Clamp(local.x, 0.5f, water.Length - 9f); // not up on the pool's beach slope
+            want = w.TransformPoint(local);
+            want.y = Mathf.Max(want.y, water.SurfaceHeightAt(want) + 1.1f);
+
+            if (chaseSnap)
+            {
+                chaseSnap = false;
+                cameraPivot.position = want;
+                chaseLook = look;
+                chaseVelocity = Vector3.zero;
+            }
+            cameraPivot.position = Vector3.SmoothDamp(cameraPivot.position, want, ref chaseVelocity, 0.2f) + shake;
+            chaseLook = Vector3.Lerp(chaseLook, look, 1f - Mathf.Exp(-8f * dt));
+            cameraPivot.rotation = Quaternion.LookRotation(chaseLook - cameraPivot.position) * Quaternion.Euler(kick, 0f, roll * 0.5f + shakeRoll);
         }
 
         void Look(Vector2 delta)
@@ -284,8 +386,12 @@ namespace SurfPool
             float shakeRoll = (Mathf.PerlinNoise(t, 5.1f) - 0.5f) * 2f * speedShake.y * speed;
             kick = Mathf.MoveTowards(kick, 0f, 30f * dt);
 
-            cameraPivot.localPosition = new Vector3(0f, eye, 0f) + shake;
-            cameraPivot.localRotation = Quaternion.Euler(pitch + kick, 0f, roll + tumble + shakeRoll);
+            if (GameSettings.ChaseCam) ChaseCamera(dt, shake, shakeRoll);
+            else
+            {
+                cameraPivot.localPosition = new Vector3(0f, eye, 0f) + shake;
+                cameraPivot.localRotation = Quaternion.Euler(pitch + kick, 0f, roll + tumble + shakeRoll);
+            }
 
             if (cam != null)
                 cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, baseFov + speedFovKick * speed, 1f - Mathf.Exp(-3f * dt));
@@ -371,6 +477,14 @@ namespace SurfPool
                     bestMultiplier = 1f;
                     topSpeed = 0f;
                     carveSign = 0f;
+                    spin = grabTime = twist = armsUp = floatTime = 0f;
+                    Grab = 0f;
+                    partyAwarded = false;
+                    waveLevel = water.LevelOf(wave);
+                    movesThisRide.Clear();
+                    pumpStep = pumpsInRow = 0;
+                    pumpGlow = 0f;
+                    CheckDropIn(water, wave);
                     feel.Begin(transform.position, Quaternion.Euler(0f, transform.eulerAngles.y, 0f));
                     state = State.Riding;
                     RideStarted?.Invoke();
@@ -382,6 +496,12 @@ namespace SurfPool
                         RideFeel.Splash(water, transform.position, 12, 2f);
                         Splashed?.Invoke(3);
                         Called?.Invoke("PERFECT TAKEOFF! +100", Notice.Reward);
+                    }
+                    else if (d > 0.9f && waveLevel != WaveLevel.Beginner)
+                    {
+                        // Way too late on a green wave: it's already steep and pitching, the nose digs in.
+                        StartWipeout("PEARLED! You stood up too late, the nose dug in. Pop up as the wave lifts you.");
+                        return true;
                     }
                     else if (d > -0.4f)
                     {
@@ -404,6 +524,13 @@ namespace SurfPool
         public void TryAir()
         {
             if (state != State.Riding || Time.time - airStart <= 1f) return;
+            if (waveLevel != WaveLevel.Pro)
+            {
+                Called?.Invoke(waveLevel == WaveLevel.Beginner
+                    ? "Whitewater is too soft to launch off. Airs need a steep, fast wave (Pro)"
+                    : "Not steep enough to launch. Airs need a fast, hollow Pro wave", Notice.Info);
+                return;
+            }
             if (rideOffset >= 2f)
             {
                 Called?.Invoke("Get up high on the face to launch an air", Notice.Info);
@@ -415,6 +542,11 @@ namespace SurfPool
                 return;
             }
             airStart = Time.time;
+            // More flow = a bigger, longer air (time for a 360 or a 540).
+            airDuration = 0.8f + 0.55f * flow;
+            airHeight = 1.1f + 1.0f * flow;
+            spin = 0f;
+            grabTime = 0f;
             tricks++;
             GameStats.TricksLanded++;
             Sfx.Play(Sound.Cheer, transform.position);
@@ -424,6 +556,11 @@ namespace SurfPool
         /// <summary>A move in the combo: adds points and flow, keeps the combo alive.</summary>
         void Trick(string name, int points, float flowGain)
         {
+            // Variety (like real judges): the same move again in one ride is worth less each time.
+            string kind = name.Split(' ')[0];
+            movesThisRide.TryGetValue(kind, out int done);
+            movesThisRide[kind] = done + 1;
+            points = Mathf.RoundToInt(points * Mathf.Pow(0.65f, done));
             comboCount++;
             comboPoints += points;
             comboUntil = Time.time + comboWindow;
@@ -458,15 +595,43 @@ namespace SurfPool
             float steer = (keyboard.dKey.isPressed ? -1f : 0f) + (keyboard.aKey.isPressed ? 1f : 0f);
             if (steer == 0f) steer = Mathf.Clamp(SteerOverride, -1f, 1f);
             // Carving builds up and bleeds off speed, so turns feel like turns, not sliding.
-            rideVelocity = Mathf.MoveTowards(rideVelocity, steer * carveSpeed * (1f + flowSpeedBonus * flow), carveAcceleration * dt);
+            // Foam is slow and mushy: you can only angle a little. A green face gives real speed.
+            float waveSpeed = waveLevel == WaveLevel.Beginner ? 0.55f : 1f;
+            rideVelocity = Mathf.MoveTowards(rideVelocity, steer * carveSpeed * waveSpeed * (1f + flowSpeedBonus * flow), carveAcceleration * dt);
 
             // A carve is a turn held long enough to build speed one way, then switched: linking them builds flow.
             // (Tapping A/D quickly doesn't count: the turn must have been held and fast.)
             if (steer != 0f && Mathf.Sign(steer) != carveSign)
             {
                 float held = Time.time - carveSince;
-                if (carveSign != 0f && held >= 0.6f && held <= 3f && Mathf.Abs(rideVelocity) >= 0.6f * carveSpeed)
-                    Trick("CARVE", 50, 0.25f);
+                if (waveLevel != WaveLevel.Beginner && carveSign != 0f && held >= 0.6f && held <= 3f
+                    && Mathf.Abs(rideVelocity) >= 0.6f * carveSpeed && AirLift <= 0f)
+                {
+                    if (rideOffset < 0.9f && flow < 0.4f)
+                    {
+                        // Not enough speed for a real snap: a smooth top turn.
+                        Trick("TOP TURN", 70, 0.2f);
+                        twist = 30f;
+                        RideFeel.Splash(water, transform.position, 10, 2f);
+                    }
+                    else if (rideOffset < 0.9f)
+                    {
+                        // Snap: the switch right at the lip, the tail throws a fan of spray.
+                        Trick("SNAP", 130, 0.3f);
+                        twist = 55f;
+                        RideFeel.Splash(water, transform.position + transform.forward * 0.6f, 26, 3.4f);
+                        Sfx.Play(Sound.Splash, transform.position, 0.55f);
+                        Splashed?.Invoke(5);
+                    }
+                    else if (rideOffset > 2f && flow > 0.45f)
+                    {
+                        // Cutback: out on the shoulder, a big roundhouse back toward the breaking part.
+                        Trick("CUTBACK", 140, 0.25f);
+                        twist = 80f;
+                        RideFeel.Splash(water, transform.position, 18, 2.8f);
+                    }
+                    else Trick("CARVE", 50, 0.25f);
+                }
                 carveSign = Mathf.Sign(steer);
                 carveSince = Time.time;
             }
@@ -478,19 +643,22 @@ namespace SurfPool
             }
             if (keyboard.wKey.isPressed) rideOffset -= 1.5f * dt;
             if (keyboard.sKey.isPressed) rideOffset += 1.5f * dt;
+            if (keyboard.wKey.wasPressedThisFrame) PumpKey(0);
+            if (keyboard.sKey.wasPressedThisFrame) PumpKey(1);
+            pumpGlow = Mathf.MoveTowards(pumpGlow, 0f, dt * 2f);
             rideOffset = Mathf.Clamp(rideOffset, 0.3f, 5f);
 
             // Bottom turn: drop down the face, then drive back up to the top quickly.
             if (rideOffset > 2.5f) lowSince = Time.time;
             else if (rideOffset < 1.2f && lowSince > 0f)
             {
-                if (Time.time - lowSince < 1.5f) Trick("BOTTOM TURN", 120, 0.2f);
+                if (Time.time - lowSince < 1.5f && waveLevel != WaveLevel.Beginner) Trick("BOTTOM TURN", 120, 0.2f);
                 lowSince = -10f;
             }
 
             // Flow: trimming high on the face builds it, the flats drain it, and it fades a little anyway.
             flow += (rideOffset < 1.5f ? flowTrimAndFlats.x : 0f) * dt - (rideOffset > 3f ? flowTrimAndFlats.y : 0.02f) * dt;
-            flow = Mathf.Clamp01(flow);
+            flow = Mathf.Clamp(flow, 0f, waveLevel == WaveLevel.Beginner ? 0.3f : 1f);
             if (comboCount > 0 && Time.time > comboUntil) BankCombo();
 
             // Too far down in the flats: the wave leaves you behind.
@@ -504,11 +672,12 @@ namespace SurfPool
 
             Vector3 local = new(crest + rideOffset, 0f, rideZ);
             Vector3 target = water.transform.TransformPoint(local);
-            float air = Mathf.Clamp01((Time.time - airStart) / 0.8f);
+            float air = Mathf.Clamp01((Time.time - airStart) / airDuration);
             bool airborne = air < 1f;
             float lift = airborne ? Mathf.Sin(air * Mathf.PI) : 0f;
             AirLift = lift;
-            target.y = water.SurfaceHeightAt(target) + 0.05f + lift * 1.1f;
+            target.y = water.SurfaceHeightAt(target) + 0.05f + lift * airHeight;
+            AirMoves(keyboard, airborne, dt);
             Vector3 delta = target - transform.position;
             transform.position = target;
             delta.y = 0;
@@ -517,7 +686,7 @@ namespace SurfPool
 
             var heading = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
             feel.Step(water, transform.position, heading, dt);
-            LayBoard(feel.Tilt * Quaternion.Euler(-15f * lift, 0f, 0f));
+            LayBoard(Quaternion.Euler(0f, spin, 0f) * feel.Tilt * Quaternion.Euler(-15f * lift, 0f, 0f));
             if (!airborne) feel.Spray(water, transform.position, heading);
             topSpeed = Mathf.Max(topSpeed, feel.Speed);
             // Hard carves throw a little spray onto the lens.
@@ -529,6 +698,7 @@ namespace SurfPool
 
             if (wasAirborne && !airborne)
             {
+                if (!Land()) return;
                 landSquash = 1f;
                 RideFeel.Splash(water, transform.position, 18, 2.6f);
                 Sfx.Play(Sound.Splash, transform.position, 0.6f);
@@ -538,9 +708,158 @@ namespace SurfPool
             landSquash = Mathf.MoveTowards(landSquash, 0f, dt * 2.5f);
 
             UpdateTube(water, dt);
+            Floater(water, keyboard, dt);
+            PartyWave(water);
+            twist = Mathf.MoveTowards(twist, 0f, 90f * dt);
 
             // Style: riding high on the face and carving fast both score, more with flow.
             score += Mathf.RoundToInt((Mathf.Abs(steer) * 20f + Mathf.Clamp(3f - rideOffset, 0f, 3f) * 10f) * dt * 10f * (1f + flow));
+        }
+
+        /// <summary>
+        /// Pumping: tap W and S in turn, quickly (up the face, down the face), to make your own speed on a green wave,
+        /// like real surfers do on small days. Each up-and-down adds flow and a push of speed; slow taps don't count.
+        /// </summary>
+        void PumpKey(int key)
+        {
+            if (waveLevel == WaveLevel.Beginner || AirLift > 0f) return;
+            bool quick = Time.time - lastPumpKey < 0.55f;
+            lastPumpKey = Time.time;
+            if (quick && key != lastPumpIndex)
+            {
+                pumpStep++; // one more switch between up and down
+                if (pumpStep % 2 == 0) Pump();
+            }
+            else
+            {
+                pumpStep = 0;
+                if (!quick) pumpsInRow = 0;
+            }
+            lastPumpIndex = key;
+        }
+
+        /// <summary>One pump (also for tests).</summary>
+        public void Pump()
+        {
+            if (state != State.Riding || waveLevel == WaveLevel.Beginner) return;
+            pumpsInRow++;
+            pumpGlow = 1f;
+            flow = Mathf.Clamp01(flow + 0.07f);
+            float dir = Mathf.Abs(rideVelocity) > 0.3f ? Mathf.Sign(rideVelocity) : travelSign;
+            rideVelocity += dir * 1.2f;
+            if (pumpsInRow == 3) Called?.Invoke("PUMPING! Speed up", Notice.Info);
+        }
+
+        /// <summary>0..1 just pumped (the stand-in bobs with it).</summary>
+        public float PumpGlow => pumpGlow;
+
+        /// <summary>In the air: A/D spins you (about 600 degrees a second), Shift or a held click grabs the rail.</summary>
+        void AirMoves(Keyboard keyboard, bool airborne, float dt)
+        {
+            if (airborne)
+            {
+                float input = (keyboard.aKey.isPressed ? 1f : 0f) - (keyboard.dKey.isPressed ? 1f : 0f);
+                if (input == 0f) input = Mathf.Clamp(SpinOverride, -1f, 1f);
+                spin += input * 600f * dt;
+                var mouse = Mouse.current;
+                bool grabbing = GrabOverride || keyboard.leftShiftKey.isPressed
+                    || mouse != null && Cursor.lockState == CursorLockMode.Locked && mouse.leftButton.isPressed;
+                Grab = Mathf.MoveTowards(Grab, grabbing ? 1f : 0f, dt * 6f);
+                if (grabbing) grabTime += dt;
+            }
+            else
+            {
+                Grab = Mathf.MoveTowards(Grab, 0f, dt * 6f);
+                // After landing a half turn you ride backwards for a moment, then whip the board back around.
+                spin = Mathf.MoveTowards(spin, 0f, 520f * dt);
+            }
+        }
+
+        /// <summary>Landing an air: spins must finish near a half turn or you go down. Returns false on a wipeout.</summary>
+        bool Land()
+        {
+            float halves = Mathf.Round(spin / 180f);
+            float off = Mathf.Abs(spin - halves * 180f);
+            if (off > 55f)
+            {
+                StartWipeout("Landed sideways! Finish the spin before you touch down.");
+                return false;
+            }
+            // Full turns are done; a half turn lands you backwards for a moment, then the board whips back around.
+            spin = Mathf.DeltaAngle(0f, spin);
+            int degrees = Mathf.RoundToInt(Mathf.Abs(halves) * 180f);
+            if (degrees >= 180)
+            {
+                string name = degrees switch { 180 => "AIR REVERSE 180", 360 => "FULL ROTATION 360", 540 => "540!!", _ => $"{degrees}!!!" };
+                Trick(name, 150 + degrees, 0.2f);
+                Highlights.Moment(transform.position, 1f);
+            }
+            if (grabTime >= 0.25f)
+            {
+                string grab = spin >= 0f ? "INDY GRAB" : "STALEFISH GRAB";
+                Trick(grab, 120 + Mathf.RoundToInt(grabTime * 100f), 0.1f);
+            }
+            if (degrees >= 180 || grabTime >= 0.25f) Surfer.HootForPlayer(pool, transform.position);
+            grabTime = 0f;
+            return true;
+        }
+
+        /// <summary>
+        /// Floater: ride right along the top of the wave over the breaking part (hold W at the lip, just ahead of
+        /// where it's breaking, on a wave that isn't barreling) for a moment, arms up for balance.
+        /// </summary>
+        void Floater(WaveWater water, Keyboard keyboard, float dt)
+        {
+            bool over = false;
+            int side = rideVelocity >= 0f ? 1 : -1;
+            if (AirLift <= 0f && rideOffset <= 0.5f && waveLevel != WaveLevel.Beginner
+                && water.TryGetPocket(rideWave, side, out float pocketZ, out int direction, out _, out _, out bool barrel) && !barrel)
+            {
+                float ahead = (rideZ - pocketZ) * direction;
+                over = ahead > -1.5f && ahead < 3f;
+            }
+            armsUp = Mathf.MoveTowards(armsUp, over ? 1f : 0f, dt * 4f);
+            if (!over)
+            {
+                floatTime = 0f;
+                return;
+            }
+            floatTime += dt;
+            if (floatTime >= 0.7f && floatTime - dt < 0.7f)
+            {
+                Trick("FLOATER", 160, 0.2f);
+                RideFeel.Splash(water, transform.position, 14, 2.4f);
+            }
+        }
+
+        /// <summary>Someone else riding your wave a good distance away: party wave! (Once a ride.)</summary>
+        void PartyWave(WaveWater water)
+        {
+            if (partyAwarded || Time.time - rideStart < 1f) return;
+            foreach (var other in Surfer.All)
+            {
+                if (!other.RidingWave(water, rideWave)) continue;
+                if ((other.transform.position - transform.position).sqrMagnitude > 14f * 14f) continue;
+                partyAwarded = true;
+                other.PartyWaveWithPlayer();
+                Trick("PARTY WAVE", 100, 0.15f);
+                return;
+            }
+        }
+
+        /// <summary>Catching a wave right next to someone already riding it is a drop-in: bad manners, no party.</summary>
+        void CheckDropIn(WaveWater water, float waveId)
+        {
+            foreach (var other in Surfer.All)
+            {
+                if (!other.RidingWave(water, waveId)) continue;
+                if ((other.transform.position - transform.position).sqrMagnitude > 5f * 5f) continue;
+                partyAwarded = true;
+                other.DroppedInByPlayer();
+                if (ParkReputation.Instance != null) ParkReputation.Instance.Record(0.4f);
+                Called?.Invoke("DROP-IN! That was their wave", Notice.Bad);
+                return;
+            }
         }
 
         /// <summary>
@@ -596,6 +915,12 @@ namespace SurfPool
         {
             state = State.Paddling;
             BankCombo();
+            // On whitewater the goal is simple: stand up and ride it all the way in.
+            if (waveLevel == WaveLevel.Beginner)
+            {
+                score += 80;
+                Called?.Invoke("RODE IT IN! +80", Notice.Good);
+            }
             float seconds = Time.time - rideStart;
             score += Mathf.RoundToInt(seconds * 40f);
             int bonus = Mathf.Clamp(Mathf.RoundToInt(score / (float)SponsorScorePerDollar * ParkPerks.SponsorMultiplier), 1, MaxSponsorBonus);
@@ -622,6 +947,8 @@ namespace SurfPool
         {
             state = State.Wipeout;
             AirLift = 0f;
+            Grab = 0f;
+            spin = twist = armsUp = 0f;
             WipedOut?.Invoke();
             wipeoutUntil = Time.time + 1.5f;
             GameStats.Wipeouts++;

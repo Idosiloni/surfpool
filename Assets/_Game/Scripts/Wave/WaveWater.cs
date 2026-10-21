@@ -215,6 +215,14 @@ namespace SurfPool
             return false;
         }
 
+        /// <summary>How big a wave is (Beginner = whitewater, Intermediate = green face, Pro = steep and fast).</summary>
+        public WaveLevel LevelOf(float waveId)
+        {
+            foreach (var wave in waves)
+                if (wave.start == waveId) return wave.type.level;
+            return WaveLevel.Beginner;
+        }
+
         public WaveDirection DirectionOf(float waveId)
         {
             foreach (var wave in waves)

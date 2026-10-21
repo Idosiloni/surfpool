@@ -3158,3 +3158,11 @@
 .rush-pill--late {
     background-color: var(--muted);
 }
+
+/* ---------- While surfing: keep the view clear (money, the wave machine and the surf HUD stay) ---------- */
+
+.hud-root--surfing .mission-card,
+.hud-root--surfing .goal-strip,
+.hud-root--surfing .park-panel {
+    display: none;
+}

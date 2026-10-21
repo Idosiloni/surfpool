@@ -680,6 +680,42 @@ namespace SurfPool
             }
         }
 
+        // ---- the player surfing with NPCs (PlayerSurfing): hoots, party waves, drop-ins ----
+
+        /// <summary>Riding this wave in this pool right now.</summary>
+        public bool RidingWave(WaveWater onWater, float waveId) => state == State.Riding && water == onWater && Mathf.Approximately(rideWave, waveId);
+
+        /// <summary>The player landed something big: surfers waiting nearby in that pool hoot for them.</summary>
+        public static void HootForPlayer(PoolArea inPool, Vector3 where)
+        {
+            foreach (var other in All)
+            {
+                if (other.pool != inPool || other.state != State.WaitingForWave) continue;
+                if ((other.transform.position - where).sqrMagnitude > 18f * 18f || Random.value > 0.6f) continue;
+                other.hootAt = Time.time + Random.Range(0.2f, 0.8f);
+                other.lookUntil = Time.time + 2.5f;
+                other.rig.LookTarget = where + Vector3.up;
+            }
+        }
+
+        /// <summary>The player dropped in on this surfer's wave: they're not happy about it.</summary>
+        public void DroppedInByPlayer()
+        {
+            Shout(SurferPersonalities.Line(archetype, Moment.DropInVictim), 2.5f, Sound.VoiceHmm);
+            rig.ShowFace(SurfPool.Face.Grumpy, 3f);
+            visit.droppedInOn = true;
+            RecordMood(0.2f);
+            Lifeguard.Whistle();
+        }
+
+        /// <summary>Sharing a wave with the player (a respectful distance): a party wave!</summary>
+        public void PartyWaveWithPlayer()
+        {
+            Shout(Random.value < 0.5f ? "PARTY WAVE!" : "Woo! Share it!", 2f, Sound.VoiceWoo);
+            rig.ShowFace(SurfPool.Face.Stoked, 2.5f);
+            RecordMood(1f);
+        }
+
         /// <summary>Big moments nearby (a pro's tube or air) turn heads.</summary>
         void OnHighlight(Vector3 where, float strength)
         {
@@ -1143,14 +1179,16 @@ namespace SurfPool
 
         void DoTrick()
         {
-            var tricks = Skill switch
+            // What you can do depends on the wave too: nobody snaps off whitewater, airs need a steep, fast wave.
+            var level = (WaveLevel)Mathf.Min((int)Skill, (int)water.LevelOf(rideWave));
+            var tricks = level switch
             {
                 WaveLevel.Beginner => BeginnerTricks,
                 WaveLevel.Pro => ProTricks,
                 _ => IntermediateTricks,
             };
             string trick = tricks[Random.Range(0, tricks.Length)];
-            bool signature = Famous != null && Random.value < 0.45f;
+            bool signature = Famous != null && level == WaveLevel.Pro && Random.value < 0.45f;
             if (signature) trick = Famous.signature;
             if (inBarrel)
             {

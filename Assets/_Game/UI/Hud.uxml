@@ -112,7 +112,7 @@
                 <ui:Label name="waveStatus" text="Ready" class="small-text" picking-mode="Ignore" />
                 <ui:Label name="waveAuto" text="Auto: off" class="small-text" picking-mode="Ignore" />
             </ui:VisualElement>
-            <ui:VisualElement class="card hud-panel" picking-mode="Ignore">
+            <ui:VisualElement class="card hud-panel park-panel" picking-mode="Ignore">
                 <ui:VisualElement class="title-row card-strip" picking-mode="Ignore">
                     <ui:VisualElement class="icon icon--palm" picking-mode="Ignore" />
                     <ui:Label text="PARK" class="section-title" picking-mode="Ignore" />

@@ -31,6 +31,7 @@ namespace SurfPool
             public VisualElement patienceFill;
         }
 
+        VisualElement hudRootElement;
         VisualElement root, bubbleLayer, popupStack, toasts, crosshair, prompt, waveBarFill, rentalRow, wagesRow, billsRow;
         Label money, ratingLabel, waveType, waveStatus, waveAuto, ticketValue, rentalValue, servedValue, lostValue,
             wagesValue, billsValue, promptLabel, clickToPlay, hint, dayLabel;
@@ -173,6 +174,8 @@ namespace SurfPool
             UpdateBubbles();
             UpdateMission();
             var surfing = PlayerSurfing.Instance;
+            hudRootElement ??= root.Q("hudRoot");
+            hudRootElement?.EnableInClassList("hud-root--surfing", surfing != null && surfing.IsSurfing);
             if (surfing != null && surfing.IsSurfing)
             {
                 SetText(hint, surfing.Hint);

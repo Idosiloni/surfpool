@@ -6,7 +6,8 @@ using UnityEngine.UIElements;
 namespace SurfPool
 {
     /// <summary>
-    /// Instant replay of your own rides. While you surf, a hidden stand-in surfer (your look) copies what you do and
+    /// Instant replay of your own rides. While you surf, a stand-in surfer (your look; visible in the chase cam,
+    /// hidden in first person) copies what you do and
     /// its pose is recorded 30 times a second, together with the waves in the pool. When a ride ends (or you wipe
     /// out) press R: the park freezes, the water rewinds, and the ride plays back from a TV-style camera on the
     /// deck, cutting to a low chase cam, with slow motion on your tricks and the wipeout. Space or Esc skips.
@@ -47,7 +48,7 @@ namespace SurfPool
         readonly List<Frame> clip = new();
         readonly List<float> highlights = new(), clipHighlights = new();
         float nextSample, rideStart = -1f, rideEnd = -1f, offerUntil;
-        bool rideLive, wipedOut;
+        bool rideLive, wipedOut, liveVisible;
         WaveWater recordWater, clipWater;
         PoolArea clipPool;
 
@@ -157,12 +158,20 @@ namespace SurfPool
             EnsureAvatar();
             if (avatar == null) return;
             if (!avatar.gameObject.activeSelf) avatar.gameObject.SetActive(true);
+            // In the chase cam you see the stand-in: it IS you.
+            if (liveVisible != GameSettings.ChaseCam)
+            {
+                liveVisible = GameSettings.ChaseCam;
+                SetVisible(avatar.gameObject, liveVisible);
+            }
             var t = surfing.transform;
             avatar.transform.SetPositionAndRotation(new Vector3(t.position.x, t.position.y - 0.05f, t.position.z), Quaternion.Euler(0f, t.eulerAngles.y, 0f));
             avatar.CurrentMode = surfing.IsWipingOut ? CharacterRig.Mode.Flail : surfing.IsRiding ? CharacterRig.Mode.Ride : CharacterRig.Mode.Paddle;
             avatar.Lean = -surfing.Turn;
-            avatar.Crouch = Mathf.Clamp01(Mathf.Abs(surfing.Turn) * 0.5f + surfing.Tube * 0.7f);
-            avatar.Air = surfing.AirLift;
+            avatar.Crouch = Mathf.Clamp01(Mathf.Abs(surfing.Turn) * 0.5f + surfing.Tube * 0.7f + Mathf.Sin(surfing.PumpGlow * Mathf.PI) * 0.45f);
+            avatar.Air = Mathf.Max(surfing.AirLift * 0.5f, surfing.Grab);
+            avatar.Twist = surfing.Twist;
+            avatar.ArmsUp = surfing.ArmsUp;
             avatar.Style = 0.6f + surfing.Flow * 0.4f;
             avatar.BoardTilt = surfing.BoardTilt;
             if (avatarBoard != null)
@@ -364,6 +373,7 @@ namespace SurfPool
             {
                 avatar.enabled = true;
                 SetVisible(avatar.gameObject, false);
+                liveVisible = false;
             }
             if (replayCam != null)
             {
