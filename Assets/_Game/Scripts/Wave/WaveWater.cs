@@ -23,8 +23,8 @@ namespace SurfPool
         [Tooltip("Shape of each wave type the machine can send. Tune these to change how each wave looks and feels.")]
         [SerializeField] WaveType[] waveTypes =
         {
-            new() { level = WaveLevel.Beginner, height = 1.0f, speed = 5f, frontWidth = 3.2f, backWidth = 6f,
-                breakAt = 0.22f, closeout = true, whitewashHeight = 0.55f },
+            new() { level = WaveLevel.Beginner, height = 1.0f, speed = 5f, frontWidth = 3.2f, backWidth = 3f,
+                breakAt = 0.22f, closeout = true, whitewashHeight = 0.4f },
             new() { level = WaveLevel.Intermediate, height = 2.0f, speed = 7f, frontWidth = 2.0f, backWidth = 8f,
                 breakAt = 0.25f, peelSpeed = 2.6f, whitewashHeight = 0.45f },
             new() { level = WaveLevel.Pro, height = 2.8f, speed = 8.5f, frontWidth = 1.4f, backWidth = 9f,
@@ -51,7 +51,7 @@ namespace SurfPool
 
         [Header("Breaking near the beach")]
         [Tooltip("How far down the pool (0 to 1) every wave turns to whitewash and shrinks.")]
-        [Range(0f, 1f)] [SerializeField] float beachBreakStart = 0.75f;
+        [Range(0f, 1f)] [SerializeField] float beachBreakStart = 0.85f;
         [Tooltip("Size of the wave when it reaches the beach, compared to full size.")]
         [Range(0f, 1f)] [SerializeField] float breakEndScale = 0.3f;
 
@@ -66,7 +66,7 @@ namespace SurfPool
 
         [Header("Look")]
         [Tooltip("Seconds foam lingers on the water after the wave has passed (fading into lacy trails).")]
-        [SerializeField] float foamLinger = 3.5f;
+        [SerializeField] float foamLinger = 3f;
         [Tooltip("Depth of the dip in front of an unbroken wave face, as a share of its height (makes the face stand up).")]
         [Range(0f, 0.3f)] [SerializeField] float troughDepth = 0.1f;
 
@@ -97,7 +97,8 @@ namespace SurfPool
             public float center, amplitude, back, beachBreak;
             public bool breaking;
             public float breakDistance; // how far the break point has peeled from where it started (m)
-            public float closeoutAmount; // 0..1 for closeouts, ramps up as the whole wave crashes
+            public float closeoutAge;    // closeouts: seconds since they started breaking (-1 = not yet)
+            public float seedA, seedB;   // closeouts: the two spots along the crest where they start to spill
         }
 
         readonly List<ActiveWave> waves = new();
@@ -398,11 +399,11 @@ namespace SurfPool
         int gridX, gridZ;
         MeshRenderer surfaceRenderer;
         WaveState[] stateArray = new WaveState[0];
-        float[] rowBroken = new float[0], rowPocket = new float[0], rowEdge = new float[0], rowSin = new float[0];
+        float[] rowEdge = new float[0], rowSin = new float[0];
         float[] colSin = new float[0], colShallow = new float[0];
         int[] colStates = new int[0], colCount = new int[0];
-        // Per column and wave: the terms that only depend on the distance to the crest (behind it, mostly).
-        float[] colD = new float[0], colBack = new float[0], colTrail = new float[0], colLip = new float[0], colFace = new float[0];
+        RowTerms[] rowTerms = new RowTerms[0];
+        ColTerms[] colTerms = new ColTerms[0];
 
         void UpdateSurface(float t, float fade)
         {
@@ -411,15 +412,11 @@ namespace SurfPool
             states.CopyTo(stateArray);
             if (rowEdge.Length != nz) { rowEdge = new float[nz]; rowSin = new float[nz]; }
             if (colSin.Length != nx) { colSin = new float[nx]; colShallow = new float[nx]; colCount = new int[nx]; }
-            if (rowBroken.Length < count * nz) { rowBroken = new float[count * nz * 2]; rowPocket = new float[count * nz * 2]; }
+            if (rowTerms.Length < count * nz) rowTerms = new RowTerms[count * nz * 2];
             if (colStates.Length < count * nx)
             {
                 colStates = new int[count * nx * 2];
-                colD = new float[count * nx * 2];
-                colBack = new float[count * nx * 2];
-                colTrail = new float[count * nx * 2];
-                colLip = new float[count * nx * 2];
-                colFace = new float[count * nx * 2];
+                colTerms = new ColTerms[count * nx * 2];
             }
 
             for (int iz = 0; iz < nz; iz++)
@@ -427,12 +424,7 @@ namespace SurfPool
                 float z = baseVertices[iz * nx].z, edge = z / HalfWidth;
                 rowEdge[iz] = 1f - edgeDrop * edge * edge;
                 rowSin[iz] = Mathf.Sin(z * 0.9f + t * 1.1f);
-                for (int s = 0; s < count; s++)
-                {
-                    ref readonly var st = ref stateArray[s];
-                    rowBroken[s * nz + iz] = Broken(st, z);
-                    rowPocket[s * nz + iz] = st.breaking && !st.type.closeout ? PocketMask(st, z) : 0f;
-                }
+                for (int s = 0; s < count; s++) rowTerms[s * nz + iz] = Row(stateArray[s], z);
             }
             for (int ix = 0; ix < nx; ix++)
             {
@@ -444,16 +436,11 @@ namespace SurfPool
                 {
                     ref readonly var st = ref stateArray[s];
                     float d = x - st.center;
-                    // Past these distances every term (shape, trough, foam crest and trail, lip spray) is ~0.
-                    if (d < -Mathf.Max(3f * st.back, 32f) || d > 8f * st.type.frontWidth + 2f) continue;
+                    // Past these distances every term (shape, trough, foam, lip spray) is ~0.
+                    if (d < -Mathf.Max(3f * st.back, 32f) || d > 12f * st.type.frontWidth + 2f) continue;
                     int c = ix * count + n++;
                     colStates[c] = s;
-                    colD[c] = d;
-                    colBack[c] = d <= 0f ? Mathf.Exp(-(d / st.back) * (d / st.back)) : 0f;
-                    colTrail[c] = d < 0f ? Mathf.Exp(d / 7f) * 0.75f : 0f;
-                    colLip[c] = Mathf.Exp(-(d / 1.2f) * (d / 1.2f)) * 0.7f;
-                    float fd = (d - 0.9f) / 1.2f;
-                    colFace[c] = Mathf.Exp(-fd * fd) * 0.35f;
+                    colTerms[c] = Col(st, x);
                 }
                 colCount[ix] = n;
             }
@@ -465,38 +452,14 @@ namespace SurfPool
                 {
                     int i = iz * nx + ix;
                     Vector3 v = baseVertices[i];
-                    float x = v.x, h = colSin[ix] * zSin, foam = 0f, face = 0f;
+                    float h = colSin[ix] * zSin, foam = 0f, face = 0f;
                     for (int k = 0; k < colCount[ix]; k++)
                     {
                         int c = ix * count + k, s = colStates[c];
-                        ref readonly var st = ref stateArray[s];
-                        float broken = rowBroken[s * nz + iz], mask = rowPocket[s * nz + iz];
-                        float d = colD[c];
-
-                        // Height (as LocalHeight).
-                        float front = st.type.frontWidth * (1f + 0.8f * broken);
-                        float shape = d <= 0f ? colBack[c] : Mathf.Exp(-(d / front) * (d / front));
-                        float pocket = mask * (1f - broken) * 0.15f;
-                        float amplitude = st.amplitude * Mathf.Lerp(1f, st.type.whitewashHeight, broken) * (1f + pocket);
-                        h += amplitude * edgeScale * shape;
-                        if (troughDepth > 0f && d > 0f)
-                        {
-                            float ahead = (d - 1.6f * front) / front;
-                            h -= troughDepth * amplitude * (1f - broken) * edgeScale * Mathf.Exp(-ahead * ahead);
-                        }
-                        if (broken > 0.01f && shape > 0.01f)
-                            h += broken * shape * st.amplitude * 0.12f * (Mathf.PerlinNoise(x * 0.9f - t * 2f, v.z * 0.9f) - 0.5f);
-
-                        // Foam and face brightness (as Foam). The crest band is only a few meters wide.
-                        float strength = Mathf.Clamp01(st.amplitude / 1.5f) + (st.type.closeout ? 0.7f : 0.3f);
-                        float crest = 0f;
-                        if (d > -8f && d < 8f)
-                        {
-                            float cd = (d - 0.4f) / (1.1f + 1.4f * broken);
-                            crest = Mathf.Exp(-cd * cd);
-                        }
-                        foam = Mathf.Max(foam, Mathf.Max(broken * Mathf.Max(crest, colTrail[c]) * strength, mask * colLip[c]));
-                        face = Mathf.Max(face, (1f - broken) * colFace[c]);
+                        Sample(stateArray[s], rowTerms[s * nz + iz], colTerms[c], v.x, v.z, t, edgeScale, out float height, out float f, out float g);
+                        h += height;
+                        foam = Mathf.Max(foam, f);
+                        face = Mathf.Max(face, g);
                     }
                     v.y = h;
                     vertices[i] = v;
@@ -532,7 +495,9 @@ namespace SurfPool
                     beachBreak = beachBreak,
                     breaking = breaking,
                     breakDistance = breaking ? (t - breakTime) * type.peelSpeed : 0f,
-                    closeoutAmount = type.closeout && breaking ? Mathf.Clamp01((t - breakTime) / 0.6f) : 0f,
+                    closeoutAge = type.closeout && breaking ? t - breakTime : -1f,
+                    seedA = -HalfWidth * (0.5f + 0.3f * (Hash(wave.start) - 0.5f)),
+                    seedB = HalfWidth * (0.5f + 0.3f * (Hash(wave.start + 17.3f) - 0.5f)),
                 });
             }
         }
@@ -562,27 +527,146 @@ namespace SurfPool
             return startZ + direction * state.breakDistance;
         }
 
-        /// <summary>0 = clean wave, 1 = fully broken whitewash, at position z along the crest.</summary>
-        float Broken(in WaveState state, float z)
+        // ---- how a wave breaks (docs/research/wave-breaking.md): broken water has an AGE. Just broken = a fat foam
+        // ball nearly as tall as the wave; then it settles into a low, steep-fronted bore (whitewater) with a short tail,
+        // and after a few seconds into flat soup with lace foam. The unbroken shoulder is tallest by the pocket and
+        // mellows far away. Closeouts (beginner whitewater) spill from two spots and unzip sideways. ----
+
+        const float CloseoutUnzip = 6f; // m/s a closeout's break runs along the crest
+
+        static float Hash(float v)
         {
-            float broken = state.closeoutAmount;
-            if (!state.type.closeout && state.breaking)
+            float x = Mathf.Sin(v * 12.9898f) * 43758.5453f;
+            return x - Mathf.Floor(x);
+        }
+
+        /// <summary>Seconds since this spot along the crest broke (below 0 = not broken yet; -1 before the wave breaks).</summary>
+        float Age(in WaveState state, float z)
+        {
+            if (!state.breaking) return -1f;
+            float tau;
+            if (state.type.closeout)
+                tau = state.closeoutAge - Mathf.Min(Mathf.Abs(z - state.seedA), Mathf.Abs(z - state.seedB)) / CloseoutUnzip;
+            else
             {
-                const float soft = 1f;
-                switch (state.direction)
+                float peel = Mathf.Max(0.1f, state.type.peelSpeed);
+                tau = state.direction switch
                 {
-                    case WaveDirection.Right: // break travels toward -z; everything behind it (higher z) is broken
-                        broken = Smooth(BreakPoint(state, -1) - soft, BreakPoint(state, -1) + soft, z);
-                        break;
-                    case WaveDirection.Left:
-                        broken = 1f - Smooth(BreakPoint(state, 1) - soft, BreakPoint(state, 1) + soft, z);
-                        break;
-                    default:
-                        broken = 1f - Smooth(state.breakDistance - soft, state.breakDistance + soft, Mathf.Abs(z));
-                        break;
-                }
+                    WaveDirection.Right => (z - BreakPoint(state, -1)) / peel, // break travels toward -z; higher z broke first
+                    WaveDirection.Left => (BreakPoint(state, 1) - z) / peel,
+                    _ => (state.breakDistance - Mathf.Abs(z)) / peel,
+                };
             }
-            return Mathf.Max(broken, state.beachBreak);
+            return Mathf.Clamp(tau, -1f, 20f);
+        }
+
+        /// <summary>0 = clean wave, 1 = broken whitewash, at position z along the crest (tau = its Age there).</summary>
+        float Broken(in WaveState state, float z, float tau)
+        {
+            if (!state.breaking) return state.type.closeout ? state.beachBreak : 0f;
+            float soft = state.type.closeout ? 0.1f : 1f / Mathf.Max(0.1f, state.type.peelSpeed); // about 1 m either side
+            float broken = Smooth(-soft, soft, tau);
+            // Beginner whitewater rides all the way in; bigger waves reform into a shoulder near the beach instead.
+            return state.type.closeout ? Mathf.Max(broken, state.beachBreak) : broken;
+        }
+
+        /// <summary>Meters from the break point along the unbroken side (above 0 = not broken yet).</summary>
+        float Ahead(in WaveState state, float z) => state.direction switch
+        {
+            WaveDirection.Right => BreakPoint(state, -1) - z,
+            WaveDirection.Left => z - BreakPoint(state, 1),
+            _ => Mathf.Abs(z) - state.breakDistance,
+        };
+
+        /// <summary>What one wave does at one row (z) this frame.</summary>
+        struct RowTerms
+        {
+            public float broken, hb, boreMult, lumps, ball, frontFoam, trailFoam, shoulder, frontG, pocket, mask;
+        }
+
+        /// <summary>What one wave does at one column (x) this frame: the shapes that only need the distance to the crest.</summary>
+        struct ColTerms
+        {
+            public float d, backG, tail, boreFront, ballShape, bandShape, trailShape, lip, faceShape;
+        }
+
+        RowTerms Row(in WaveState state, float z)
+        {
+            var r = new RowTerms();
+            float tau = Age(state, z), age = Mathf.Max(0f, tau);
+            r.broken = Broken(state, z, tau);
+            // Height follows more slowly than the foam: the face slumps over ~1 s of crest instead of a 2 m cliff.
+            r.hb = r.broken * (state.breaking ? Smooth(0f, 1.2f, tau) : 1f);
+            float ww = state.type.whitewashHeight, ball = state.type.closeout ? 0.6f : 0.75f;
+            r.boreMult = 0.6f * ww + 0.4f * ww * Mathf.Exp(-age / 6f) + Mathf.Max(0f, ball - ww) * Mathf.Exp(-age / 1.2f);
+            r.lumps = Mathf.Exp(-age / 4f);
+            r.ball = 1f - Smooth(0.8f, 1.6f, tau);
+            r.frontFoam = 0.85f * (0.4f + 0.6f * Mathf.Exp(-age / 4f));
+            r.trailFoam = 0.45f * Mathf.Exp(-age / 3f);
+            float far = 0f;
+            if (state.breaking && !state.type.closeout)
+            {
+                float ahead = Ahead(state, z);
+                if (ahead > 0f) far = (1f - Mathf.Exp(-(ahead / 12f) * (ahead / 12f))) * Smooth(0f, 8f, state.breakDistance);
+            }
+            r.shoulder = 1f - 0.3f * far;
+            r.frontG = state.type.frontWidth * (1f + 0.5f * far);
+            r.mask = state.breaking && !state.type.closeout ? PocketMask(state, z) : 0f;
+            r.pocket = r.mask * (1f - r.broken) * 0.25f;
+            return r;
+        }
+
+        static ColTerms Col(in WaveState state, float x)
+        {
+            var c = new ColTerms();
+            float d = c.d = x - state.center;
+            float tail = (state.type.closeout ? 2.5f : 3f) * (1f - 0.5f * state.beachBreak);
+            float boreFront = state.type.closeout ? 1.4f : Mathf.Clamp(0.45f * state.type.frontWidth, 0.9f, 1.4f);
+            if (d <= 0f)
+            {
+                c.backG = Mathf.Exp(-(d / state.back) * (d / state.back));
+                c.tail = Mathf.Exp(d / tail);
+                c.trailShape = Mathf.Exp(d / 1.8f);
+            }
+            else c.boreFront = Mathf.Exp(-(d / boreFront) * (d / boreFront));
+            float bd = (d - 0.4f) / 1.4f, fd = (d - 0.2f) / 0.9f, face = (d - 0.9f) / 1.2f;
+            c.ballShape = Mathf.Exp(-bd * bd);
+            c.bandShape = Mathf.Exp(-fd * fd);
+            c.lip = Mathf.Exp(-(d / 1.2f) * (d / 1.2f)) * 0.7f;
+            c.faceShape = Mathf.Exp(-face * face) * 0.35f;
+            return c;
+        }
+
+        /// <summary>
+        /// One wave's height, foam and face brightness at a point: the green wave blended into the bore by how broken it
+        /// is there. LocalHeight/Foam and the fast UpdateSurface both use this, so riders and the mesh always agree.
+        /// </summary>
+        void Sample(in WaveState state, in RowTerms r, in ColTerms c, float x, float z, float t, float edgeScale,
+            out float height, out float foam, out float face)
+        {
+            float d = c.d;
+            float shapeG = d <= 0f ? c.backG : Mathf.Exp(-(d / r.frontG) * (d / r.frontG));
+            float shapeB = d <= 0f ? c.tail : c.boreFront;
+            float ampG = state.amplitude * r.shoulder * (1f + r.pocket);
+            float ampB = state.amplitude * r.boreMult;
+            height = edgeScale * Mathf.Lerp(ampG * shapeG, ampB * shapeB, r.hb);
+            // A shallow dip in front of the clean face: the wave draws water up into itself, so it stands taller.
+            if (troughDepth > 0f && d > 0f)
+            {
+                float ahead = (d - 1.6f * r.frontG) / r.frontG;
+                height -= troughDepth * ampG * (1f - r.hb) * edgeScale * Mathf.Exp(-ahead * ahead);
+            }
+            // Fresh whitewash is lumpy; old soup goes flat.
+            if (r.broken > 0.01f && shapeB > 0.01f)
+                height += r.broken * r.lumps * shapeB * state.amplitude * 0.12f * (Mathf.PerlinNoise(x * 0.9f - t * 2f, z * 0.9f) - 0.5f);
+
+            // Foam: a fat ball where it just broke, a thin band on the bore's front, a short tail. The lace left behind
+            // comes from foam memory (it stays where it was made while the bore moves on).
+            float strength = Mathf.Clamp01(state.amplitude / 2f) + (state.type.closeout ? 0.3f : 0.2f);
+            float fresh = r.broken * Mathf.Max(r.ball * c.ballShape, Mathf.Max(r.frontFoam * c.bandShape, r.trailFoam * c.trailShape)) * strength;
+            fresh = Mathf.Max(fresh, state.beachBreak * 0.6f * c.bandShape); // swash: it whitens as it washes up the beach
+            foam = Mathf.Max(fresh, r.mask * c.lip);
+            face = (1f - r.broken) * c.faceShape * r.shoulder;
         }
 
         float LocalHeight(float x, float z, float t)
@@ -590,32 +674,10 @@ namespace SurfPool
             float h = Ripple * Mathf.Sin(x * 0.7f + t * 1.3f) * Mathf.Sin(z * 0.9f + t * 1.1f);
             float edge = z / HalfWidth;
             float edgeScale = 1f - edgeDrop * edge * edge;
-
             foreach (var state in states)
             {
-                float broken = Broken(state, z);
-                float d = x - state.center;
-                float front = state.type.frontWidth * (1f + 0.8f * broken);
-                float w = d > 0f ? front : state.back;
-                float shape = Mathf.Exp(-(d / w) * (d / w));
-
-                // The clean face peaks up a little right next to the break point, like a real pocket.
-                float pocket = 0f;
-                if (state.breaking && !state.type.closeout) pocket = PocketMask(state, z) * (1f - broken) * 0.15f;
-
-                float amplitude = state.amplitude * Mathf.Lerp(1f, state.type.whitewashHeight, broken) * (1f + pocket);
-                h += amplitude * edgeScale * shape;
-
-                // A shallow dip in front of the clean face: the wave draws water up into itself, so it stands taller.
-                if (troughDepth > 0f && d > 0f)
-                {
-                    float ahead = (d - 1.6f * front) / front;
-                    h -= troughDepth * amplitude * (1f - broken) * edgeScale * Mathf.Exp(-ahead * ahead);
-                }
-
-                // Whitewash is lumpy.
-                if (broken > 0.01f)
-                    h += broken * shape * state.amplitude * 0.12f * (Mathf.PerlinNoise(x * 0.9f - t * 2f, z * 0.9f) - 0.5f);
+                Sample(state, Row(state, z), Col(state, x), x, z, t, edgeScale, out float height, out _, out _);
+                h += height;
             }
             return h;
         }
@@ -635,20 +697,12 @@ namespace SurfPool
         Color Foam(float x, float z)
         {
             float foam = 0f, face = 0f;
+            float edge = z / HalfWidth, edgeScale = 1f - edgeDrop * edge * edge;
             foreach (var state in states)
             {
-                float d = x - state.center;
-                float broken = Broken(state, z);
-                // Beginner whitewater is small but should still read as a wall of white foam.
-                float strength = Mathf.Clamp01(state.amplitude / 1.5f) + (state.type.closeout ? 0.7f : 0.3f);
-
-                float crest = Mathf.Exp(-((d - 0.4f) / (1.1f + 1.4f * broken)) * ((d - 0.4f) / (1.1f + 1.4f * broken)));
-                float trail = d < 0f ? Mathf.Exp(d / 7f) * 0.75f : 0f;
-                float lipSpray = state.breaking && !state.type.closeout
-                    ? PocketMask(state, z) * Mathf.Exp(-(d / 1.2f) * (d / 1.2f)) * 0.7f
-                    : 0f;
-                foam = Mathf.Max(foam, broken * Mathf.Max(crest, trail) * strength, lipSpray);
-                face = Mathf.Max(face, (1f - broken) * Mathf.Exp(-((d - 0.9f) / 1.2f) * ((d - 0.9f) / 1.2f)) * 0.35f);
+                Sample(state, Row(state, z), Col(state, x), x, z, Now, edgeScale, out _, out float f, out float g);
+                foam = Mathf.Max(foam, f);
+                face = Mathf.Max(face, g);
             }
             return new Color(Mathf.Clamp01(foam), face, 0f, 1f);
         }
@@ -744,10 +798,20 @@ namespace SurfPool
             {
                 if (!state.breaking && state.beachBreak <= 0f) continue;
                 float strength = Mathf.Clamp01(state.amplitude / 2f) + 0.3f;
-                if (state.type.closeout || state.beachBreak > 0.3f)
+                if (state.type.closeout)
                 {
-                    // Whitewater all along the crest.
-                    int count = RandomCount(sprayRate * 1.5f * strength);
+                    // Spray only where the spill is fresh (it unzips along the crest from two spots).
+                    int count = RandomCount(sprayRate * 1.2f * strength);
+                    for (int i = 0; i < count; i++)
+                    {
+                        float z = Random.Range(-HalfWidth + 1f, HalfWidth - 1f), age = Age(state, z);
+                        if (age >= 0f && age < 1f) EmitBlob(state, z, 0, strength);
+                    }
+                }
+                else if (state.beachBreak > 0.3f)
+                {
+                    // A little swash as the reformed shoulder washes up the beach.
+                    int count = RandomCount(sprayRate * 0.3f * strength);
                     for (int i = 0; i < count; i++) EmitBlob(state, Random.Range(-HalfWidth + 1f, HalfWidth - 1f), 0, strength);
                 }
                 else
