@@ -37,6 +37,7 @@ namespace SurfPool
             wagesValue, billsValue, promptLabel, clickToPlay, hint, dayLabel;
         StarRating stars;
         SetCallHud setCall;
+        ToastStack toastStack;
         VisualElement missionCard, missionObjectives, missionMarker;
         Label missionChapter, missionTitle, missionStory, missionHint, markerDistance, missionBanner;
         Mission shownMission;
@@ -126,6 +127,7 @@ namespace SurfPool
             stars = new StarRating();
             root.Q("ratingStarsSlot").Add(stars);
             setCall = new SetCallHud(root);
+            toastStack = new ToastStack(toasts);
 
             Notifications.Posted += ShowToast;
             Celebration.Shown += ShowCelebration;
@@ -173,6 +175,7 @@ namespace SurfPool
             UpdateChallenges();
             UpdateWavePanel();
             setCall?.Update(ShownMachine);
+            toastStack?.Update();
             UpdateStats();
             UpdatePrompt();
             UpdateBubbles();
@@ -664,34 +667,7 @@ namespace SurfPool
             label.schedule.Execute(label.RemoveFromHierarchy).StartingIn(1500);
         }
 
-        void ShowToast(string message, Notice kind)
-        {
-            while (toasts.childCount >= 3) toasts.RemoveAt(0);
-            var toast = new VisualElement { pickingMode = PickingMode.Ignore };
-            toast.AddToClassList("toast");
-            toast.AddToClassList("toast--" + kind.ToString().ToLowerInvariant());
-            var tile = new VisualElement { pickingMode = PickingMode.Ignore };
-            tile.AddToClassList("toast-tile");
-            var icon = new VisualElement { pickingMode = PickingMode.Ignore };
-            icon.AddToClassList("icon");
-            icon.AddToClassList("toast-icon");
-            icon.AddToClassList(kind switch
-            {
-                Notice.Good => "icon--coin",
-                Notice.Reward => "icon--star",
-                Notice.Bad => "icon--bolt",
-                _ => "icon--wave",
-            });
-            tile.Add(icon);
-            toast.Add(tile);
-            var text = new Label(message) { pickingMode = PickingMode.Ignore };
-            text.AddToClassList("toast-text");
-            toast.Add(text);
-            toasts.Add(toast);
-            UiMotion.Enter(toast, "toast--entering");
-            toast.schedule.Execute(() => toast.AddToClassList("toast--leaving")).StartingIn(3800);
-            toast.schedule.Execute(toast.RemoveFromHierarchy).StartingIn(4400);
-        }
+        void ShowToast(string message, Notice kind) => toastStack?.Post(message, kind);
 
         static void SetText(Label label, string text)
         {

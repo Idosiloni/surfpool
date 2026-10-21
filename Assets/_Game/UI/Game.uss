@@ -265,7 +265,7 @@
 }
 
 .xp-label {
-    font-size: 14px;
+    font-size: 16px;
     color: var(--muted);
 }
 
@@ -580,7 +580,7 @@
     padding: 6px 22px 6px 6px;
     margin-bottom: 8px;
     max-width: 900px;
-    transition-property: opacity, translate;
+    transition-property: opacity, translate, scale;
     transition-duration: 0.25s;
     transition-timing-function: ease-out-back;
 }
@@ -619,6 +619,21 @@
     color: var(--cream);
     white-space: normal;
     flex-shrink: 1;
+}
+
+/* The same message again: a sun chip counts it ("x3") and the pill gives a little bump. */
+.toast-count {
+    margin-left: 12px;
+    padding: 0 9px 2px 9px;
+    border-radius: 11px;
+    background-color: var(--sun);
+    color: var(--ink);
+    font-size: 18px;
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+}
+
+.toast--bump {
+    scale: 1.05 1.05;
 }
 
 .toast--good .toast-tile {
@@ -763,6 +778,20 @@
     translate: 0 24px;
 }
 
+/* Closing (UiMotion.Hide): a quicker fade and a small shrink, ease-in, then .hidden. */
+.screen-overlay--leave {
+    opacity: 0;
+    transition-duration: 0.14s;
+    transition-timing-function: ease-in;
+}
+
+.screen-overlay--leave .screen-window {
+    scale: 0.96 0.96;
+    translate: 0 12px;
+    transition-duration: 0.14s;
+    transition-timing-function: ease-in;
+}
+
 /* The ink header strip of every window; bleeds into the window padding. */
 .screen-header {
     flex-direction: row;
@@ -890,6 +919,16 @@
 .tab:hover,
 .quality-button:hover {
     scale: 1.03 1.03;
+}
+
+/* Keyboard focus: a sun-colored edge (subtle, different from hover; mouse clicks drop focus again, see Sfx). */
+.buy-button:focus,
+.send-button:focus,
+.close-button:focus,
+.segment:focus,
+.tab:focus,
+.quality-button:focus {
+    border-color: var(--sun-dark);
 }
 
 .buy-button:active,
@@ -1121,6 +1160,25 @@
     border-bottom-width: 6px;
     border-color: var(--sand-dark);
     padding: 14px 16px;
+    transition-property: translate, border-color, scale, opacity;
+    transition-duration: 0.12s, 0.12s, 0.1s, 0.2s;
+    transition-timing-function: ease-out;
+}
+
+.upgrade-card--enter {
+    opacity: 0;
+    translate: 0 14px;
+}
+
+.upgrade-card--bought {
+    scale: 1.03 1.03;
+    border-color: var(--sun);
+}
+
+/* You can see which card the mouse is on: it lifts a little and its edge darkens. */
+.upgrade-card:hover {
+    translate: 0 -2px;
+    border-color: var(--ink-soft);
 }
 
 .card-top {
@@ -1207,7 +1265,7 @@
 }
 
 .card-requires {
-    font-size: 15px;
+    font-size: 16px;
     -unity-font-style: bold;
     color: var(--coral-dark);
     margin-top: 4px;
@@ -1268,6 +1326,16 @@
     padding: 0 10px 2px 10px;
     rotate: -8deg;
     opacity: 0.85;
+    transition-property: scale, rotate, opacity;
+    transition-duration: 0.2s;
+    transition-timing-function: ease-in;
+}
+
+/* Just bought: starts big, faint and twisted, and slams down onto the card (UiMotion.Enter). */
+.price-stamp--slam {
+    scale: 2.2 2.2;
+    rotate: -20deg;
+    opacity: 0;
 }
 
 .card-stars {
@@ -1277,7 +1345,7 @@
 }
 
 .card-stars-text {
-    font-size: 15px;
+    font-size: 16px;
     color: var(--wood);
     margin-left: 6px;
 }
@@ -1427,7 +1495,7 @@
 }
 
 .mission-story {
-    font-size: 15px;
+    font-size: 16px;
     color: var(--muted);
     white-space: normal;
     margin-top: 4px;
@@ -1466,11 +1534,11 @@
 }
 
 .objective-text--done {
-    color: #8FA3AB;
+    color: var(--muted);
 }
 
 .mission-hint {
-    font-size: 15px;
+    font-size: 16px;
     color: var(--wood);
     white-space: normal;
     margin-top: 8px;
@@ -1687,7 +1755,7 @@
 
 .report-empty {
     font-size: 16px;
-    color: #8FA3AB;
+    color: var(--muted);
 }
 
 /* Guest reviews: little paper notes with stars, the line, and who said it. */
@@ -1727,7 +1795,7 @@
 }
 
 .review-who {
-    font-size: 14px;
+    font-size: 15px;
     color: var(--muted);
     -unity-text-align: upper-right;
     margin-top: 2px;
@@ -1738,7 +1806,7 @@
 }
 
 .report-fact {
-    font-size: 15px;
+    font-size: 16px;
     color: var(--ink-soft);
     white-space: normal;
 }
@@ -1915,8 +1983,8 @@
 }
 
 .menu-footer {
-    font-size: 14px;
-    color: #9AA5AB;
+    font-size: 15px;
+    color: var(--muted);
     margin-top: 10px;
 }
 
@@ -2046,9 +2114,9 @@
     position: absolute;
     right: 8px;
     top: 6px;
-    font-size: 14px;
+    font-size: 16px;
     -unity-font-style: bold;
-    color: #9AA5AB;
+    color: var(--muted);
 }
 
 .build-title {
@@ -2067,7 +2135,7 @@
 }
 
 .build-beauty {
-    font-size: 13px;
+    font-size: 15px;
     color: var(--wood);
 }
 
@@ -2309,7 +2377,7 @@
 
 .surf-flow-label {
     margin-top: 2px;
-    font-size: 13px;
+    font-size: 15px;
     letter-spacing: 3px;
     color: var(--lagoon);
     -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
@@ -2483,10 +2551,10 @@
 
 .level-next {
     margin-top: 3px;
-    font-size: 12px;
+    font-size: 15px;
     color: var(--teal-dark);
     white-space: normal;
-    max-width: 210px;
+    max-width: 250px;
 }
 
 /* ---------- Upgrade card stickers: PLAN (what Kai's plan wants) and NEW (just unlocked) ---------- */

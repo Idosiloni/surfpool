@@ -21,9 +21,23 @@ namespace SurfPool
         int shownMoney = int.MinValue;
         int shownOwned = -1;
         int shownLevel = -1;
+        // The card you just bought keeps its place for a moment and gets its OWNED stamp slammed on.
+        string justBought;
+        float justBoughtAt = -10f;
+        bool staggerNext;
+
+        void OnBought(Upgrade upgrade)
+        {
+            justBought = upgrade.id;
+            justBoughtAt = Time.unscaledTime;
+        }
+
+        void OnDisable() => UpgradeShop.Bought -= OnBought;
 
         void OnEnable()
         {
+            UpgradeShop.Bought -= OnBought;
+            UpgradeShop.Bought += OnBought;
             var root = GetComponent<UIDocument>().rootVisualElement;
             screenRoot = root.Q("screenRoot");
             tabs = root.Q("tabs");
@@ -62,7 +76,7 @@ namespace SurfPool
             {
                 shown = shop.IsOpen;
                 if (shown) UiMotion.Show(screenRoot);
-                else screenRoot.AddToClassList("hidden");
+                else UiMotion.Hide(screenRoot);
                 shownMoney = int.MinValue;
             }
             if (!shown) return;
@@ -84,6 +98,7 @@ namespace SurfPool
 
         void SelectTab(UpgradeCategory category)
         {
+            staggerNext = true;
             tab = category;
             int i = 0;
             foreach (var child in tabs.Children())
@@ -100,7 +115,11 @@ namespace SurfPool
             var list = new System.Collections.Generic.List<Upgrade>();
             foreach (var upgrade in shop.Upgrades)
                 if (upgrade.category == tab) list.Add(upgrade);
-            int Rank(Upgrade u) => u.owned ? 3 : !shop.LevelMet(u) || !shop.RequirementMet(u) ? 2 : cash < u.cost ? 1 : 0;
+            bool boughtRecently = Time.unscaledTime - justBoughtAt < 1.5f;
+            int Rank(Upgrade u) => u.owned && !(boughtRecently && u.id == justBought) ? 3 : !shop.LevelMet(u) || !shop.RequirementMet(u) ? 2 : cash < u.cost ? 1 : 0;
+            bool stagger = staggerNext;
+            staggerNext = false;
+            int cardIndex = 0;
             var order = new System.Collections.Generic.List<int>();
             for (int i = 0; i < list.Count; i++) order.Add(i);
             order.Sort((a, b) => Rank(list[a]) != Rank(list[b]) ? Rank(list[a]).CompareTo(Rank(list[b])) : a.CompareTo(b));
@@ -119,6 +138,13 @@ namespace SurfPool
                 card.AddToClassList("upgrade-card");
                 card.AddToClassList("upgrade-card--" + upgrade.category.ToString().ToLowerInvariant());
                 card.EnableInClassList("upgrade-card--owned", upgrade.owned);
+                if (stagger)
+                {
+                    // Opening a tab: the cards drop in one after another (40 ms apart).
+                    card.AddToClassList("upgrade-card--enter");
+                    card.schedule.Execute(() => card.RemoveFromClassList("upgrade-card--enter")).StartingIn(30 + 40 * Mathf.Min(cardIndex, 6));
+                }
+                cardIndex++;
 
                 var top = new VisualElement();
                 top.AddToClassList("card-top");
@@ -222,6 +248,17 @@ namespace SurfPool
                 corner.AddToClassList(upgrade.owned ? "price-stamp" : "cost-chip");
                 corner.EnableInClassList("cost-chip--short", !upgrade.owned && cash < upgrade.cost);
                 card.Add(corner);
+                if (upgrade.owned && upgrade.id == justBought && boughtRecently)
+                {
+                    // Rubber stamp on a surf-shop receipt: it slams down big and crooked, the card jolts.
+                    justBought = null;
+                    UiMotion.Enter(corner, "price-stamp--slam");
+                    card.schedule.Execute(() =>
+                    {
+                        UiMotion.Bump(card, "upgrade-card--bought", 160);
+                        Sfx.Play(Sound.Plop, null, 0.9f, 0.55f);
+                    }).StartingIn(190);
+                }
                 row.Add(card);
             }
             UpdateTabBadges(cash);

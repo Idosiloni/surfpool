@@ -14,7 +14,7 @@ namespace SurfPool
         Toggle invert, fullscreen;
         Button[] quality;
 
-        public static bool IsOpen => instance != null && instance.root != null && !instance.root.ClassListContains("hidden");
+        public static bool IsOpen => instance != null && UiMotion.IsShown(instance.root);
 
         void OnEnable()
         {
@@ -72,7 +72,7 @@ namespace SurfPool
                 quality[i].EnableInClassList("quality-button--active", i == GameSettings.Quality);
         }
 
-        public void Close() => root.AddToClassList("hidden");
+        public void Close() => UiMotion.Hide(root);
 
         /// <summary>Closes the window if it's open (used when the menu behind it goes away).</summary>
         public static void OpenIfShowing(bool open)

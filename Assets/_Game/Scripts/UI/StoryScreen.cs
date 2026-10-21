@@ -56,14 +56,14 @@ namespace SurfPool
             if (root == null) return;
             bool visible = open && !MainMenu.Showing;
             if (visible) UiMotion.Show(root);
-            else root.AddToClassList("hidden");
+            else UiMotion.Hide(root);
         }
 
         public void Close()
         {
             if (!open) return;
             open = false;
-            root.AddToClassList("hidden");
+            UiMotion.Hide(root);
             InputBlocker.Release();
             FirstPersonController.LockCursor(true);
             // Next: name the park, then the missions start.

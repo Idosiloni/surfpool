@@ -130,7 +130,7 @@ namespace SurfPool
         {
             if (!open) return;
             open = false;
-            root.AddToClassList("hidden");
+            UiMotion.Hide(root);
             Time.timeScale = 1f;
             InputBlocker.Release();
             FirstPersonController.LockCursor(true);

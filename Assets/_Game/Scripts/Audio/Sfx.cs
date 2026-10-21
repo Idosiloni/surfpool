@@ -114,7 +114,10 @@ namespace SurfPool
         {
             // A soft click on every button in every screen.
             foreach (var doc in FindObjectsByType<UIDocument>())
+            {
                 doc.rootVisualElement?.RegisterCallback<ClickEvent>(OnUiClick, TrickleDown.TrickleDown);
+                doc.rootVisualElement?.RegisterCallback<PointerOverEvent>(OnUiHover, TrickleDown.TrickleDown);
+            }
         }
 
         void OnDestroy()
@@ -122,10 +125,32 @@ namespace SurfPool
             if (instance == this) instance = null;
         }
 
+        static Button ButtonOf(IEventHandler target) =>
+            target is Button b ? b : target is VisualElement element ? element.GetFirstAncestorOfType<Button>() : null;
+
         static void OnUiClick(ClickEvent evt)
         {
-            if (evt.target is VisualElement element && (element is Button || element.GetFirstAncestorOfType<Button>() != null))
-                Play(Sound.Click);
+            var button = ButtonOf(evt.target);
+            if (button == null) return;
+            // Confirm clicks sound bright, closing / going back sounds lower.
+            bool back = button.name.Contains("Close") || button.name.Contains("Cancel") || button.name.Contains("Back");
+            Play(Sound.Click, null, 1f, back ? 0.8f : 1f);
+            // A mouse click shouldn't leave the keyboard focus ring stuck on the button.
+            button.schedule.Execute(button.Blur);
+        }
+
+        static Button hovered;
+        static float nextHover;
+
+        /// <summary>A barely-there tick when the mouse moves onto a new button.</summary>
+        static void OnUiHover(PointerOverEvent evt)
+        {
+            var button = ButtonOf(evt.target);
+            if (button == hovered) return;
+            hovered = button;
+            if (button == null || !button.enabledInHierarchy || Time.unscaledTime < nextHover) return;
+            nextHover = Time.unscaledTime + 0.06f;
+            Play(Sound.Click, null, 0.15f, Random.Range(1.5f, 1.62f));
         }
 
         // ---------- one-shots ----------

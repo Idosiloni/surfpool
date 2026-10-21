@@ -68,7 +68,7 @@ namespace SurfPool
             {
                 shown = open;
                 if (shown) UiMotion.Show(root);
-                else root.AddToClassList("hidden");
+                else UiMotion.Hide(root);
                 nextRefresh = 0f;
             }
             if (!shown || Time.unscaledTime < nextRefresh) return;

@@ -54,7 +54,7 @@ namespace SurfPool
             new Upgrade { id = "intermediate_waves", category = UpgradeCategory.Waves, title = "Intermediate Wave Program", cost = 600, level = 3, requires = "pool_expand_1",
                 description = "Unlocks bigger peeling Intermediate waves. Intermediate surfers start coming, and they pay 2.5x the base price." },
             new Upgrade { id = "wave_sets", category = UpgradeCategory.Waves, title = "Wave Sets", cost = 900, level = 5, requires = "faster_machine",
-                description = "Each press sends a set of 2 waves, 2.5 s apart. More rides, less waiting." },
+                description = "Each press sends a set of 2 waves, 4 s apart (the lineup calls it: SET INCOMING!). More rides, less waiting." },
             new Upgrade { id = "smart_auto", category = UpgradeCategory.Waves, title = "Smart Wave Timer", cost = 2000, level = 8, requires = "auto_waves",
                 description = "Auto waves pick the wave type most waiting surfers want." },
             new Upgrade { id = "wave_shaper", category = UpgradeCategory.Waves, title = "Reef Shaper", cost = 2500, level = 8, requires = "intermediate_waves",

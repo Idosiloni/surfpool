@@ -173,7 +173,7 @@ namespace SurfPool
         {
             open = false;
             field.Blur();
-            overlay.AddToClassList("hidden");
+            UiMotion.Hide(overlay);
             InputBlocker.Release();
             FirstPersonController.LockCursor(true);
             var done = onDone;
