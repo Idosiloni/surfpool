@@ -75,6 +75,7 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
 ## Ideas parking lot
 - Waiting for Ido: balance calls listed in `docs/BALANCE.md` (Cove/Ranch prices and levels, long-ride scores, board prices)
 - Ranch follow-ups: a return lane or jet-ski tow back after a ride, lefts on the way back (the foil goes both ways), sections (barrel / wall / air ramp)
+- Checks for the Cove/Ranch (L22+): kook rescue posts/lifeguard don't reach them (keep beginners out of one-way pools?); a breakdown on the Cove's west side isn't shown on the HUD (it shows the east machine); frame time with both Cove halves + the Ranch in view not measured yet; the "Measured in the game" income table in BALANCE.md predates sets/lulls
 - UI next (`docs/research/game-ui-craft.md` #4, #8-#11, #13-#15): UI sound family, surf-wave screen wipe, contextual HUD + clean-screen key, accessibility settings, prompt v2, tooltips, mailbox, wallet tide
 - Surf contest day (judges' score exists now), session schedule ("beginner hour"), tide
 - Per-item prices, soft restock, visible shop upgrades (ranked in `docs/research/polish-and-next.md`)
