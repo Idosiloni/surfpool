@@ -474,6 +474,7 @@ namespace SurfPool.EditorTools
             var hud = hudGo.AddComponent<GameHud>();
             hudGo.AddComponent<SurfHud>();
             hudGo.AddComponent<PerkPicker>();
+            hudGo.AddComponent<ParkNamer>();
             BuildShops(shop, spawner, game, hudGo, skinMat);
             BuildParkSign();
             Set(shop, "photoSpot", BuildPhotoSpot());

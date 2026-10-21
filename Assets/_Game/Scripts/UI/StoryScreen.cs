@@ -5,7 +5,7 @@ namespace SurfPool
 {
     /// <summary>
     /// The opening letter from Uncle Kai (UI Toolkit, Assets/_Game/UI/Story.uxml). Shown at the start of a new game;
-    /// closing it starts the missions.
+    /// closing it opens the naming card (<see cref="ParkNamer"/>), then the missions start.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class StoryScreen : MonoBehaviour
@@ -66,6 +66,13 @@ namespace SurfPool
             root.AddToClassList("hidden");
             InputBlocker.Release();
             FirstPersonController.LockCursor(true);
+            // Next: name the park, then the missions start.
+            if (ParkNamer.Instance != null) ParkNamer.Instance.Open(true, BeginMissions);
+            else BeginMissions();
+        }
+
+        static void BeginMissions()
+        {
             if (MissionManager.Instance != null) MissionManager.Instance.Begin();
         }
     }

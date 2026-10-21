@@ -2933,3 +2933,150 @@
 .vf-grade--b { background-color: var(--teal); }
 .vf-grade--a { background-color: var(--wave-intermediate); }
 .vf-grade--s { background-color: var(--sun-dark); }
+
+/* ---------- Name your park (ParkNamer) ---------- */
+
+.name-window {
+    width: 760px;
+    height: auto;
+}
+
+.name-intro {
+    font-size: 19px;
+    color: var(--ink);
+    white-space: normal;
+    margin-top: 16px;
+}
+
+/* A little painted sign preview, like the one at the gate. */
+.name-board {
+    align-items: center;
+    margin: 18px 0 6px 0;
+}
+
+.name-board-sign {
+    width: 560px;
+    padding: 14px 20px 12px 20px;
+    align-items: center;
+    background-color: var(--teal);
+    border-radius: 18px;
+    border-width: 4px;
+    border-bottom-width: 9px;
+    border-color: var(--ink);
+}
+
+.name-preview {
+    font-size: 44px;
+    color: white;
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    text-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+    -unity-text-align: middle-center;
+    white-space: nowrap;
+}
+
+.name-preview-small {
+    font-size: 15px;
+    color: var(--cream);
+    letter-spacing: 4px;
+    margin-top: 2px;
+}
+
+.name-board-posts {
+    width: 420px;
+    height: 26px;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.name-board-post {
+    width: 16px;
+    background-color: var(--wood);
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-bottom-width: 3px;
+    border-color: var(--ink);
+}
+
+.name-field {
+    margin: 10px 0 0 0;
+}
+
+.name-field > .unity-base-text-field__input,
+.name-field > .unity-text-field__input {
+    height: 58px;
+    font-size: 28px;
+    color: var(--ink);
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    -unity-text-align: middle-center;
+    background-color: var(--paper);
+    border-radius: 16px;
+    border-width: 3px;
+    border-color: var(--ink);
+    padding: 0 14px;
+}
+
+.name-ideas-row {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 14px;
+}
+
+.name-ideas-label {
+    font-size: 22px;
+    color: var(--coral);
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Pacifico%20SDF.asset");
+    margin-right: 10px;
+}
+
+.name-ideas {
+    flex-direction: row;
+    flex-grow: 1;
+    flex-wrap: wrap;
+}
+
+.name-idea {
+    height: 40px;
+    font-size: 16px;
+    color: var(--ink);
+    background-color: white;
+    border-radius: 20px;
+    border-width: 3px;
+    border-bottom-width: 5px;
+    border-color: var(--ink);
+    padding: 0 14px;
+    margin: 0 8px 0 0;
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+}
+
+.name-idea:hover {
+    background-color: var(--lagoon);
+}
+
+.name-reroll {
+    width: 130px;
+    height: 40px;
+    font-size: 16px;
+    border-bottom-width: 5px;
+}
+
+.name-cost {
+    font-size: 16px;
+    color: var(--muted);
+    margin-top: 14px;
+}
+
+.name-buttons {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 12px;
+}
+
+.name-cancel {
+    width: 200px;
+    height: 70px;
+    margin-right: 14px;
+}
+
+.name-ok {
+    margin: 0;
+}

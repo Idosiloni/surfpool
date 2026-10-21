@@ -49,7 +49,7 @@ namespace SurfPool
 
             var dayEvent = DailyEvents.Instance != null ? DailyEvents.Instance.Today : DayEvent.None;
             title.text = $"Day {report.day} is over!" + (dayEvent != DayEvent.None ? $"  ({DailyEvents.Title(dayEvent)})" : "");
-            summary.text = $"{report.served} happy surfers  ·  {report.lost} lost  ·  rating {report.ratingStart:0.0} to {report.ratingEnd:0.0} stars";
+            summary.text = $"{ParkName.Name}  ·  {report.served} happy surfers  ·  {report.lost} lost  ·  rating {report.ratingStart:0.0} to {report.ratingEnd:0.0} stars";
             Fill(incomeRows, report.income, "+");
             Fill(expenseRows, report.expenses, "-");
             int profit = report.TotalIncome - report.TotalExpenses;

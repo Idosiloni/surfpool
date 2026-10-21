@@ -216,6 +216,38 @@
 
         <ui:Label name="hint" text="WASD move   ·   Shift sprint   ·   Space jump   ·   E use   ·   Esc free mouse" class="hint" picking-mode="Ignore" />
 
+        <!-- Name your park (ParkNamer) -->
+        <ui:VisualElement name="nameRoot" class="screen-overlay hidden">
+            <ui:VisualElement class="screen-window name-window">
+                <ui:VisualElement class="screen-header">
+                    <ui:Label name="nameHeading" text="Name your park" class="screen-title" />
+                </ui:VisualElement>
+                <ui:Label text="Sign painter" class="window-tag window-tag--sun" />
+                <ui:Label name="nameIntro" class="name-intro" />
+                <ui:VisualElement class="name-board">
+                    <ui:VisualElement class="name-board-sign">
+                        <ui:Label name="namePreview" class="name-preview" />
+                        <ui:Label text="OPEN DAILY" class="name-preview-small" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="name-board-posts">
+                        <ui:VisualElement class="name-board-post" />
+                        <ui:VisualElement class="name-board-post" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:TextField name="nameField" class="name-field" />
+                <ui:VisualElement class="name-ideas-row">
+                    <ui:Label text="Ideas" class="name-ideas-label" />
+                    <ui:VisualElement name="nameIdeas" class="name-ideas" />
+                    <ui:Button name="nameReroll" text="More ideas" class="close-button name-reroll" />
+                </ui:VisualElement>
+                <ui:Label name="nameCost" class="name-cost" />
+                <ui:VisualElement class="name-buttons">
+                    <ui:Button name="nameCancel" text="Keep Kai's name" class="close-button name-cancel" />
+                    <ui:Button name="nameOk" text="Paint the sign!" class="send-button name-ok" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
         <!-- Level-up perk pick (PerkPicker) -->
         <ui:VisualElement name="perkPicker" class="screen-overlay perk-overlay hidden">
             <ui:VisualElement class="perk-window">

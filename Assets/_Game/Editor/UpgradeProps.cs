@@ -31,7 +31,8 @@ namespace SurfPool.EditorTools
             Box("Billboard Panel", billboard, billboard.position + new Vector3(0f, 6.2f, 0f), new Vector3(9.2f, 4.2f, 0.25f), navy);
             Box("Billboard Stripe", billboard, billboard.position + new Vector3(0f, 4.55f, -0.14f), new Vector3(9.2f, 0.5f, 0.05f), coral);
             Box("Billboard Sun", billboard, billboard.position + new Vector3(3.75f, 7.65f, -0.14f), new Vector3(0.9f, 0.9f, 0.05f), sun);
-            Signs.Text("KAI'S SURF PARK", billboard, billboard.position + new Vector3(-0.5f, 6.9f, -0.2f), 0f, 0.85f, new Color(1f, 0.85f, 0.45f), 7f);
+            Signs.Text("KAI'S SURF PARK", billboard, billboard.position + new Vector3(-0.5f, 6.9f, -0.2f), 0f, 0.85f, new Color(1f, 0.85f, 0.45f), 7f)
+                .gameObject.AddComponent<NameSign>();
             Signs.Text("REAL WAVES  EVERY DAY", billboard, billboard.position + new Vector3(-0.5f, 5.8f, -0.2f), 0f, 0.45f, Color.white, 7f);
             Signs.Text("NEXT LEFT", billboard, billboard.position + new Vector3(0f, 4.55f, -0.2f), 0f, 0.3f, Color.white, 4f);
 

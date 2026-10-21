@@ -165,6 +165,7 @@ namespace SurfPool.EditorTools
         static void GateSigns()
         {
             var gate = Group("Gate Signs");
+            gate.gameObject.AddComponent<GateSign>(); // look at whichever sign is up and press E to rename the park
             var navy = new Color(0.06f, 0.18f, 0.23f);
 
             var old = new GameObject("Old Sign").transform;
@@ -189,7 +190,8 @@ namespace SurfPool.EditorTools
             foreach (float side in new[] { 1f, -1f })
             {
                 float yaw = side > 0 ? 180f : 0f;
-                Signs.Text("KAI'S SURF POOL", painted, new Vector3(24, 2.0f, side > 0 ? -39.97f : -40.13f), yaw, 0.5f, Color.white, 3.3f);
+                Signs.Text("KAI'S SURF POOL", painted, new Vector3(24, 2.0f, side > 0 ? -39.97f : -40.13f), yaw, 0.5f, Color.white, 3.3f)
+                    .gameObject.AddComponent<NameSign>();
                 Signs.Text("OPEN DAILY", painted, new Vector3(24, 0.95f, side > 0 ? -39.97f : -40.13f), yaw, 0.2f, Color.white, 2.2f);
             }
             Collider(painted.gameObject, new Vector3(0, 1.3f, 0), new Vector3(3.6f, 2.6f, 0.3f));
@@ -203,7 +205,8 @@ namespace SurfPool.EditorTools
             foreach (float side in new[] { 1f, -1f })
             {
                 float yaw = side > 0 ? 180f : 0f;
-                Signs.Text("KAI'S SURF PARK", arch, new Vector3(30, 6.45f, -41.5f + side * 0.23f), yaw, 1.3f, Color.white, 12.5f);
+                Signs.Text("KAI'S SURF PARK", arch, new Vector3(30, 6.45f, -41.5f + side * 0.23f), yaw, 1.3f, Color.white, 12.5f)
+                    .gameObject.AddComponent<NameSign>();
             }
             foreach (float x in new[] { -6.6f, 6.6f })
                 Collider(arch.gameObject, new Vector3(x, 3.5f, 0f), new Vector3(1.2f, 7f, 1.2f));
@@ -283,6 +286,7 @@ namespace SurfPool.EditorTools
                 foreach (float side in new[] { 1f, -1f })
                 {
                     var text = Signs.Text("KAI'S SURF PARK", blimp.transform, Vector3.zero, 0f, 2.2f, new Color(0.06f, 0.18f, 0.23f), 14f);
+                    text.gameObject.AddComponent<NameSign>();
                     text.transform.localPosition = new Vector3(side * 4.3f, 0.6f, -4f);
                     text.transform.localRotation = Quaternion.Euler(0f, side > 0 ? -90f : 90f, 0f);
                 }

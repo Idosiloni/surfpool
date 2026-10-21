@@ -104,3 +104,6 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
 - A surfer who leaves happy buys their best print: B $15, A $30, S $80, times skill (beginner 1, intermediate 1.5,
   pro 2.5, legend 3). So an S shot of a legend = $240.
 - S shots go on the Wall of Fame by the kiosk (the last 6).
+
+## Park name (2026-10-21, proposal)
+- The first name is free (after Uncle Kai's letter, or once for older saves). Repainting the gate sign later costs $100.

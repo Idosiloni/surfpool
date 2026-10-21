@@ -148,7 +148,8 @@ namespace SurfPool.EditorTools
             Box("Arch Post", lot.transform, new Vector3(cx + 4.6f, 2.5f, -98f), new Vector3(0.5f, 5f, 0.5f), post, true);
             Box("Welcome Sign", lot.transform, new Vector3(cx, 5.1f, -98f), new Vector3(10.4f, 1.4f, 0.3f), GreyboxBuilder.Mat("SeatTeal", new Color(0.1f, 0.68f, 0.62f), 0.35f), false);
             Box("Welcome Stripe", lot.transform, new Vector3(cx, 4.55f, -98.2f), new Vector3(10.4f, 0.2f, 0.05f), GreyboxBuilder.Mat("Sign", new Color(1f, 0.42f, 0.34f), 0.4f), false);
-            Signs.Text("WELCOME TO SURF POOL", lot.transform, new Vector3(cx, 5.15f, -98.17f), 0f, 0.7f, Color.white, 10f);
+            Signs.Text("WELCOME TO SURF POOL", lot.transform, new Vector3(cx, 5.15f, -98.17f), 0f, 0.7f, Color.white, 10f)
+                .gameObject.AddComponent<NameSign>().Setup("WELCOME TO {0}", true);
             Signs.Text("SEE YOU SOON!", lot.transform, new Vector3(cx, 5.15f, -97.83f), 180f, 0.7f, Color.white, 10f);
         }
 

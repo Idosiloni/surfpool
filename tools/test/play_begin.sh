@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Agent playtest start: moves Ido's save aside (never deletes it), enters Play mode, closes the title screen and letter.
+# Agent playtest start: moves Ido's save aside (never deletes it), enters Play mode, closes the title screen, letter and naming card.
 # Always pair with play_end.sh. Safe to run twice: it only moves the save aside if no test is already running.
 SAVE_DIR="$HOME/Library/Application Support/DefaultCompany/surf-pool-sim"
 SAVE="$SAVE_DIR/surfpool_save.json"
@@ -14,4 +14,4 @@ $U command eval 'UnityEditor.EditorSettings.asyncShaderCompilation=false; return
 $U command editor_focus >/dev/null
 $U command editor_play | tail -1
 sleep 5
-$U command eval 'var mm = UnityEngine.Object.FindAnyObjectByType<SurfPool.MainMenu>(); if (SurfPool.MainMenu.Showing) typeof(SurfPool.MainMenu).GetMethod("Close", System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).Invoke(mm, null); var ss = UnityEngine.Object.FindAnyObjectByType<SurfPool.StoryScreen>(); if (ss != null && ss.IsOpen) ss.Close(); return "menu+story closed";' --result-only | grep -o '"result.*'
+$U command eval 'var mm = UnityEngine.Object.FindAnyObjectByType<SurfPool.MainMenu>(); if (SurfPool.MainMenu.Showing) typeof(SurfPool.MainMenu).GetMethod("Close", System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).Invoke(mm, null); var ss = UnityEngine.Object.FindAnyObjectByType<SurfPool.StoryScreen>(); if (ss != null && ss.IsOpen) ss.Close(); var pn = SurfPool.ParkNamer.Instance; if (SurfPool.ParkNamer.IsOpen) typeof(SurfPool.ParkNamer).GetMethod("Cancel", System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).Invoke(pn, null); return "menu+story+name closed";' --result-only | grep -o '"result.*'

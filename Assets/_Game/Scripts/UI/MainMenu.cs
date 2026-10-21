@@ -71,7 +71,7 @@ namespace SurfPool
             int day = DayCycle.Instance != null ? DayCycle.Instance.Day : 1;
             int money = Wallet.Instance != null ? Wallet.Instance.Money : 0;
             int level = ParkLevel.Instance != null ? ParkLevel.Instance.Level : 1;
-            saveLabel.text = hasSave ? $"Your park: day {day}  ·  {MoneyText.Format(money)}  ·  level {level}" : "Uncle Kai's old wave pool is waiting for you.";
+            saveLabel.text = hasSave ? $"{ParkName.Name}: day {day}  ·  {MoneyText.Format(money)}  ·  level {level}" : "Uncle Kai's old wave pool is waiting for you.";
             continueButton.text = hasSave ? "Continue" : "Play";
             newButton.style.display = hasSave ? DisplayStyle.Flex : DisplayStyle.None;
         }
@@ -113,6 +113,7 @@ namespace SurfPool
             GameStats.Reset();
             ParkEffects.ResetStatics();
             DailyEvents.ResetStatics();
+            ParkName.Load("");
             MachineService.ResetStatics();
             var save = FindAnyObjectByType<SaveSystem>();
             if (save != null) save.enabled = false;
