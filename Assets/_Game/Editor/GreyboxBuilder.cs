@@ -133,6 +133,7 @@ namespace SurfPool.EditorTools
             Set(surfing, "body", cc);
             Set(surfing, "cameraPivot", camGo.transform);
             Set(surfing, "surfBoard", myBoard);
+            SetArray(surfing, "boardModels", QuiverModels());
             var replay = player.AddComponent<SurfReplay>();
             Set(replay, "surfing", surfing);
             Set(replay, "avatarPrefab", BuildReplayAvatarPrefab());
@@ -489,6 +490,7 @@ namespace SurfPool.EditorTools
             Set(shop, "photoSpot", BuildPhotoSpot());
             BuildRescuePosts();
             BuildPoolDirt();
+            BuildQuiverRack();
             var legends = game.AddComponent<FamousVisits>();
             Set(legends, "spawner", spawner);
             Set(legends, "surferPrefab", AssetDatabase.LoadAssetAtPath<Surfer>("Assets/_Game/Prefabs/Surfer.prefab"));

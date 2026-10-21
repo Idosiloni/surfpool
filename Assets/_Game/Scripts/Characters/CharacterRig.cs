@@ -108,6 +108,9 @@ namespace SurfPool
         /// <summary>0..1 arms up and forward (floaters, unweighting the nose).</summary>
         public float ArmsUp { get; set; }
 
+        /// <summary>0..1 walked up to the nose of a longboard (hang ten): standing near the front, facing forward.</summary>
+        public float NoseWalk { get; set; }
+
         /// <summary>Paddling hard for a wave: faster strokes, head glancing back over the shoulder.</summary>
         public bool Sprint { get; set; }
 
@@ -665,7 +668,9 @@ namespace SurfPool
             float torsoYaw = Mathf.Lerp(12f, 25f, Style) - Twist * 0.6f;
             float torsoPitch = (kneeL != null ? Mathf.Lerp(30f, 12f, Style) + crouch * 8f : Mathf.Lerp(35f, 18f, Style) + crouch * 15f)
                 + lean * 15f + pump * 3f;
-            var pose = Pose(new Vector3(0f, 0.08f, StandSpot), new Vector3(0f, 90f * side, wobble * 5f),
+            // Nose walk: step up toward the nose and square up to face forward, like hanging ten on a longboard.
+            float standZ = Mathf.Lerp(StandSpot, 0.36f * BoardLength, NoseWalk);
+            var pose = Pose(new Vector3(0f, 0.08f, standZ), new Vector3(0f, Mathf.Lerp(90f, 25f, NoseWalk) * side, wobble * 5f),
                 hipsY,
                 new Vector3(torsoPitch, -torsoYaw * side, lean * -6f),
                 new Vector3(-8f - crouch * 12f + lookDown, -headYaw * side, 0f),

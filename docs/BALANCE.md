@@ -176,3 +176,9 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
 - From day 2: 50% calm, 25% offshore, 25% onshore (independent of the day's event). Offshore: glassy water (ripples
   x0.25), spray blowing off the lips, ride quality x1.1, wipeouts x0.85, your flow builds x1.1 faster. Onshore:
   chop x3.5, ride quality x0.85, wipeouts x1.25, flow builds x0.85.
+
+## Your quiver (2026-10-21, proposals; all boards free at the rack for now)
+- Shortboard: speed x1 (x1.05 on Pro waves), all moves. Fish: x1.12 on small/green waves (x0.95 on Pro), pumping adds
+  up to 0.5 flow (shortboard 0.35). Foamie: x0.75, only carves/bottom turns, never pearls, PERFECT take-off window x1.6.
+  Longboard: x0.9 (x0.75 on Pro), no airs/snaps/tail slides, never pearls, take-off window x1.3, HANG FIVE 100 after
+  1.5 s at the nose, HANG TEN 200 after 3 s (not on Pro waves). Could later be sold at the gear shop instead.

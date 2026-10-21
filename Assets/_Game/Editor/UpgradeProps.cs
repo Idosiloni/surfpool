@@ -151,6 +151,48 @@ namespace SurfPool.EditorTools
         /// The surf photographer (upgrade photo_tower): a photo tower on the main pool's north-east deck with a camera
         /// you look through, and the photo kiosk with the Wall of Fame by the exit. Hidden until bought.
         /// </summary>
+        /// <summary>Your quiver's board models, by BoardKind (Shortboard, Foamie, Longboard, Fish).</summary>
+        static Object[] QuiverModels() => new Object[]
+        {
+            AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Models/BoardShort.fbx"),
+            AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Models/BoardFoamie.fbx"),
+            AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Models/BoardLong.fbx"),
+            AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Models/BoardFish.fbx"),
+        };
+
+        /// <summary>A wooden rack by the main pool's surf peg with your four boards standing in it (QuiverRack).</summary>
+        static void BuildQuiverRack()
+        {
+            var at = new Vector3(12f, 0f, MainSouth - 2.4f);
+            var rack = new GameObject("Quiver Rack").transform;
+            rack.position = at;
+            var wood = Mat("RackWood", new Color(0.62f, 0.43f, 0.26f));
+            Box("Rack Base", rack, at + new Vector3(0f, 0.08f, 0f), new Vector3(3.2f, 0.16f, 0.7f), wood);
+            Box("Rack Back", rack, at + new Vector3(0f, 1.1f, -0.3f), new Vector3(3.2f, 0.12f, 0.12f), wood);
+            foreach (float x in new[] { -1.55f, 1.55f })
+                Box("Rack Post", rack, at + new Vector3(x, 0.65f, -0.3f), new Vector3(0.12f, 1.3f, 0.12f), wood);
+            Signs.Text("YOUR QUIVER", rack, at + new Vector3(0f, 1.45f, -0.37f), 0f, 0.18f, Color.white, 2.6f);
+
+            string[] names = { "BoardShort", "BoardFoamie", "BoardLong", "BoardFish" };
+            var displays = new Object[names.Length];
+            for (int i = 0; i < names.Length; i++)
+            {
+                var board = WorldArt.Model(names[i], rack, at, 0f);
+                if (board == null) continue;
+                var mesh = board.GetComponentInChildren<MeshFilter>().sharedMesh;
+                float length = mesh.bounds.size.z;
+                // Standing on its tail, leaning back against the rail, nose up.
+                board.transform.rotation = Quaternion.Euler(-72f, 180f, 0f);
+                board.transform.position = at + new Vector3(-1.2f + i * 0.8f, length * 0.47f + 0.1f, 0.05f);
+                displays[i] = board;
+            }
+            var box = rack.gameObject.AddComponent<BoxCollider>();
+            box.center = new Vector3(0f, 1f, 0f);
+            box.size = new Vector3(3.4f, 2f, 1f);
+            var usable = rack.gameObject.AddComponent<QuiverRack>();
+            SetArray(usable, "displays", displays);
+        }
+
         /// <summary>
         /// Dirty pools: the PoolDirt manager (debris, duck and robot models) and the skimmer net's rack on the main
         /// pool's south deck, east of the rescue posts.

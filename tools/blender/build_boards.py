@@ -119,6 +119,8 @@ def board(name, length, half_width, thickness, nose_round, tail_width, rail_mat,
 
     tail_y = length / 2
     fin_set = [(0.0, tail_y - 0.07 * length, 1.0)]
+    if fins == 2:  # twin keels near the rails (fish)
+        fin_set = [(-half_width * 0.55, tail_y - 0.09 * length, 1.1), (half_width * 0.55, tail_y - 0.09 * length, 1.1)]
     if fins == 3:
         fin_set += [(-half_width * 0.6, tail_y - 0.14 * length, 0.8), (half_width * 0.6, tail_y - 0.14 * length, 0.8)]
     for fx, fy, size in fin_set:
@@ -150,7 +152,17 @@ def board_short():
     return board("BoardShort", 1.8, 0.235, 0.06, False, 0.45, "BoardDeck", "White", "Teal", "Charcoal")
 
 
-BOARDS = [board_foamie, board_fun, board_short]
+def board_long():
+    # Classic longboard: long, wide round nose for walking up and hanging ten, one big center fin, no grip.
+    return board("BoardLong", 2.9, 0.29, 0.08, True, 0.55, "BoardDeck", "White", "Yellow", "Navy", grip=False, fins=1)
+
+
+def board_fish():
+    # Retro fish: short, wide and flat with a wide tail and twin keel fins: fast and loose on small waves.
+    return board("BoardFish", 1.62, 0.27, 0.065, True, 0.95, "BoardDeck", "White", "Coral", "Charcoal", fins=2)
+
+
+BOARDS = [board_foamie, board_fun, board_short, board_long, board_fish]
 
 
 def build_boards():

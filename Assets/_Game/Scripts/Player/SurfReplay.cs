@@ -41,6 +41,27 @@ namespace SurfPool
         /// <summary>The stand-in's board (the one you see in the chase cam).</summary>
         public Transform AvatarBoard => avatarBoard;
 
+        Mesh boardMesh;
+        Material[] boardMaterials;
+
+        /// <summary>Your chosen board (SurfQuiver), on the stand-in too.</summary>
+        public void SetBoard(Mesh mesh, Material[] materials)
+        {
+            boardMesh = mesh;
+            boardMaterials = materials;
+            ApplyBoardLook();
+        }
+
+        void ApplyBoardLook()
+        {
+            if (avatar == null || avatarBoard == null || boardMesh == null) return;
+            var filter = avatarBoard.GetComponentInChildren<MeshFilter>();
+            if (filter == null) return;
+            filter.sharedMesh = boardMesh;
+            filter.GetComponent<MeshRenderer>().sharedMaterials = boardMaterials;
+            avatar.BoardLength = boardMesh.bounds.size.z;
+        }
+
         /// <summary>A replay is playing (the park is frozen).</summary>
         public static bool Playing { get; private set; }
 
@@ -137,6 +158,7 @@ namespace SurfPool
             avatar.name = "Replay Stand-In";
             avatar.Wear(PlayerLook());
             avatarBoard = avatar.transform.Find("Board");
+            ApplyBoardLook();
             joints = new Transform[JointNames.Length];
             var all = avatar.GetComponentsInChildren<Transform>(true);
             for (int i = 0; i < JointNames.Length; i++)
@@ -184,6 +206,7 @@ namespace SurfPool
             avatar.Air = Mathf.Max(surfing.AirLift * 0.5f, surfing.Grab);
             avatar.Twist = surfing.Twist;
             avatar.ArmsUp = surfing.ArmsUp;
+            avatar.NoseWalk = surfing.NoseWalk;
             avatar.Style = 0.6f + surfing.Flow * 0.4f;
             avatar.BoardTilt = surfing.BoardTilt;
             if (avatarBoard != null)

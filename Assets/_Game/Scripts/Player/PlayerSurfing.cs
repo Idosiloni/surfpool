@@ -37,6 +37,8 @@ namespace SurfPool
         [SerializeField] CharacterController body;
         [SerializeField] Transform cameraPivot;
         [SerializeField] GameObject surfBoard;
+        [Tooltip("Board models by BoardKind (Shortboard, Foamie, Longboard, Fish): your quiver.")]
+        [SerializeField] GameObject[] boardModels;
         [SerializeField] float paddleSpeed = 3f;
         [SerializeField] float carveSpeed = 7f;
         [SerializeField] float mouseSensitivity = 0.12f;
@@ -102,6 +104,10 @@ namespace SurfPool
         // in; a green face = carves, bottom turns, snaps, cutbacks, floaters; a steep, fast pro wave = airs too.
         WaveLevel waveLevel;
         bool boardSnapped;
+        float noseTime, noseWalk;
+
+        /// <summary>0..1 walked up to the nose (longboard hang ten).</summary>
+        public float NoseWalk => noseWalk;
         // Down the line: meters ridden sideways along the wave, and whether you've been warned about the whitewash.
         float lineMeters, lastRideZ, behindSince = -1f;
         bool warnedBehind;
@@ -116,7 +122,7 @@ namespace SurfPool
         int pumpStep, pumpsInRow, lastPumpIndex = -1;
         float lastPumpKey = -10f, pumpGlow, lastPump = -10f, pumpFlow;
         /// <summary>Most flow pumping alone can add in one ride: real speed for snaps and airs still needs carves.</summary>
-        const float MaxPumpFlow = 0.35f;
+        static float MaxPumpFlow => SurfQuiver.PumpCap;
         // What the judges watch (docs/research/surf-maneuvers.md: speed, power, flow, variety, combination, commitment).
         float flowSum, flowSamples, powerPoints, tubeTotal, biggestSpin;
         bool perfectTakeoff;
@@ -197,6 +203,10 @@ namespace SurfPool
         public string Hint => state switch
         {
             State.Paddling => "W paddle  ·  mouse steer  ·  SPACE stand up when a wave reaches you  ·  F send a wave  ·  V camera  ·  Q get out",
+            State.Riding when SurfQuiver.Current == BoardKind.Longboard && waveLevel != WaveLevel.Pro =>
+                "Longboard: A/D trim  ·  hold W without turning = walk to the nose (HANG TEN)  ·  W/S pump  ·  V camera",
+            State.Riding when SurfQuiver.Current == BoardKind.Foamie =>
+                "Foamie: A/D angle and carve gently  ·  W/S up and down  ·  ride it all the way in  ·  V camera",
             State.Riding => AirLift > 0f
                 ? "A/D spin  ·  hold SHIFT or click to grab  ·  land straight!"
                 : waveLevel == WaveLevel.Beginner
@@ -259,6 +269,7 @@ namespace SurfPool
             eye = PaddleEye;
             roll = tumble = 0f;
             chaseSnap = true;
+            ApplyBoard();
             ApplyView();
             Notifications.Post($"Surf's up! You're in the {pool.DisplayName}.");
         }
@@ -546,7 +557,7 @@ namespace SurfPool
                     state = State.Riding;
                     RideStarted?.Invoke();
                     Sfx.Play(Sound.Splash, transform.position, 0.4f);
-                    if (d >= -1.6f && d <= -0.4f)
+                    if (Mathf.Abs(d + 1f) <= 0.6f * SurfQuiver.TakeoffWindow)
                     {
                         perfectTakeoff = true;
                         flow = 0.4f;
@@ -555,7 +566,7 @@ namespace SurfPool
                         Splashed?.Invoke(3);
                         Called?.Invoke("PERFECT TAKEOFF! +100", Notice.Reward);
                     }
-                    else if (d > 0.9f && waveLevel != WaveLevel.Beginner)
+                    else if (d > 0.9f && waveLevel != WaveLevel.Beginner && SurfQuiver.CanPearl)
                     {
                         // Way too late on a green wave: it's already steep and pitching, the nose digs in.
                         StartWipeout("PEARLED! You stood up too late, the nose dug in. Pop up as the wave lifts you.");
@@ -582,6 +593,11 @@ namespace SurfPool
         public void TryAir()
         {
             if (state != State.Riding || Time.time - airStart <= 1f) return;
+            if (!SurfQuiver.CanAir)
+            {
+                Called?.Invoke("Airs need a shortboard or a fish (switch boards at the rack by the surf peg)", Notice.Info);
+                return;
+            }
             if (waveLevel != WaveLevel.Pro)
             {
                 Called?.Invoke(waveLevel == WaveLevel.Beginner
@@ -657,6 +673,7 @@ namespace SurfPool
             // Carving builds up and bleeds off speed, so turns feel like turns, not sliding.
             // Foam is slow and mushy: you can only angle a little. A green face gives real speed.
             float waveSpeed = waveLevel == WaveLevel.Beginner ? 0.55f : 1f;
+            waveSpeed *= SurfQuiver.SpeedOn(waveLevel);
             rideVelocity = Mathf.MoveTowards(rideVelocity, steer * carveSpeed * waveSpeed * (1f + flowSpeedBonus * flow), carveAcceleration * dt);
 
             // A carve is a turn held long enough to build speed one way, then switched: linking them builds flow.
@@ -667,7 +684,9 @@ namespace SurfPool
                 if (waveLevel != WaveLevel.Beginner && carveSign != 0f && held >= 0.6f && held <= 3f
                     && Mathf.Abs(rideVelocity) >= 0.6f * carveSpeed && AirLift <= 0f)
                 {
-                    if (rideOffset < 0.9f && flow < 0.4f)
+                    if (SurfQuiver.Current == BoardKind.Foamie)
+                        Trick("CARVE", 50, 0.25f); // a foamie only does gentle turns
+                    else if (rideOffset < 0.9f && (flow < 0.4f || !SurfQuiver.CanSnap))
                     {
                         // Not enough speed for a real snap: a smooth top turn.
                         Trick("TOP TURN", 70, 0.2f);
@@ -772,6 +791,7 @@ namespace SurfPool
 
             UpdateTube(water, dt);
             DownTheLine(water, dt);
+            NoseRide(keyboard, steer, airborne, dt);
             Floater(water, keyboard, dt);
             PartyWave(water);
             twist = Mathf.MoveTowards(twist, 0f, 90f * dt);
@@ -852,7 +872,7 @@ namespace SurfPool
         bool TailSlide(Keyboard keyboard, WaveWater water, bool airborne, float dt)
         {
             bool held = SlideOverride || keyboard.leftShiftKey.isPressed;
-            bool canSlide = waveLevel != WaveLevel.Beginner && !airborne && rideOffset < 0.8f && Mathf.Abs(rideVelocity) > 0.5f * carveSpeed;
+            bool canSlide = SurfQuiver.CanSnap && waveLevel != WaveLevel.Beginner && !airborne && rideOffset < 0.8f && Mathf.Abs(rideVelocity) > 0.5f * carveSpeed;
             if (held && canSlide)
             {
                 slideTime += dt;
@@ -919,7 +939,7 @@ namespace SurfPool
         {
             bool over = false;
             int side = rideVelocity >= 0f ? 1 : -1;
-            if (AirLift <= 0f && rideOffset <= 0.5f && waveLevel != WaveLevel.Beginner
+            if (AirLift <= 0f && rideOffset <= 0.5f && waveLevel != WaveLevel.Beginner && SurfQuiver.Current != BoardKind.Foamie
                 && water.TryGetPocket(rideWave, side, out float pocketZ, out int direction, out _, out _, out bool barrel) && !barrel)
             {
                 float ahead = (rideZ - pocketZ) * direction;
@@ -938,6 +958,50 @@ namespace SurfPool
                 RideFeel.Splash(water, transform.position, 14, 2.4f);
             }
         }
+
+        /// <summary>
+        /// Longboard hang ten: on a small or green wave, trim high without turning and hold W to walk up to the nose.
+        /// HANG FIVE after 1.5 s, HANG TEN after 3 s. Turning (or a Pro wave) sends you back to the tail.
+        /// </summary>
+        void NoseRide(Keyboard keyboard, float steer, bool airborne, float dt)
+        {
+            bool walking = SurfQuiver.CanNoseRide && waveLevel != WaveLevel.Pro && !airborne && Mathf.Abs(steer) < 0.1f
+                && rideOffset < 1.4f && (keyboard.wKey.isPressed || NoseOverride);
+            noseWalk = Mathf.MoveTowards(noseWalk, walking ? 1f : 0f, dt * (walking ? 0.9f : 2f));
+            if (!walking)
+            {
+                noseTime = 0f;
+                return;
+            }
+            float before = noseTime;
+            noseTime += dt;
+            if (before < 1.5f && noseTime >= 1.5f) Trick("HANG FIVE", 100, 0.15f);
+            if (before < 3f && noseTime >= 3f)
+            {
+                Trick("HANG TEN", 200, 0.2f);
+                Surfer.HootForPlayer(pool, transform.position);
+            }
+        }
+
+        /// <summary>For tests: hold W for a nose ride.</summary>
+        public bool NoseOverride { get; set; }
+
+        /// <summary>Puts the chosen board (SurfQuiver) under you and under your stand-in.</summary>
+        void ApplyBoard()
+        {
+            int kind = (int)SurfQuiver.Current;
+            var model = boardModels != null && kind < boardModels.Length ? boardModels[kind] : null;
+            var filter = model != null ? model.GetComponentInChildren<MeshFilter>() : null;
+            if (filter == null) return;
+            var materials = filter.GetComponent<MeshRenderer>().sharedMaterials;
+            surfBoard.GetComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
+            surfBoard.GetComponent<MeshRenderer>().sharedMaterials = materials;
+            surfBoard.transform.localScale = Vector3.one;
+            if (SurfReplay.Instance != null) SurfReplay.Instance.SetBoard(filter.sharedMesh, materials);
+        }
+
+        void OnEnable() => SurfQuiver.Changed += ApplyBoard;
+        void OnDisable() => SurfQuiver.Changed -= ApplyBoard;
 
         /// <summary>
         /// Riding the wave the way real surfers do: along it, just ahead of where it's breaking (the pocket, where
