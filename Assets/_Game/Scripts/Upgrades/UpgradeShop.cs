@@ -123,6 +123,12 @@ namespace SurfPool
                 description = "Wage $8/min. Hands rental boards to renters for you." },
             new Upgrade { id = "snack_cook", category = UpgradeCategory.Staff, title = "Hire Snack Cook", cost = 1500, level = 6, requires = "snack_bar",
                 description = "Wage $6/min. Cooks and serves every snack order at the snack bar for you." },
+            new Upgrade { id = "acai_turbo_blender", category = UpgradeCategory.Park, title = "Turbo Blender", cost = 900, level = 7, requires = "acai_bar",
+                description = "A big chrome blender for the Acai & Shake Shack: shakes blend in less than half the time (and the barista works faster)." },
+            new Upgrade { id = "gear_card_reader", category = UpgradeCategory.Park, title = "Card Reader", cost = 2200, level = 11, requires = "surf_shop",
+                description = "Tap-to-pay at the Surf Gear Shop: items ring up 2.5x faster, and the screen asks for a tip (+$3 on every sale)." },
+            new Upgrade { id = "shaper_power_planer", category = UpgradeCategory.Park, title = "Power Planer", cost = 5000, level = 14, requires = "board_shaper",
+                description = "A heavy-duty planer on a ceiling rail with a dust extractor: blanks shape in half the time (and the apprentice works faster)." },
             new Upgrade { id = "acai_barista", category = UpgradeCategory.Staff, title = "Hire Acai Barista", cost = 1400, level = 7, requires = "acai_bar",
                 description = "Wage $7/min. Makes and serves every bowl and shake at the Acai & Shake Shack (a little slower than you, smaller tips)." },
             new Upgrade { id = "gear_clerk", category = UpgradeCategory.Staff, title = "Hire Shop Clerk", cost = 3000, level = 11, requires = "surf_shop",
@@ -333,6 +339,16 @@ namespace SurfPool
                     break;
                 case "shaper_apprentice":
                     if (shaperApprentice != null) shaperApprentice.SetActive(true);
+                    break;
+                case "acai_turbo_blender":
+                    ParkEffects.BlendTimeMultiplier = 0.4f;
+                    break;
+                case "gear_card_reader":
+                    ParkEffects.ScanTimeMultiplier = 0.4f;
+                    ParkEffects.CardTip = 3;
+                    break;
+                case "shaper_power_planer":
+                    ParkEffects.ShapeTimeMultiplier = 0.5f;
                     break;
                 case "smoothie_bar":
                     ParkEffects.SnackPriceBonus += 8;

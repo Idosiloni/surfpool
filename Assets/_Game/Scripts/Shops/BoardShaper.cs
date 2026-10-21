@@ -53,7 +53,9 @@ namespace SurfPool
 
         public bool JobActive => client != null;
         public Shopper Client => client;
-        public override float JobProgress => blankPlaced && template != null && !shaped && shapeProgress > 0f ? shapeProgress / shapeSeconds : -1f;
+        float ShapeSeconds => shapeSeconds * ParkEffects.ShapeTimeMultiplier;
+        protected override float WorkerSpeedFactor => 0.5f + 0.5f * ParkEffects.ShapeTimeMultiplier;
+        public override float JobProgress => blankPlaced && template != null && !shaped && shapeProgress > 0f ? shapeProgress / ShapeSeconds : -1f;
         public override ShopOrder TicketOrder => client != null ? client.Order : Front?.Order;
         public override string Hint => client != null ? NextStep : Front != null ? "Take their order at the counter (E)" : null;
         /// <summary>The next thing to do on the current job (for the HUD).</summary>
@@ -275,7 +277,7 @@ namespace SurfPool
                 Sfx.Play(Sound.Planer, standTop.position);
             }
             // The blank slims down as you plane it.
-            float t = Mathf.Clamp01(shapeProgress / shapeSeconds);
+            float t = Mathf.Clamp01(shapeProgress / ShapeSeconds);
             if (onStand != null) onStand.transform.localScale = new Vector3(1f - 0.12f * t, 1f - 0.45f * t, 1f - 0.2f * t);
             if (t < 1f) return;
             shaped = true;

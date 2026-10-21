@@ -56,7 +56,9 @@ namespace SurfPool
         public static Color ColorOf(string id) => id == "mango" ? new Color(1f, 0.6f, 0.15f)
             : id == Blend ? new Color(0.62f, 0.4f, 0.75f) : System.Array.Find(Toppings, t => t.id == id).color;
 
-        public override float JobProgress => making == Making.Shake && !blended && blendProgress > 0f ? blendProgress / blendSeconds : -1f;
+        float BlendSeconds => blendSeconds * ParkEffects.BlendTimeMultiplier;
+        protected override float WorkerSpeedFactor => 0.5f + 0.5f * ParkEffects.BlendTimeMultiplier;
+        public override float JobProgress => making == Making.Shake && !blended && blendProgress > 0f ? blendProgress / BlendSeconds : -1f;
 
         public override string Hint
         {
@@ -235,7 +237,7 @@ namespace SurfPool
             if (blendProgress == 0f) Sfx.Play(Sound.Blender, blenderJar != null ? blenderJar.position : workSpot.position);
             blendProgress += deltaTime;
             if (blenderJar != null) blenderJar.localRotation = Quaternion.Euler(0f, Random.Range(-6f, 6f), Random.Range(-3f, 3f));
-            if (blendProgress < blendSeconds) return;
+            if (blendProgress < BlendSeconds) return;
             FinishShake(Front);
         }
 

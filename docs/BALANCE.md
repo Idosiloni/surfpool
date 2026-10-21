@@ -79,6 +79,9 @@ but you only earn it if you raise your base price. The price buttons now say wha
 | Acai & Shake Shack | $1,500 | 6 | Bowl $12 (+$2 per 3rd topping), shake $9 (+$2 per 2nd fruit), + half the snack bonus; tip $4 if served within 12 s of reaching the counter ($2 within 24 s). A customer every 14-24 s. |
 | Surf Gear Shop (was "Surf Shop", same id) | $3,500 | 10 | Shorts $40, rash guard $35, fins $55, leash $25, sunscreen $12, wax $6; 1-3 items per customer; tip $6 within 25 s; extra item brought along sells 50% of the time. A customer every 18-30 s. Still gives the old $15 merch per happy surfer. |
 | Custom Board Shaper | $12,000 | 13 | Funboard $750, shortboard $900, quad fins +$50; 40% deposit up front, rest on hand-over; tip $120 if done within 70 s. A customer every 70-110 s, one board at a time. |
+| Turbo Blender | $900 | 7 | Blending 1.2 s -> 0.5 s, barista 30% faster. Visible: big red TURBO blender. |
+| Card Reader | $2,200 | 11 | Ringing up 2.5x faster, +$3 tip on every gear sale. Visible: tap-to-pay terminal + sign. |
+| Power Planer | $5,000 | 14 | Shaping 4 s -> 2 s, apprentice 25% faster. Visible: planer on a ceiling rail + dust extractor. |
 | Acai Barista | $1,400 + $7/min | 7 | Serves acai orders (7 s each, half tip). |
 | Shop Clerk | $3,000 + $10/min | 11 | Rings up gear orders (9 s each, half tip). |
 | Apprentice Shaper | $9,000 + $30/min | 14 | Takes orders and builds boards (40 s each, third of the tip). |

@@ -127,7 +127,7 @@ namespace SurfPool
                     wanted.done = true;
                     RemoveFromBasket(id);
                     Sfx.Play(Sound.ScanBeep, transform.position);
-                    yield return new WaitForSeconds(0.28f);
+                    yield return new WaitForSeconds(0.28f * ParkEffects.ScanTimeMultiplier);
                 }
                 else leftovers.Add(id);
             }
@@ -148,7 +148,7 @@ namespace SurfPool
             }
             scanning = false;
             if (customer == null || !InLine(customer)) yield break;
-            if (customer.Order.AllDone) Finish(customer, SpeedTip(customer.Order, fullTip, fastSeconds));
+            if (customer.Order.AllDone) Finish(customer, SpeedTip(customer.Order, fullTip, fastSeconds) + ParkEffects.CardTip);
             else
             {
                 var missing = customer.Order.items.Find(i => !i.done);
@@ -243,12 +243,14 @@ namespace SurfPool
             if (basket.Count == 0) PlayerCarry.Instance?.DropShopItem(this);
         }
 
+        protected override float WorkerSpeedFactor => 0.5f + 0.5f * ParkEffects.ScanTimeMultiplier;
+
         protected override bool WorkerServe(Shopper customer)
         {
             if (customer == null || scanning) return false;
             foreach (var item in customer.Order.items) item.done = true;
             Sfx.Play(Sound.ScanBeep, transform.position);
-            Finish(customer, fullTip / 2);
+            Finish(customer, fullTip / 2 + ParkEffects.CardTip);
             return true;
         }
 

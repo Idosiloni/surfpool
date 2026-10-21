@@ -58,6 +58,19 @@ namespace SurfPool.EditorTools
             go.GetComponent<BoxCollider>().size = localSize;
         }
 
+        /// <summary>A shop upgrade's props: a GlowItem under the shop that shows once the upgrade is owned.</summary>
+        static Transform ShopProp(Transform root, string name, string upgrade, Vector3 local)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(root, false);
+            go.transform.localPosition = local;
+            var item = go.AddComponent<GlowItem>();
+            item.fromLevel = 1;
+            item.requires = upgrade;
+            go.SetActive(false);
+            return go.transform;
+        }
+
         /// <summary>The counter's collider: E here serves / rings up / takes orders.</summary>
         static void RegisterBox(Transform root, ShopCounter shop, Vector3 localCenter, Vector3 localSize)
         {
@@ -202,6 +215,12 @@ namespace SurfPool.EditorTools
             Set(bar, "cupModel", CupPrefab());
 
             LineAndWorker(bar, root, L(-0.4f, -1.9f, 0f), L(-0.4f, -7f, 0f), "Acai & Shake Shack", "acai & shakes", 50f, new Vector2(14f, 24f), 7f);
+            // Turbo Blender upgrade: a big chrome blender with a TURBO sticker on the back counter.
+            var turbo = ShopProp(root, "Turbo Blender", "acai_turbo_blender", L(0.35f, 1.1f, 0.995f));
+            var big = WorldArt.Model("BlenderMachine", turbo, turbo.position, AcaiYaw, 1.45f);
+            if (big != null) Recolor(big, "Navy", Mat("TurboRed", new Color(0.9f, 0.18f, 0.2f), 0.6f));
+            Signs.Text("TURBO", turbo, turbo.position + root.rotation * L(0f, -0.16f, 0.13f), AcaiYaw, 0.06f, Color.white, 0.25f);
+
             var barista = Worker(root, bar, "Acai Barista", L(-0.6f, 0.15f, 0f), 180f, new Color(0.55f, 0.3f, 0.65f), skinMat, 7);
             WorldArt.Model("Bench", root, root.TransformPoint(L(3.6f, -2.2f, 0f)), AcaiYaw + 90f);
             root.gameObject.SetActive(false);
@@ -265,6 +284,20 @@ namespace SurfPool.EditorTools
             Set(gear, "basketModel", AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Models/ShopBasket.fbx"));
             Set(gear, "bagModel", AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Models/ShopBag.fbx"));
             Set(gear, "itemMaterial", itemMat);
+
+            // Card Reader upgrade: a tap-to-pay terminal and a sign on the counter.
+            var reader = ShopProp(root, "Card Reader", "gear_card_reader", L(1.75f, -1.3f, 1.06f));
+            var terminal = Box("Card Terminal", reader, reader.position + Vector3.up * 0.08f, new Vector3(0.12f, 0.16f, 0.2f), Mat("MachineNavy", new Color(0.06f, 0.16f, 0.22f), 0.3f));
+            terminal.transform.rotation = root.rotation * Quaternion.Euler(-20f, 0f, 0f);
+            Object.DestroyImmediate(terminal.GetComponent<Collider>());
+            var screen = Box("Card Screen", reader, reader.position + Vector3.up * 0.13f + root.rotation * new Vector3(0f, 0f, -0.035f), new Vector3(0.09f, 0.06f, 0.01f),
+                Mat("LampReady", new Color(0.3f, 1f, 0.5f), 0.6f, new Color(0.4f, 2.2f, 0.8f)));
+            screen.transform.rotation = terminal.transform.rotation;
+            Object.DestroyImmediate(screen.GetComponent<Collider>());
+            var plate = Box("Tap Sign", reader, reader.position + root.rotation * L(0.85f, 0.25f, 0.2f), new Vector3(0.5f, 0.3f, 0.03f), Mat("PropSun", new Color(1f, 0.8f, 0.3f), 0.35f));
+            plate.transform.rotation = root.rotation;
+            Object.DestroyImmediate(plate.GetComponent<Collider>());
+            Signs.Text("TAP TO PAY", reader, plate.transform.position + root.rotation * new Vector3(0f, 0f, -0.02f), GearYaw, 0.08f, new Color(0.06f, 0.16f, 0.22f), 0.45f);
 
             LineAndWorker(gear, root, L(2.3f, -2.05f, 0f), L(2.3f, -7f, 0f), "Surf Gear Shop", "surf gear", 70f, new Vector2(18f, 30f), 9f);
             var clerk = Worker(root, gear, "Shop Clerk", L(2.3f, -0.4f, 0f), 180f, new Color(1f, 0.78f, 0.25f), skinMat, 10);
@@ -359,6 +392,24 @@ namespace SurfPool.EditorTools
             mistMain.loop = false;
             mistMain.duration = 0.6f;
             Set(shaper, "paintMist", mist);
+
+            // Power Planer upgrade: a heavy planer hanging from a ceiling rail over the stand, and a dust extractor.
+            var planer = ShopProp(root, "Power Planer", "shaper_power_planer", L(-0.3f, 0.3f, 0f));
+            var steelMat = Mat("MachineSteel", new Color(0.62f, 0.66f, 0.7f), 0.5f);
+            var rail = Box("Planer Rail", planer, planer.position + Vector3.up * 2.9f, new Vector3(2.6f, 0.08f, 0.08f), steelMat);
+            rail.transform.rotation = root.rotation;
+            Object.DestroyImmediate(rail.GetComponent<Collider>());
+            var cable = Box("Planer Cable", planer, planer.position + Vector3.up * 2.35f, new Vector3(0.03f, 1.1f, 0.03f), Mat("MachineNavy", new Color(0.06f, 0.16f, 0.22f), 0.3f));
+            Object.DestroyImmediate(cable.GetComponent<Collider>());
+            var tool = Box("Power Planer Body", planer, planer.position + Vector3.up * 1.72f, new Vector3(0.5f, 0.22f, 0.24f), Mat("PropSun", new Color(1f, 0.8f, 0.3f), 0.35f));
+            tool.transform.rotation = root.rotation;
+            Object.DestroyImmediate(tool.GetComponent<Collider>());
+            var extractor = Box("Dust Extractor", planer, root.TransformPoint(L(-2.9f, 1.6f, 0.45f)), new Vector3(0.7f, 0.9f, 0.7f), Mat("PropCoral", new Color(0.95f, 0.38f, 0.42f), 0.35f));
+            extractor.transform.rotation = root.rotation;
+            var hose = Cylinder("Extractor Hose", planer, Vector3.Lerp(root.TransformPoint(L(-2.9f, 1.6f, 0.95f)), planer.position + Vector3.up * 1.8f, 0.5f),
+                new Vector3(0.12f, Vector3.Distance(root.TransformPoint(L(-2.9f, 1.6f, 0.95f)), planer.position + Vector3.up * 1.8f) / 2f, 0.12f),
+                Quaternion.FromToRotation(Vector3.up, planer.position + Vector3.up * 1.8f - root.TransformPoint(L(-2.9f, 1.6f, 0.95f))), Mat("Duct", new Color(0.3f, 0.62f, 0.86f), 0.45f));
+            Object.DestroyImmediate(hose.GetComponent<Collider>());
 
             LineAndWorker(shaper, root, L(2.3f, -2.9f, 0f), L(2.3f, -8f, 0f), "Custom Boards", "custom boards", 60f, new Vector2(70f, 110f), 40f);
             var apprentice = Worker(root, shaper, "Apprentice Shaper", L(1.0f, 0.3f, 0f), -90f, new Color(0.35f, 0.6f, 0.95f), skinMat, 30);

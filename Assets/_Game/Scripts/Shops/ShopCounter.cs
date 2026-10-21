@@ -51,7 +51,7 @@ namespace SurfPool
         public bool StaffOnDuty => worker != null && worker.activeInHierarchy;
         /// <summary>0..1 progress of the worker's current order (for the HUD), or -1 when not working.</summary>
         public float WorkerProgress => StaffOnDuty && workerServing != null && workerServing == Front
-            ? Mathf.Clamp01(1f - (workerDoneAt - Time.time) / (workerTime * StaffMember.TimeFactor(worker))) : -1f;
+            ? Mathf.Clamp01(1f - (workerDoneAt - Time.time) / WorkerSeconds) : -1f;
 
         protected virtual void OnEnable() => All.Add(this);
 
@@ -117,6 +117,11 @@ namespace SurfPool
         /// <summary>The worker finishes the front customer's whole order. Return false if there was nothing to do.</summary>
         protected abstract bool WorkerServe(Shopper shopper);
 
+        /// <summary>Upgrades that speed the job up speed the worker up too (1 = normal).</summary>
+        protected virtual float WorkerSpeedFactor => 1f;
+
+        float WorkerSeconds => workerTime * StaffMember.TimeFactor(worker) * WorkerSpeedFactor;
+
         /// <summary>Who the hired worker is busy with (the HUD shows their progress), if anyone.</summary>
         protected virtual Shopper WorkerTarget => Front;
 
@@ -127,7 +132,7 @@ namespace SurfPool
             if (target != workerServing)
             {
                 workerServing = target;
-                workerDoneAt = Time.time + workerTime * StaffMember.TimeFactor(worker);
+                workerDoneAt = Time.time + WorkerSeconds;
             }
             if (workerServing == null || Time.time < workerDoneAt) return;
             if (WorkerServe(workerServing)) StaffMember.RecordWork(worker);

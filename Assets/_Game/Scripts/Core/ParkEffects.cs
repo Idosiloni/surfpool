@@ -44,6 +44,12 @@ namespace SurfPool
         /// <summary>Added to the snack price (Bigger Snack Menu, id smoothie_bar); acai shakes get half.</summary>
         public static int SnackPriceBonus;
 
+        /// <summary>Shop speed-ups: blending (Turbo Blender), ringing up gear (Card Reader), planing boards (Power Planer).</summary>
+        public static float BlendTimeMultiplier = 1f, ScanTimeMultiplier = 1f, ShapeTimeMultiplier = 1f;
+
+        /// <summary>Added to every gear shop tip (Card Reader: the card screen asks for a tip).</summary>
+        public static int CardTip;
+
         /// <summary>Multiplies how often surfers drop litter. Trash Cans lower it.</summary>
         public static float LitterMultiplier = 1f;
 
@@ -61,6 +67,8 @@ namespace SurfPool
             WaterCostMultiplier = 1f;
             LitterMultiplier = 1f;
             SnackPriceBonus = 0;
+            BlendTimeMultiplier = ScanTimeMultiplier = ShapeTimeMultiplier = 1f;
+            CardTip = 0;
             FamousWavesUnlocked = false;
             BeachPassesOpen = false;
             FishingTensionMultiplier = 1f;
