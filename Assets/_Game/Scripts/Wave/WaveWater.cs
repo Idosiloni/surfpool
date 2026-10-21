@@ -24,7 +24,7 @@ namespace SurfPool
         [SerializeField] WaveType[] waveTypes =
         {
             new() { level = WaveLevel.Beginner, height = 1.0f, speed = 5f, frontWidth = 3.2f, backWidth = 3f,
-                breakAt = 0.22f, closeout = true, whitewashHeight = 0.4f },
+                breakAt = 0.22f, closeout = true, whitewashHeight = 0.5f },
             new() { level = WaveLevel.Intermediate, height = 2.0f, speed = 7f, frontWidth = 2.0f, backWidth = 8f,
                 breakAt = 0.25f, peelSpeed = 2.6f, whitewashHeight = 0.45f },
             new() { level = WaveLevel.Pro, height = 2.8f, speed = 8.5f, frontWidth = 1.4f, backWidth = 9f,
@@ -587,7 +587,7 @@ namespace SurfPool
         /// <summary>What one wave does at one column (x) this frame: the shapes that only need the distance to the crest.</summary>
         struct ColTerms
         {
-            public float d, backG, tail, boreFront, ballShape, bandShape, trailShape, lip, faceShape;
+            public float d, backG, tail, boreFront, ballShape, bandShape, spillShape, trailShape, lip, faceShape;
         }
 
         RowTerms Row(in WaveState state, float z)
@@ -621,7 +621,7 @@ namespace SurfPool
             var c = new ColTerms();
             float d = c.d = x - state.center;
             float tail = (state.type.closeout ? 2.5f : 3f) * (1f - 0.5f * state.beachBreak);
-            float boreFront = state.type.closeout ? 1.4f : Mathf.Clamp(0.45f * state.type.frontWidth, 0.9f, 1.4f);
+            float boreFront = state.type.closeout ? 1.2f : Mathf.Clamp(0.45f * state.type.frontWidth, 0.9f, 1.4f);
             if (d <= 0f)
             {
                 c.backG = Mathf.Exp(-(d / state.back) * (d / state.back));
@@ -632,6 +632,8 @@ namespace SurfPool
             float bd = (d - 0.4f) / 1.4f, fd = (d - 0.2f) / 0.9f, face = (d - 0.9f) / 1.2f;
             c.ballShape = Mathf.Exp(-bd * bd);
             c.bandShape = Mathf.Exp(-fd * fd);
+            float sd = (d + 0.3f) / 0.95f; // spilling foam sits on the crest and just behind it, the face stays green
+            c.spillShape = Mathf.Exp(-sd * sd);
             c.lip = Mathf.Exp(-(d / 1.2f) * (d / 1.2f)) * 0.7f;
             c.faceShape = Mathf.Exp(-face * face) * 0.35f;
             return c;
@@ -663,10 +665,17 @@ namespace SurfPool
             // Foam: a fat ball where it just broke, a thin band on the bore's front, a short tail. The lace left behind
             // comes from foam memory (it stays where it was made while the bore moves on).
             float strength = Mathf.Clamp01(state.amplitude / 2f) + (state.type.closeout ? 0.3f : 0.2f);
-            float fresh = r.broken * Mathf.Max(r.ball * c.ballShape, Mathf.Max(r.frontFoam * c.bandShape, r.trailFoam * c.trailShape)) * strength;
+            // Small (beginner) waves spill: foam tumbles over the top while a little green face stays below it.
+            float ballShape = state.type.closeout ? c.spillShape : c.ballShape;
+            float bandShape = state.type.closeout ? c.spillShape : c.bandShape;
+            float fresh = r.broken * Mathf.Max(r.ball * ballShape, Mathf.Max(r.frontFoam * bandShape, r.trailFoam * c.trailShape)) * strength;
             fresh = Mathf.Max(fresh, state.beachBreak * 0.6f * c.bandShape); // swash: it whitens as it washes up the beach
             foam = Mathf.Max(fresh, r.mask * c.lip);
-            face = (1f - r.broken) * c.faceShape * r.shoulder;
+            // Lip light (vertex G): the top of the face is thin water lit from behind, bright aqua; the lower face stays
+            // dark. Strongest at the crest of the clean wave, a little on a spilling bore's front too.
+            float lipG = d > 0f ? Mathf.Pow(shapeG, 2.5f) : Mathf.Pow(c.backG, 8f);
+            float lipB = d > 0f ? Mathf.Pow(shapeB, 3f) * 0.6f : 0f;
+            face = Mathf.Lerp((1f - r.broken) * lipG * r.shoulder, lipB, r.hb) * Mathf.Clamp01(state.amplitude * 0.8f);
         }
 
         float LocalHeight(float x, float z, float t)

@@ -1,5 +1,5 @@
 // Cartoon water for the wave pool (URP).
-// Vertex color (written by WaveWater every frame): R = foam amount, G = extra brightness on wave faces,
+// Vertex color (written by WaveWater every frame): R = foam amount, G = lip light (the thin, sunlit top of a wave),
 // B = shallowness (pale aqua over the shallow beach end), A = foam freshness (old foam breaks into lace).
 // Steep faces turn a lighter teal and glow when the sun shines through them from behind (like real pool waves),
 // foam is broken up by moving noise, lighting is soft-stepped like a toon shader.
@@ -8,7 +8,9 @@ Shader "SurfPool/StylizedWater"
     Properties
     {
         _DeepColor ("Deep water", Color) = (0.04, 0.36, 0.72, 1)
-        _FaceColor ("Wave face", Color) = (0.12, 0.76, 0.82, 1)
+        _FaceColor ("Wave face (rim)", Color) = (0.12, 0.76, 0.82, 1)
+        _FaceDark ("Lower wave face", Color) = (0.02, 0.27, 0.45, 1)
+        _LipColor ("Lip (thin, lit from behind)", Color) = (0.42, 0.95, 0.86, 1)
         _ShallowColor ("Shallow water", Color) = (0.38, 0.86, 0.84, 1)
         _GlowColor ("Sunlit face glow", Color) = (0.45, 1.0, 0.82, 1)
         _GlowStrength ("Sunlit face glow strength", Range(0, 2)) = 0.9
@@ -43,6 +45,8 @@ Shader "SurfPool/StylizedWater"
             CBUFFER_START(UnityPerMaterial)
                 half4 _DeepColor;
                 half4 _FaceColor;
+                half4 _FaceDark;
+                half4 _LipColor;
                 half4 _ShallowColor;
                 half4 _GlowColor;
                 half _GlowStrength;
@@ -107,10 +111,13 @@ Shader "SurfPool/StylizedWater"
                 normal = IS_FRONT_VFACE(face, normal, -normal);
                 float3 viewDir = GetWorldSpaceNormalizeViewDir(input.positionWS);
 
-                // Steeper wave faces are lighter and greener, like light shining through the wave.
-                half steep = saturate((1.0 - normal.y) * 2.2 + input.color.g);
+                // A wave face is dark low down (you look into deep water) and bright aqua at the top, where the lip is
+                // thin and the light comes through it (vertex G from WaveWater).
+                half steep = saturate((1.0 - normal.y) * 2.2);
+                half lip = saturate(input.color.g);
                 half3 deep = lerp(_DeepColor.rgb, _ShallowColor.rgb, input.color.b);
-                half3 water = lerp(deep, _FaceColor.rgb, steep);
+                half3 water = lerp(deep, _FaceDark.rgb, steep * 0.85 * (1.0 - lip));
+                water = lerp(water, _LipColor.rgb, smoothstep(0.05, 0.7, lip));
                 water = lerp(water, _TubeColor.rgb, inside * 0.7);
 
                 // Foam from the vertex color, broken into cartoon blobs by two layers of moving noise. Old foam
@@ -137,7 +144,7 @@ Shader "SurfPool/StylizedWater"
                 // Sun shining through a steep, thin face from behind it: a bright lagoon glow (strongest near the
                 // top, where the water is thinnest).
                 half behind = pow(saturate(dot(viewDir, -mainLight.direction) * 0.5 + 0.5), 3.0);
-                half thin = saturate(steep * 1.4 - 0.25) * saturate(0.5 + input.color.g * 1.5);
+                half thin = saturate(lip * 1.6) * saturate(0.4 + steep);
                 color += _GlowColor.rgb * mainLight.color * behind * thin * _GlowStrength * (1.0 - foam) * shadow;
 
                 // Hard-edged sun sparkle and a light rim at grazing angles, both only on open water.
