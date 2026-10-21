@@ -671,11 +671,11 @@ namespace SurfPool
             float fresh = r.broken * Mathf.Max(r.ball * ballShape, Mathf.Max(r.frontFoam * bandShape, r.trailFoam * c.trailShape)) * strength;
             fresh = Mathf.Max(fresh, state.beachBreak * 0.6f * c.bandShape); // swash: it whitens as it washes up the beach
             foam = Mathf.Max(fresh, r.mask * c.lip);
-            // Lip light (vertex G): the top of the face is thin water lit from behind, bright aqua; the lower face stays
-            // dark. Strongest at the crest of the clean wave, a little on a spilling bore's front too.
-            float lipG = d > 0f ? Mathf.Pow(shapeG, 2.5f) : Mathf.Pow(c.backG, 8f);
-            float lipB = d > 0f ? Mathf.Pow(shapeB, 3f) * 0.6f : 0f;
-            face = Mathf.Lerp((1f - r.broken) * lipG * r.shoulder, lipB, r.hb) * Mathf.Clamp01(state.amplitude * 0.8f);
+            // Height up the wave (vertex G, 0 = trough, 1 = crest): the shader colors the face by it, dark low down
+            // (deep water seen through) to bright aqua at the thin top lit from behind (docs/research/wave-look-2.md).
+            // Tiny swells stay plain water.
+            face = Mathf.Lerp(shapeG * r.shoulder, shapeB * r.boreMult / Mathf.Max(0.3f, state.type.whitewashHeight + 0.3f), r.hb)
+                * Mathf.Clamp01(state.amplitude * 0.8f);
         }
 
         float LocalHeight(float x, float z, float t)
@@ -746,47 +746,69 @@ namespace SurfPool
         /// toward its tip (a "curvature profile"), and how long and how hooked it is follows the section's age:
         /// barely pitching far ahead of the break, thrown out and hooked over (the tube) near it, landing at it.
         /// </summary>
+        readonly List<Vector3> lipInnerVerts = new();
+        readonly List<Color> lipInnerColors = new();
+
         void AddLipStrip(in WaveState state, int direction, float t)
         {
             const int along = 20, across = 10;
             float bp = BreakPoint(state, direction);
             if (Mathf.Abs(bp) > HalfWidth - 0.5f) return;
             float limit = HalfWidth - 0.3f;
-            int first = lipVertices.Count;
             float grown = Mathf.Clamp01(state.breakDistance / 1.5f); // the first lip grows in as the wave starts to break
+            // The lip starts to pitch about 1.5 s of peel ahead of where it lands (docs/research/wave-look-2.md).
+            float length = Mathf.Max(lipLength, state.type.peelSpeed * 1.5f);
+            int row = across + 1;
+            int outer = lipVertices.Count, inner = outer + (along + 1) * row;
+            var innerVerts = lipInnerVerts;
+            var innerColors = lipInnerColors;
+            innerVerts.Clear();
+            innerColors.Clear();
 
             for (int i = 0; i <= along; i++)
             {
                 float s = i / (float)along;
-                float z = Mathf.Clamp(bp + direction * s * lipLength, -limit, limit);
+                float z = Mathf.Clamp(bp + direction * s * length, -limit, limit);
                 // Section age: 0.8 = landing at the break point, 0 = just starting to pitch at the far end.
                 float tau = 0.8f * (1f - s) * grown;
                 LipShape(tau, out float lengthA, out float hookDeg);
                 float reach = lengthA * state.amplitude;
                 float top = LocalHeight(state.center, z, t);
                 var p = new Vector3(state.center - 0.3f, top, z);
+                float theta = 0f;
                 for (int k = 0; k <= across; k++)
                 {
                     float u = k / (float)across;
                     if (k > 0)
                     {
                         // Bends down more toward the tip (power > 1: straight throw, then it hooks).
-                        float theta = Mathf.Deg2Rad * hookDeg * Mathf.Pow(u, 1.4f);
+                        theta = Mathf.Deg2Rad * hookDeg * Mathf.Pow(u, 1.4f);
                         p += new Vector3(Mathf.Cos(theta), -Mathf.Sin(theta), 0f) * (reach / across);
                     }
+                    // The thrown sheet has thickness: thick at the root, thin at the tip. Its inner skin (the roof of
+                    // the tube) sits under it toward the curl's center and stays darker.
+                    float thick = 0.14f * state.amplitude * (1f - 0.75f * u) * Mathf.Clamp01(lengthA * 3f);
+                    var under = p + new Vector3(-Mathf.Sin(theta), -Mathf.Cos(theta), 0f) * thick;
                     lipVertices.Add(p);
-                    // Foam at the thrown tip, a little along the lip as it curls.
-                    lipColors.Add(new Color(k == across ? 0.9f : 0.12f * tau, 0.35f + 0.25f * u, 0f, 1f));
+                    innerVerts.Add(under);
+                    // Foam feathers off the thrown tip; the outer sheet is the thinnest, brightest water on the wave.
+                    float foam = k == across ? 0.95f : k == across - 1 ? 0.45f * tau : 0.1f * tau;
+                    lipColors.Add(new Color(foam, 0.92f + 0.08f * u, 0f, 1f));
+                    innerColors.Add(new Color(foam * 0.8f, 0.3f + 0.3f * u, 0f, 1f));
                 }
             }
+            lipVertices.AddRange(innerVerts);
+            lipColors.AddRange(innerColors);
 
-            int row = across + 1;
             for (int i = 0; i < along; i++)
             for (int k = 0; k < across; k++)
             {
-                int a = first + i * row + k;
+                int a = outer + i * row + k;
                 lipTriangles.Add(a); lipTriangles.Add(a + row); lipTriangles.Add(a + 1);
                 lipTriangles.Add(a + 1); lipTriangles.Add(a + row); lipTriangles.Add(a + row + 1);
+                int b = inner + i * row + k; // the inner skin faces the other way
+                lipTriangles.Add(b); lipTriangles.Add(b + 1); lipTriangles.Add(b + row);
+                lipTriangles.Add(b + 1); lipTriangles.Add(b + row + 1); lipTriangles.Add(b + row);
             }
         }
 
