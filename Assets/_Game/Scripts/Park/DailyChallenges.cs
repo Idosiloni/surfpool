@@ -60,6 +60,13 @@ namespace SurfPool
             if (shop.IsOwned("board_shaper")) options.Add(() => Make("Shape 2 custom boards", () => GameStats.CustomBoards, 2));
             if (shop.IsOwned("intermediate_waves")) options.Add(() => Make($"See {6 + day} tricks", () => GameStats.TricksLanded, 6 + day));
             if (shop.IsOwned("pro_waves")) options.Add(() => Make("See 3 tube rides", () => GameStats.TubeRides, 3));
+            // Your own surfing: the moves follow the wave (no tricks on whitewater), so these need green waves.
+            if (shop.IsOwned("intermediate_waves"))
+            {
+                options.Add(() => Make($"Land {4 + day / 3} moves yourself", () => GameStats.PlayerTricks, 4 + day / 3));
+                options.Add(() => Make("Get a 5+ from the judges", () => GameStats.PlayerGoodRides, 1));
+            }
+            if (shop.IsOwned("pro_waves")) options.Add(() => Make("Land a spin in the air", () => GameStats.PlayerSpins, 1));
             for (int i = 0; i < 3 && options.Count > 0; i++)
             {
                 int pick = UnityEngine.Random.Range(0, options.Count);

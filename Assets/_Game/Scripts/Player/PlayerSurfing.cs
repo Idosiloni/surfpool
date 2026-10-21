@@ -608,6 +608,7 @@ namespace SurfPool
             movesThisRide.TryGetValue(kind, out int done);
             movesThisRide[kind] = done + 1;
             points = Mathf.RoundToInt(points * Mathf.Pow(0.65f, done));
+            if (kind != "PARTY WAVE") GameStats.PlayerTricks++;
             if (PowerMoves.Contains(kind) || kind.Contains("ROTATION") || kind.Contains("REVERSE") || kind.Contains("540")) powerPoints += points;
             comboCount++;
             comboPoints += points;
@@ -881,6 +882,7 @@ namespace SurfPool
             spin = Mathf.DeltaAngle(0f, spin);
             int degrees = Mathf.RoundToInt(Mathf.Abs(halves) * 180f);
             biggestSpin = Mathf.Max(biggestSpin, degrees);
+            if (degrees >= 180) GameStats.PlayerSpins++;
             if (degrees >= 180)
             {
                 string name = degrees switch { 180 => "AIR REVERSE 180", 360 => "FULL ROTATION 360", 540 => "540!!", _ => $"{degrees}!!!" };
@@ -1055,6 +1057,7 @@ namespace SurfPool
             float judges = 0f;
             for (int i = 0; i < 3; i++) judges += Mathf.Clamp(raw + UnityEngine.Random.Range(-0.25f, 0.25f), 0.1f, cap);
             float final = Mathf.Round(judges / 3f * 100f) / 100f;
+            if (final >= 5f) GameStats.PlayerGoodRides++;
             System.Array.Sort(parts, (a, b) => (b.value * b.weight).CompareTo(a.value * a.weight));
             string praise = parts[0].value * parts[0].weight < 0.5f ? "Keep at it!" : parts[1].value * parts[1].weight < 0.5f
                 ? $"Big on {parts[0].word}" : $"Big on {parts[0].word} and {parts[1].word}";
