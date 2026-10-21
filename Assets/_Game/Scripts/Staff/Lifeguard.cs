@@ -11,6 +11,9 @@ namespace SurfPool
         static Lifeguard onDuty;
         float nextWhistle;
 
+        /// <summary>The lifeguard's tower, if one is hired (they throw rescue rings from it).</summary>
+        public static Transform OnDuty => onDuty != null ? onDuty.transform : null;
+
         /// <summary>The lifeguard (if hired) blows the whistle from the tower: wipeouts, closing time.</summary>
         public static void Whistle()
         {

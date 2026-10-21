@@ -802,6 +802,42 @@ def photo_wall(name="PhotoWall"):
     return join(name, parts)
 
 
+# ================================================================ rescue ring (kook rescue)
+
+def rescue_ring(name="RescueRing"):
+    """Red ring buoy with four white bands, 0.72 m across, standing upright with the hole facing -Y. Pivot at its
+    center (it's held and thrown)."""
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.29, minor_radius=0.075, location=(0, 0, 0),
+                                     rotation=(math.radians(90), 0, 0), major_segments=24, minor_segments=8)
+    ring = bpy.context.active_object
+    ring.name = "Ring"
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    ring.data.materials.clear()
+    ring.data.materials.append(material("Red"))
+    ring.data.materials.append(material("White"))
+    for poly in ring.data.polygons:
+        c = poly.center
+        angle = (math.degrees(math.atan2(c.z, c.x)) + 360.0) % 90.0
+        poly.material_index = 1 if 37.5 <= angle < 52.5 else 0  # four white bands at 45, 135, 225, 315 degrees
+        poly.use_smooth = True
+    parts = [ring]
+    # A rope loop around the outside, held on at the bands.
+    rope = torus("Rope", 0.37, 0.012, (0, 0, 0), "Cork", rotation=(math.radians(90), 0, 0), major_segments=24, minor_segments=4)
+    parts.append(rope)
+    return join(name, parts)
+
+
+def rescue_post(name="RescuePost"):
+    """1.7 m wooden post with a peg for the ring (ring center at (0, -0.12, 1.25)) and a coral RESCUE plate on top."""
+    parts = [
+        box("Post", (0.14, 0.14, 1.7), (0, 0.0, 0.85), "Wood"),
+        box("Foot", (0.4, 0.4, 0.08), (0, 0.0, 0.04), "DarkWood"),
+        cylinder("Peg", 0.025, 0.2, (0, -0.1, 1.48), "Steel", vertices=6, rotation=(math.radians(90), 0, 0)),
+        box("Plate", (0.5, 0.04, 0.16), (0, -0.08, 1.62), "Coral"),
+    ]
+    return join(name, parts)
+
+
 # ================================================================ build + export
 
 MODELS = (
@@ -818,6 +854,7 @@ MODELS = (
     machine_chamber, chamber_piston, valve_wheel, blower_unit, blower_fan, pressure_dial, dial_needle,
     control_cabin, air_tank, timer_clock, famous_board, reef_switch, status_lamp,
     photo_tower, camera_tripod, photo_kiosk, photo_wall,
+    rescue_ring, rescue_post,
 )
 
 

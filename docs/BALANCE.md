@@ -116,3 +116,8 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
 ## Sneak-ins (2026-10-21, proposal)
 - From day 2, one sneak-in every 2.5-5 minutes while the park is open (one at a time). Catching one: +20 XP.
   Missing one costs nothing directly: they take waves and a lineup spot from paying surfers, then brag.
+
+## Kook rescue (2026-10-21, proposal)
+- 12% of beginner wipeouts turn into "HELP!" (one at a time, at least 60 s apart). 25 s to throw a ring.
+- Saved: +25 XP, they finish happy-ish and write a 4-5 star review. Not saved: they leave angry (counts as lost),
+  a 0-star mark on the rating, and a 1-star review. A hired lifeguard throws after 6 s.

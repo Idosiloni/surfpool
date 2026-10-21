@@ -14,7 +14,7 @@ namespace SurfPool
         [SerializeField] float reach = 3.5f;
         [Tooltip("How far off the crosshair (meters) something can be and still be picked.")]
         [SerializeField] float aimAssist = 0.4f;
-        [Tooltip("How far away you can whistle at a sneak-in to kick them out.")]
+        [Tooltip("How far away you can whistle at a sneak-in or throw a rescue ring.")]
         [SerializeField] float whistleRange = 30f;
 
         readonly RaycastHit[] hits = new RaycastHit[24];
@@ -27,7 +27,7 @@ namespace SurfPool
             if (InputBlocker.Blocked) return;
             if (PlayerSurfing.Instance != null && PlayerSurfing.Instance.IsSurfing) return;
             if (BuildMode.Active) return;
-            Target = FindTarget() ?? FarSneaker();
+            Target = FindTarget();
 
             if (Target == null) return;
             var keyboard = Keyboard.current;
@@ -56,6 +56,10 @@ namespace SurfPool
                 blockedAt = direct.distance; // a wall or counter: nothing behind it counts
             }
 
+            // Aiming right at a sneak-in or a surfer in trouble (far away, in the water) beats the aim assist below.
+            var far = FarSurfer();
+            if (far != null) return far;
+
             // Then anything usable close to the crosshair, nearest to the aim line wins.
             int count = Physics.SphereCastNonAlloc(ray, aimAssist, hits, reach, ~0, QueryTriggerInteraction.Ignore);
             IInteractable best = null;
@@ -80,17 +84,17 @@ namespace SurfPool
         }
 
         /// <summary>
-        /// A sneak-in near the crosshair, up to <see cref="whistleRange"/> away (you can't reach people in the water,
-        /// so you point and whistle). Something solid in between blocks it.
+        /// A sneak-in or a surfer in trouble near the crosshair, up to <see cref="whistleRange"/> away (you can't reach
+        /// people in the water, so you point and whistle, or throw a ring). Something tall in between blocks it.
         /// </summary>
-        IInteractable FarSneaker()
+        IInteractable FarSurfer()
         {
             Surfer best = null;
             float bestOff = 0.07f;
             var cam = playerCamera;
             foreach (var surfer in Surfer.All)
             {
-                if (!surfer.IsSneaking) continue;
+                if (!surfer.WantsFarAttention) continue;
                 Vector3 point = surfer.transform.position + Vector3.up * 1.2f;
                 Vector3 v = cam.WorldToViewportPoint(point);
                 if (v.z <= 0f || v.z > whistleRange) continue;
@@ -104,7 +108,8 @@ namespace SurfPool
         }
 
         /// <summary>
-        /// Nothing tall (a kiosk, a wall, the machine) in the way. The ground, the deck and the pool rim don't count:
+        /// Nothing tall you can see (a kiosk, a wall, the machine) in the way. The ground, the deck, the pool rim and
+        /// invisible blockers don't count:
         /// from the deck a surfer down in the pool is hidden by the edge, but their speech bubble isn't.
         /// </summary>
         bool CanSee(Vector3 point, Surfer surfer)
@@ -116,6 +121,7 @@ namespace SurfPool
                 var collider = hits[i].collider;
                 if (collider.GetComponentInParent<FirstPersonController>() != null || collider.transform.IsChildOf(surfer.transform)) continue;
                 if (hits[i].point.y < 0.4f) continue;
+                if (collider.GetComponentInChildren<Renderer>() == null) continue; // invisible blockers (pool edge rails)
                 return false;
             }
             return true;

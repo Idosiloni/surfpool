@@ -12,7 +12,7 @@ namespace SurfPool
         public bool famous;
         public float arrivedAt, paidAt = -1f;
         public int barrels, tricks, wipeouts, spent, tip, photoGrade = -1;
-        public bool droppedInOn, droppedIn;
+        public bool droppedInOn, droppedIn, rescued;
         public string rodeWith;      // a legend they shared the water with
         public string angry;         // why they left angry (null if they didn't)
         public float happiness;
@@ -88,7 +88,8 @@ namespace SurfPool
             {
                 r.stars = 1;
                 r.interest = 2;
-                r.text = v.angry.Contains("expensive") ? Pick("Way too pricey for a pool!", "My wallet is crying.", "Ever heard of a discount?")
+                r.text = v.angry.Contains("helped") ? Pick("I was splashing and yelling HELP. Nobody came.", "Swallowed half the pool. Zero help.")
+                    : v.angry.Contains("expensive") ? Pick("Way too pricey for a pool!", "My wallet is crying.", "Ever heard of a discount?")
                     : v.angry.Contains("waves") ? Pick("Paid for waves, got a very expensive bath.", "I sat on my board for AGES. No waves.", "Flat. Flat flat flat.")
                     : v.angry.Contains("board") ? Pick("Waited forever for a rental board. Gave up.", "Board rental? More like board NEVER-tal.")
                     : Pick("Stood in line forever. Never even got wet.", "The line was longer than the pool.", "I aged ten years in that line.");
@@ -97,7 +98,14 @@ namespace SurfPool
 
             float h = v.happiness;
             r.stars = h > 0.9f ? 5 : h > 0.75f ? 4 : h > 0.5f ? 3 : h > 0.3f ? 2 : 1;
-            if (v.famous)
+            if (v.rescued)
+            {
+                r.interest = 3;
+                r.stars = Mathf.Max(r.stars, 4);
+                r.text = Pick("Got tired, panicked, got saved with a ring buoy. Heroes work here!", "They threw me a ring! Best staff ever.",
+                    "Almost became a fish. 10/10 rescue.");
+            }
+            else if (v.famous)
             {
                 r.interest = 3;
                 r.text = Pick("Fine little wave pool. I'll tell my friends.", "Your pool's got juice!", "Respect. Strong waves.");

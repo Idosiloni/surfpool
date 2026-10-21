@@ -151,6 +151,25 @@ namespace SurfPool.EditorTools
         /// The surf photographer (upgrade photo_tower): a photo tower on the main pool's north-east deck with a camera
         /// you look through, and the photo kiosk with the Wall of Fame by the exit. Hidden until bought.
         /// </summary>
+        /// <summary>Two red posts with ring buoys on the main pool's south deck, for rescuing tired beginners.</summary>
+        static void BuildRescuePosts()
+        {
+            var root = new GameObject("Rescue Posts").transform;
+            foreach (float x in new[] { 9f, 31f })
+            {
+                var at = new Vector3(x, 0f, -13.2f);
+                var post = WorldArt.Model("RescuePost", root, at, 0f);
+                post.name = "Rescue Post";
+                var ring = WorldArt.Model("RescueRing", post.transform, at + new Vector3(0f, 1.2f, -0.16f), 0f);
+                ring.name = "Ring";
+                var box = post.AddComponent<BoxCollider>();
+                box.center = new Vector3(0f, 0.95f, -0.1f);
+                box.size = new Vector3(0.8f, 1.9f, 0.5f);
+                var usable = post.AddComponent<RescuePost>();
+                Set(usable, "ringOnPost", ring);
+            }
+        }
+
         static GameObject BuildPhotoSpot()
         {
             var root = new GameObject("Surf Photographer").transform;

@@ -16,7 +16,7 @@ namespace SurfPool
         enum State
         {
             WalkingIn, InDeskLine, WalkingToRental, InRentalLine, WalkingToPool, Paddling, WaitingForWave,
-            Riding, Wipeout, PaddlingBack, SwimmingToBeach, WalkingOut, WalkingToSnack, InSnackLine,
+            Riding, Wipeout, PaddlingBack, SwimmingToBeach, WalkingOut, WalkingToSnack, InSnackLine, InTrouble,
         }
 
         enum Pose { Walk, Paddle, Ride, Wipeout, Straddle }
@@ -152,7 +152,7 @@ namespace SurfPool
         string WantedWave => Skill == WaveLevel.Beginner
             ? "any wave"
             : $"{(Skill == WaveLevel.Intermediate ? "an" : "a")} {Skill} {PreferredDirection.ToString().ToLowerInvariant()}";
-        public bool ShowPatience => state is State.InDeskLine or State.InRentalLine or State.WaitingForWave;
+        public bool ShowPatience => state is State.InDeskLine or State.InRentalLine or State.WaitingForWave or State.InTrouble;
         public float Patience => patience;
 
         /// <summary>Short text shown above the surfer's head.</summary>
@@ -192,6 +192,7 @@ namespace SurfPool
             get
             {
                 if (IsSneaking) return "Kick out the sneak-in!";
+                if (InTrouble) return RescuePost.Holder != null ? "Throw the rescue ring!" : "In trouble! Grab a ring from a red post";
                 if (!WaitingForBoard) return null;
                 var carry = PlayerCarry.Instance;
                 return carry != null && carry.HasBoard
@@ -205,6 +206,12 @@ namespace SurfPool
             if (IsSneaking)
             {
                 ThrowOut();
+                return;
+            }
+            if (InTrouble)
+            {
+                if (RescuePost.Holder != null && Camera.main != null)
+                    RescuePost.ThrowAt(this, Camera.main.transform.position + Camera.main.transform.forward * 0.6f);
                 return;
             }
             var carry = PlayerCarry.Instance;
@@ -376,6 +383,89 @@ namespace SurfPool
             lookUntil = Time.time + 1.2f;
         }
 
+        // ---- kook rescue (KookRescue): tired beginners who need a ring buoy ----
+        float troubleStart, nextHelpShout;
+        bool rescued, lifeguardThrew;
+
+        static readonly string[] HelpLines = { "HELP!", "Help meee!", "I'm SO tired!", "Where's the bottom?!", "Lifeguaaard!" };
+        static readonly string[] ThanksLines = { "Thank you!! You're a hero!", "I owe you one!", "Okay... I'm done for today. THANK YOU!" };
+
+        public bool InTrouble => state == State.InTrouble;
+
+        /// <summary>Something the player can whistle or throw at from far away (a sneak-in, a surfer in trouble).</summary>
+        public bool WantsFarAttention => IsSneaking || InTrouble;
+
+        bool MaybeGetInTrouble()
+        {
+            if (Skill != WaveLevel.Beginner || sneaking || Famous != null || rescued || angry || !KookRescue.CanStart
+                || Random.value > KookRescue.Chance) return false;
+            GetInTrouble();
+            return true;
+        }
+
+        /// <summary>Starts flailing right now (also for testing).</summary>
+        public void GetInTrouble()
+        {
+            state = State.InTrouble;
+            troubleStart = Time.time;
+            nextHelpShout = Time.time + 2.5f;
+            patience = 1f;
+            lifeguardThrew = false;
+            SetPose(Pose.Straddle);
+            rig.ShowFace(SurfPool.Face.Scared, KookRescue.TimeLimit);
+            Shout("HELP!", 2f);
+            KookRescue.Started(this);
+        }
+
+        void Struggle()
+        {
+            float t = Time.time - troubleStart;
+            patience = Mathf.Clamp01(1f - t / KookRescue.TimeLimit);
+            SetPose(Pose.Straddle);
+            // Bobbing low in the water, arms going everywhere.
+            Vector3 p = transform.position;
+            p.y = water.SurfaceHeightAt(p) - 0.3f + Mathf.Sin(Time.time * 5f) * 0.14f;
+            transform.position = p;
+            if (!rig.Gesturing) rig.PlayGesture(Random.value < 0.5f ? CharacterRig.Gesture.Hoot : CharacterRig.Gesture.Splash, 0.9f);
+            if (Time.time >= nextHelpShout)
+            {
+                nextHelpShout = Time.time + Random.Range(2.5f, 4f);
+                Shout(HelpLines[Random.Range(0, HelpLines.Length)], 1.8f, Sound.VoiceAah);
+            }
+            var tower = Lifeguard.OnDuty;
+            if (!lifeguardThrew && tower != null && t >= KookRescue.LifeguardDelay)
+            {
+                var post = FindAnyObjectByType<RescuePost>();
+                if (post != null)
+                {
+                    lifeguardThrew = true;
+                    Sfx.Play(Sound.Whistle, tower.position);
+                    KookRescue.Throw(this, tower.position + Vector3.up * 3f, post.RingModel, null);
+                }
+            }
+            if (t < KookRescue.TimeLimit) return;
+            KookRescue.Ended(this);
+            if (ParkReputation.Instance != null) ParkReputation.Instance.Record(0f);
+            rig.ShowFace(SurfPool.Face.Grumpy, 4f);
+            LeaveAngry("*cough* Nobody helped me!!");
+        }
+
+        /// <summary>A ring buoy reached them: saved! Grateful, a bit of XP, and they call it a day.</summary>
+        public void Rescued()
+        {
+            if (!InTrouble) return;
+            rescued = true;
+            visit.rescued = true;
+            KookRescue.Ended(this);
+            rig.ShowFace(SurfPool.Face.Stoked, 3f);
+            rig.PlayGesture(CharacterRig.Gesture.Shaka, 1.5f);
+            ParkLevel.Add(KookRescue.RescueXp);
+            Notifications.Post($"{FirstName} is safe! +{KookRescue.RescueXp} XP", Notice.Good);
+            wavesPerSession = ridesDone + 1;
+            FinishRide(true);
+            Shout(ThanksLines[Random.Range(0, ThanksLines.Length)], 3.5f, Sound.VoiceOoh);
+        }
+
         /// <summary>Called by the register when the player sells this surfer a session.</summary>
         public void Pay(int price)
         {
@@ -476,6 +566,9 @@ namespace SurfPool
                 case State.Wipeout:
                     SetPose(Pose.Wipeout);
                     Tumble();
+                    break;
+                case State.InTrouble:
+                    Struggle();
                     break;
                 case State.SwimmingToBeach:
                     if (KickOut()) break;
@@ -1114,6 +1207,7 @@ namespace SurfPool
 
             transform.rotation = Quaternion.LookRotation(Vector3.right);
             SetPose(Pose.Paddle);
+            if (MaybeGetInTrouble()) return;
             FinishRide(true);
         }
 
