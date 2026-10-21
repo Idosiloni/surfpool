@@ -258,8 +258,19 @@ namespace SurfPool
         /// <summary>Called when the player tries to charge more than this surfer will pay.</summary>
         public void RefusePrice() => LeaveAngry("Too expensive! I'm out.");
 
+        float nextMumble = -1f;
+
         void Update()
         {
+            // Waiting around, people mumble to themselves now and then.
+            if (Time.time >= nextMumble)
+            {
+                if (nextMumble > 0f && state is State.InDeskLine or State.InRentalLine or State.WaitingForWave or State.InSnackLine
+                    && Random.value < 0.35f)
+                    Voices.Mumble(transform, Voice);
+                nextMumble = Time.time + Random.Range(9f, 22f);
+            }
+
             // A delayed hoot for someone else's wave, and letting go of whatever caught our eye.
             if (hootAt > 0f && Time.time >= hootAt)
             {
@@ -732,7 +743,8 @@ namespace SurfPool
                 landSquash = 0f;
                 wasAirborne = false;
                 Shout(whitewash ? "Riding the whitewater!" : diff < 0 ? "Kinda small..." : diff > 0 ? "Whoa, big one!"
-                    : backside ? "Going backside!" : SurferPersonalities.Line(archetype, Moment.Catch), 2f);
+                    : backside ? "Going backside!" : SurferPersonalities.Line(archetype, Moment.Catch), 2f,
+                    archetype is Archetype.Grom or Archetype.Charger or Archetype.Local || Random.value < 0.4f ? Sound.VoiceYew : null);
                 if (dropInVictim != null)
                 {
                     // Drop-in drama: the surfer already on it yells, the kook apologizes, the lifeguard whistles.
@@ -918,7 +930,7 @@ namespace SurfPool
             else if (trick == "Floater!") StartMove(Move.Floater, 0.8f);
             else if (trick == "Bottom turn!") StartMove(Move.BottomTurn, 1f);
             tricksLanded++;
-            Shout(trick, 1.3f);
+            Shout(trick, 1.3f, Random.value < 0.5f ? Sound.VoiceWoo : null);
             nextTrickAt = Time.time + TrickDelay();
         }
 
@@ -932,7 +944,7 @@ namespace SurfPool
             Sfx.Play(Sound.Splash, transform.position);
             RideFeel.Splash(water, transform.position, 24, 3f);
             Lifeguard.Whistle();
-            Shout(SurferPersonalities.Line(archetype, Moment.Wipeout), 2.5f);
+            Shout(SurferPersonalities.Line(archetype, Moment.Wipeout), 2.5f, Sound.VoiceAah);
         }
 
         /// <summary>Spins under the water for a moment, then pops back up.</summary>
@@ -1022,10 +1034,15 @@ namespace SurfPool
             moodSamples++;
         }
 
-        void Shout(string text, float seconds)
+        float Voice => rig != null && rig.Look != null ? rig.Look.voice : 1f;
+
+        /// <summary>Says something: a speech bubble and a babble in their own voice (or a shout instead of words).</summary>
+        void Shout(string text, float seconds, Sound? exclaim = null)
         {
             shout = text;
             shoutUntil = Time.time + seconds;
+            if (exclaim.HasValue) Voices.Exclaim(transform, Voice, exclaim.Value);
+            else Voices.Talk(transform, Voice, text);
         }
 
         void Face(Vector3 direction)

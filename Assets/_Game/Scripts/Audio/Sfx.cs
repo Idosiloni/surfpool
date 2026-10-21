@@ -131,10 +131,10 @@ namespace SurfPool
         // ---------- one-shots ----------
 
         /// <summary>Plays a sound. Pass a position for 3D sounds (waves, splashes); UI and money sounds play everywhere.</summary>
-        public static void Play(Sound id, Vector3? position = null, float volume = 1f)
+        public static void Play(Sound id, Vector3? position = null, float volume = 1f, float pitch = 1f)
         {
             if (instance == null) return;
-            instance.PlayInternal(id, position, volume);
+            instance.PlayInternal(id, position, volume, pitch);
         }
 
         /// <summary>Money came in. Several payments in the same frame (tip + merch + lessons) make one sound.</summary>
@@ -159,7 +159,7 @@ namespace SurfPool
             PlayerPrefs.SetFloat("vol_ambience", AmbienceVolume);
         }
 
-        void PlayInternal(Sound id, Vector3? position, float volume)
+        void PlayInternal(Sound id, Vector3? position, float volume, float pitch = 1f)
         {
             var entry = bank != null ? bank.Get(id) : null;
             if (entry == null || entry.clips == null || entry.clips.Length == 0) return;
@@ -179,7 +179,7 @@ namespace SurfPool
             source.spatialBlend = spatial ? 1f : 0f;
             source.minDistance = entry.minDistance;
             source.maxDistance = entry.maxDistance;
-            source.pitch = 1f + Random.Range(-entry.pitchJitter, entry.pitchJitter);
+            source.pitch = pitch * (1f + Random.Range(-entry.pitchJitter, entry.pitchJitter));
             source.clip = entry.clips[variant];
             source.volume = entry.volume * volume * EffectsVolume * Random.Range(0.9f, 1f);
             source.Play();

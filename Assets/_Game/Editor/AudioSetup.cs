@@ -58,6 +58,13 @@ namespace SurfPool.EditorTools
                 Ui(Sound.StepSand, 0.22f, "step_sand_1", "step_sand_2", "step_sand_3"),
                 Ui(Sound.StepDeck, 0.2f, "step_deck_1", "step_deck_2", "step_deck_3"),
                 Ui(Sound.StepWood, 0.25f, "step_wood_1", "step_wood_2", "step_wood_3"),
+                Voice(Sound.VoiceBabble, 0.32f, 0f, "voice_babble_1", "voice_babble_2", "voice_babble_3", "voice_babble_4", "voice_babble_5",
+                    "voice_babble_6", "voice_babble_7", "voice_babble_8", "voice_babble_9", "voice_babble_10", "voice_babble_11", "voice_babble_12"),
+                Voice(Sound.VoiceYew, 0.5f, 0.15f, "voice_yew_1", "voice_yew_2"),
+                Voice(Sound.VoiceWoo, 0.45f, 0.15f, "voice_woo_1", "voice_woo_2"),
+                Voice(Sound.VoiceAah, 0.45f, 0.15f, "voice_aah_1", "voice_aah_2"),
+                Voice(Sound.VoiceOoh, 0.4f, 0.15f, "voice_ooh_1"),
+                Voice(Sound.VoiceHmm, 0.35f, 0.15f, "voice_hmm_1", "voice_hmm_2"),
             };
             bank.surfLoop = Clip("amb_surf_loop");
             bank.crowdLoop = Clip("amb_crowd_loop");
@@ -74,6 +81,11 @@ namespace SurfPool.EditorTools
 
         static SoundBank.Entry Ui(Sound id, float volume, params string[] names) =>
             new() { id = id, volume = volume, spatial = false, clips = names.Select(Clip).ToArray() };
+
+        /// <summary>People's voices: 3D, short range, no built-in pitch jitter (Voices pitches each person).</summary>
+        static SoundBank.Entry Voice(Sound id, float volume, float gap, params string[] names) =>
+            new() { id = id, volume = volume, spatial = true, minDistance = 3f, maxDistance = 28f, minGap = gap, pitchJitter = 0.03f,
+                clips = names.Select(Clip).ToArray() };
 
         static SoundBank.Entry World(Sound id, float volume, float min, float max, float gap, params string[] names) =>
             new() { id = id, volume = volume, spatial = true, minDistance = min, maxDistance = max, minGap = gap, clips = names.Select(Clip).ToArray() };

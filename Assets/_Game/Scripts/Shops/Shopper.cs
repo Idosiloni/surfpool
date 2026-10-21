@@ -149,6 +149,7 @@ namespace SurfPool
         {
             status = line;
             statusUntil = Time.time + seconds;
+            Voices.Talk(transform, rig != null && rig.Look != null ? rig.Look.voice : 1f, line);
         }
 
         /// <summary>Paid and happy: say thanks, take what they bought and walk home.</summary>

@@ -44,6 +44,8 @@ namespace SurfPool
         [Tooltip("Extra head size on top of the house style (groms 1.15).")]
         public float head = 1f;
         public Face mood = Face.Happy;
+        [Tooltip("Voice pitch for babble (1 = adult, 1.25 = higher voice, 1.45 = kid, 0.8 = deep).")]
+        public float voice = 1f;
     }
 
     /// <summary>Builds looks: palettes, a signature look per surfer type, guests, staff and the famous surfers.</summary>
@@ -96,6 +98,7 @@ namespace SurfPool
             look.hatColor = Pick(Fabrics);
             if (UnityEngine.Random.value < 0.35f) look.glasses = Pick(Sunnies, Round, Sunnies);
             if (!fem && UnityEngine.Random.value < 0.15f) look.beard = true;
+            look.voice = fem ? UnityEngine.Random.Range(1.18f, 1.32f) : UnityEngine.Random.Range(0.85f, 1.0f);
             look.width = UnityEngine.Random.value < 0.2f ? 1.15f : UnityEngine.Random.Range(0.95f, 1.05f);
             look.height = UnityEngine.Random.Range(0.95f, 1.04f);
             return look;
@@ -111,6 +114,7 @@ namespace SurfPool
             look.beard = look.mustache = false;
             look.mood = Face.Happy;
             bool fem = UnityEngine.Random.value < 0.45f;
+            look.voice = fem ? UnityEngine.Random.Range(1.18f, 1.32f) : UnityEngine.Random.Range(0.85f, 1.0f);
             switch (type)
             {
                 case Archetype.Grom: // small, big head, neon rash vest + floral shorts, messy mop
@@ -124,6 +128,7 @@ namespace SurfPool
                     look.hairStyle = Pick(Mop, Mop, Spiky, Curly);
                     if (UnityEngine.Random.value < 0.15f) look.hair = Pick(DyeTeal, DyePink);
                     look.mood = Face.Stoked;
+                    look.voice = UnityEngine.Random.Range(1.4f, 1.55f);
                     break;
                 case Archetype.Kook: // clashing colors, a stiff new wetsuit or rash vest, visor, worried face
                     look.outfit = Pick(Outfit.Fullsuit, Outfit.RashGuard, Outfit.Springsuit);
@@ -184,6 +189,7 @@ namespace SurfPool
                     look.width = 1.08f;
                     look.skin = Pick(Skins[3], Skins[4], Skins[5], Skins[6]);
                     look.mood = Face.Grumpy;
+                    look.voice *= 0.88f;
                     break;
                 case Archetype.SurfDad: // belly, aloha shirt or tank, sun hat or visor, sunscreen
                     look.outfit = Pick(Outfit.Tee, Outfit.Tank, Outfit.Tee);
@@ -198,6 +204,7 @@ namespace SurfPool
                     look.zinc = UnityEngine.Random.value < 0.3f ? Cloth : Color.clear;
                     look.width = 1.22f;
                     look.height = 0.98f;
+                    look.voice = UnityEngine.Random.Range(0.78f, 0.88f);
                     break;
             }
             return look;

@@ -12,6 +12,7 @@ namespace SurfPool
         PaChime, PaVoice, FanfareLevel, FanfarePool, FireworkLaunch, FireworkBang,
         Plop, Blender, ShopBell, ScanBeep, Planer, SprayHiss, AirBlast,
         StepSand, StepDeck, StepWood,
+        VoiceBabble, VoiceYew, VoiceWoo, VoiceAah, VoiceOoh, VoiceHmm,
     }
 
     /// <summary>

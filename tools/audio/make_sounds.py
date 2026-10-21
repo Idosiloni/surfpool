@@ -783,6 +783,76 @@ def footstep(name, seed, kind):
     save(name, fade(x, 0.001, 0.03), peak_db=-8)
 
 
+# ---------- voices: babble syllables and exclamations ----------
+# Characters "talk" Animal Crossing style: a few short voiced syllables per speech bubble, pitched per person in
+# Unity (kids high, dads low). Source = a glottal pulse train with vibrato, shaped by vowel formants.
+
+VOWELS = {"a": (800, 1200, 2500), "e": (500, 1900, 2600), "i": (310, 2300, 3000), "o": (500, 900, 2400), "u": (330, 800, 2300)}
+
+
+def glottal(f0, length, seed=0, vibrato=4.5):
+    t = secs(length)
+    f = np.broadcast_to(f0, t.shape) * (1 + 0.012 * np.sin(2 * np.pi * vibrato * t))
+    phase = np.cumsum(f) / SR
+    saw = 2 * (phase % 1.0) - 1  # bright buzz, like vocal folds
+    return lowpass(saw, 4500) + white(len(t), seed) * 0.02
+
+
+def formants(x, vowel, width=110):
+    f1, f2, f3 = VOWELS[vowel]
+    def shape(f):
+        return (np.exp(-((f - f1) / width) ** 2) * 1.0 + np.exp(-((f - f2) / (width * 1.4)) ** 2) * 0.55
+                + np.exp(-((f - f3) / (width * 1.8)) ** 2) * 0.25 + 0.02)
+    return spectral(x, shape)
+
+
+def syllable(name, seed, vowel, consonant):
+    r = rng(seed)
+    length = r.uniform(0.085, 0.13)
+    t = secs(length)
+    f0 = 230 * np.linspace(1.0 + r.uniform(-0.04, 0.06), 1.0 + r.uniform(-0.08, 0.02), len(t))
+    voice = formants(glottal(f0, length, seed), vowel)
+    env = np.clip(t / 0.012, 0, 1) * np.clip((length - t) / 0.035, 0, 1)
+    x = voice / (np.std(voice) + 1e-9) * env
+    if consonant == "t":   # short bright tick
+        place(x, highpass(white(int(SR * 0.012), seed + 1), 3500) * 0.8, 0)
+    elif consonant == "s":  # little hiss
+        place(x, bandpass(white(int(SR * 0.025), seed + 1), 4000, 9000) * 0.5, 0)
+    elif consonant == "b":  # soft thump
+        place(x, lowpass(white(int(SR * 0.01), seed + 1), 600) * 1.2, 0)
+    save(name, fade(x, 0.002, 0.02), peak_db=-6)
+
+
+def exclaim(name, seed, vowels, f_start, f_end, length, shape="rise"):
+    """A whole exclamation: the pitch glides while the vowel changes (crossfading formant versions)."""
+    t = secs(length)
+    if shape == "rise":
+        f0 = f_start * (f_end / f_start) ** (t / length) ** 0.7
+    elif shape == "arch":
+        k = np.sin(np.pi * t / length)
+        f0 = f_start + (f_end - f_start) * k
+    else:  # fall
+        f0 = f_start * (f_end / f_start) ** (t / length)
+    src = glottal(f0, length, seed, vibrato=6)
+    parts = [formants(src, v) for v in vowels]
+    x = np.zeros(len(t))
+    n = len(parts)
+    for i, p in enumerate(parts):  # crossfade vowel i over its share of the time
+        center = (i + 0.5) / n
+        w = np.clip(1 - np.abs(t / length - center) * n, 0, 1) if n > 1 else np.ones(len(t))
+        x += p / (np.std(p) + 1e-9) * w
+    env = np.clip(t / 0.03, 0, 1) * np.clip((length - t) / 0.12, 0, 1)
+    save(name, fade(x * env, 0.003, 0.05), peak_db=-4)
+
+
+def hum(name, seed, length=0.4):
+    t = secs(length)
+    f0 = 200 * (1 + 0.08 * np.sin(np.pi * t / length))
+    x = lowpass(glottal(f0, length, seed), 420)
+    env = np.clip(t / 0.04, 0, 1) * np.clip((length - t) / 0.1, 0, 1)
+    save(name, fade(x / (np.std(x) + 1e-9) * env, 0.004, 0.05), peak_db=-6)
+
+
 def main():
     surf_loop()
     crowd_loop()
@@ -836,6 +906,18 @@ def main():
     planer()
     spray_hiss()
     air_blast()
+    babble = [("a", "b"), ("e", "t"), ("i", "s"), ("o", "b"), ("u", "t"), ("a", "t"), ("e", "b"), ("o", "s"), ("i", "t"), ("a", "s"), ("u", "b"), ("e", "s")]
+    for i, (v, c) in enumerate(babble):
+        syllable(f"voice_babble_{i + 1}", 1000 + i, v, c)
+    exclaim("voice_yew_1", 1101, ["i", "u"], 300, 560, 0.55)
+    exclaim("voice_yew_2", 1102, ["i", "e", "u"], 280, 520, 0.6)
+    exclaim("voice_woo_1", 1103, ["u", "o"], 330, 470, 0.45, "arch")
+    exclaim("voice_woo_2", 1104, ["o", "u"], 300, 440, 0.4, "arch")
+    exclaim("voice_aah_1", 1105, ["a"], 520, 300, 0.55, "fall")
+    exclaim("voice_aah_2", 1106, ["a", "o"], 560, 320, 0.6, "fall")
+    exclaim("voice_ooh_1", 1107, ["o", "u"], 260, 340, 0.4, "arch")
+    hum("voice_hmm_1", 1108)
+    hum("voice_hmm_2", 1109, 0.5)
     for i in range(3):
         footstep(f"step_sand_{i + 1}", 900 + i, "sand")
         footstep(f"step_deck_{i + 1}", 910 + i, "deck")
