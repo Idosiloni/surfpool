@@ -13,6 +13,7 @@ namespace SurfPool.EditorTools
     /// </summary>
     public static class WorldArt
     {
+        const float N = GreyboxBuilder.MainNorth; // the main pool's north wall (north-deck dressing hangs off it)
         const string ModelFolder = "Assets/_Game/Models";
 
         /// <summary>Places a Blender model. Blender exports face 180° away from Unity's forward, so yaw adds 180.</summary>
@@ -66,8 +67,8 @@ namespace SurfPool.EditorTools
             palms.SetParent(root, false);
             Vector3[] palmSpots =
             {
-                new(-18, 0, 14), new(-18, 0, -14), new(-3, 0, 16), new(12, 0, 15), new(26, 0, 16.5f), new(44, 0, 15),
-                new(58, 0, 16), new(72, 0, 12), new(76, 0, -6), new(74, 0, -20), new(88, 0, -40), new(8, 0, -38),
+                new(-18, 0, N + 2f), new(-18, 0, -14), new(-3, 0, N + 4f), new(12, 0, N + 3f), new(26, 0, N + 4.5f), new(44, 0, N + 3f),
+                new(58, 0, N + 4f), new(72, 0, N), new(76, 0, -6), new(74, 0, -20), new(88, 0, -40), new(8, 0, -38),
                 new(-14, 0, -34), new(36, 0, -38), new(52, 0, -30), new(-24, 0, 0),
                 new(88, 0, 30), new(95, 0, -10), new(-35, 0, 25), new(-38, 0, -30), new(88, 0, 60), new(-30, 0, 70), new(90, 0, 110), new(-32, 0, 125),
                 new(20, 0, -52), new(92, 0, -62), new(105, 0, 20), new(-45, 0, 5),
@@ -85,9 +86,9 @@ namespace SurfPool.EditorTools
             for (int i = 0; i < 6; i++)
             {
                 float x = 4 + i * 8f;
-                Model(i % 2 == 0 ? "BeachUmbrellaTeal" : "BeachUmbrellaCoral", lounge, new Vector3(x, 0, 20f), Range(0, 360));
-                Model("LoungeChair", lounge, new Vector3(x - 0.8f, 0, 19.2f), 180f);
-                Model("LoungeChair", lounge, new Vector3(x + 0.8f, 0, 19.2f), 180f);
+                Model(i % 2 == 0 ? "BeachUmbrellaTeal" : "BeachUmbrellaCoral", lounge, new Vector3(x, 0, N + 8f), Range(0, 360));
+                Model("LoungeChair", lounge, new Vector3(x - 0.8f, 0, N + 7.2f), 180f);
+                Model("LoungeChair", lounge, new Vector3(x + 0.8f, 0, N + 7.2f), 180f);
             }
             // A few more on the sand past the beach end.
             for (int i = 0; i < 4; i++)

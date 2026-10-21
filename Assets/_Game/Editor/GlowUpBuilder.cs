@@ -13,6 +13,8 @@ namespace SurfPool.EditorTools
     /// </summary>
     public static class GlowUpBuilder
     {
+        // The main pool's north wall: the north deck's dressing is placed from it (the pool grows north).
+        const float N = GreyboxBuilder.MainNorth;
         const float Ocean = -0.75f;
 
         // Glow-up stages (see ParkGlowUp.StageLevels): 1 run-down, 3 cleaned up, 5 festive, 8 lit up, 11 landmark, 15 famous.
@@ -58,13 +60,13 @@ namespace SurfPool.EditorTools
             {
                 new(2, 0, -13.2f), new(11, 0, -13.4f), new(19, 0, -13.1f), new(33, 0, -13.3f), new(41, 0, -13.2f), new(55, 0, -13.4f),
                 new(-3, 0, -17), new(9, 0, -19.5f), new(46, 0, -18), new(62, 0, -14), new(16, 0, -29), new(44, 0, -27),
-                new(6, 0, 14.5f), new(22, 0, 15.5f), new(38, 0, 14.3f), new(54, 0, 15.2f), new(63, 0, 3), new(27, 0, -36), new(35, 0, -34),
+                new(6, 0, N + 2.5f), new(22, 0, N + 3.5f), new(38, 0, N + 2.3f), new(54, 0, N + 3.2f), new(63, 0, 3), new(27, 0, -36), new(35, 0, -34),
             };
             foreach (var spot in weedSpots)
                 Item(WorldArt.Model("Weeds", junk, spot, R(0, 360), R(0.8f, 1.4f)), 1, Clean);
             Item(WorldArt.Model("TrashBags", junk, new Vector3(-3.5f, 0, -20), 30f), 1, Clean);
             Item(WorldArt.Model("TrashBags", junk, new Vector3(47, 0, -28.5f), 160f), 1, Clean);
-            Item(WorldArt.Model("TrashBags", junk, new Vector3(64, 0, 13), 80f, 0.9f), 1, Clean);
+            Item(WorldArt.Model("TrashBags", junk, new Vector3(64, 0, N + 1f), 80f, 0.9f), 1, Clean);
             Item(WorldArt.Model("RustyBarrel", junk, new Vector3(-2.5f, 0, -21.5f), 10f), 1, Clean);
             Item(WorldArt.Model("RustyBarrel", junk, new Vector3(-1.6f, 0, -22.3f), 70f), 1, Clean);
             var tipped = WorldArt.Model("RustyBarrel", junk, new Vector3(62.5f, 0.3f, -16.5f), 0f);
@@ -81,7 +83,7 @@ namespace SurfPool.EditorTools
             string[] flags = { "FlagCoral", "FlagTeal", "FlagYellow" };
 
             // Flags along the main pool's north edge and at the beach end (cleaned up).
-            Vector3[] flagSpots = { new(3, 0, 15.6f), new(15, 0, 15.6f), new(45, 0, 15.6f), new(57, 0, 15.6f), new(65, 0, -9), new(65, 0, 1) };
+            Vector3[] flagSpots = { new(3, 0, N + 3.6f), new(15, 0, N + 3.6f), new(45, 0, N + 3.6f), new(57, 0, N + 3.6f), new(65, 0, -9), new(65, 0, 1) };
             for (int i = 0; i < flagSpots.Length; i++) FlagPole(party, flagSpots[i], flags[i % 3], Clean);
 
             // A line of poles between the pool deck and the desk: bunting first, then string lights.
@@ -102,14 +104,14 @@ namespace SurfPool.EditorTools
             // Flower boxes by the desk, the deck and the gate.
             Vector3[] planters =
             {
-                new(13.5f, 0, -24.5f), new(26.2f, 0, -25.5f), new(38.5f, 0, -23.5f), new(8, 0, 16.8f), new(22, 0, 16.8f),
-                new(38, 0, 16.8f), new(52, 0, 16.8f), new(21.5f, 0, -42.5f), new(38.5f, 0, -42.5f),
+                new(13.5f, 0, -24.5f), new(26.2f, 0, -25.5f), new(38.5f, 0, -23.5f), new(8, 0, N + 4.8f), new(22, 0, N + 4.8f),
+                new(38, 0, N + 4.8f), new(52, 0, N + 4.8f), new(21.5f, 0, -42.5f), new(38.5f, 0, -42.5f),
             };
             for (int i = 0; i < planters.Length; i++)
                 Item(WorldArt.Model("FlowerPlanter", party, planters[i], i < 3 ? 0f : 90f * (i % 2)), i < 7 ? Festive : Lit);
 
             // Park speakers: music and announcements come out of these (ParkSpeaker + Sfx).
-            Vector3[] speakers = { new(-2, 0, -18.5f), new(64, 0, -18.5f), new(30, 0, 16.6f), new(34.5f, 0, -38) };
+            Vector3[] speakers = { new(-2, 0, -18.5f), new(64, 0, -18.5f), new(30, 0, N + 4.6f), new(34.5f, 0, -38) };
             foreach (var spot in speakers)
             {
                 var speaker = WorldArt.Model("PaSpeaker", party, spot, 90f);
@@ -131,7 +133,7 @@ namespace SurfPool.EditorTools
             // Grandstand bunting (only with the Grandstand upgrade).
             for (int i = 0; i < 4; i++)
             {
-                var hang = Hang("Bunting", party, new Vector3(14 + i * 9.5f, 4.4f, 24.2f));
+                var hang = Hang("Bunting", party, new Vector3(14 + i * 9.5f, 4.4f, N + 12.2f));
                 if (hang == null) continue;
                 hang.transform.localScale = new Vector3(1.15f, 1f, 1f);
                 Item(hang, Festive).requires = "grandstand";
@@ -226,7 +228,7 @@ namespace SurfPool.EditorTools
                 if (x > 27.5f && x < 32.5f) continue; // the lifeguard tower
                 var fan = new GameObject("Rail Spectator");
                 fan.transform.SetParent(crowd, false);
-                fan.transform.SetPositionAndRotation(new Vector3(x + (float)rng.NextDouble() * 0.8f, 0f, 13.5f + (float)rng.NextDouble() * 0.9f),
+                fan.transform.SetPositionAndRotation(new Vector3(x + (float)rng.NextDouble() * 0.8f, 0f, N + 1.5f + (float)rng.NextDouble() * 0.9f),
                     Quaternion.Euler(0f, 180f + ((float)rng.NextDouble() - 0.5f) * 40f, 0f));
                 GreyboxBuilder.BuildCharacter(fan.transform);
                 var spectator = fan.AddComponent<Spectator>();
