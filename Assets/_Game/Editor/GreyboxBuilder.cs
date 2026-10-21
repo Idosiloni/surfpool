@@ -11,7 +11,7 @@ namespace SurfPool.EditorTools
     /// wave machine + button, and the first-person player. Menu: Surf Pool > Build Greybox Scene.
     /// Running it again overwrites the scene.
     /// </summary>
-    public static class GreyboxBuilder
+    public static partial class GreyboxBuilder
     {
         const string ScenePath = "Assets/_Game/Scenes/Pool.unity";
         const string MaterialFolder = "Assets/_Game/Materials";
@@ -365,8 +365,8 @@ namespace SurfPool.EditorTools
             Box("Menu Leg", snack, menuAt + new Vector3(0f, 0.3f, 0.45f), new Vector3(0.06f, 0.6f, 0.06f), mats.coping).GetComponent<Collider>().enabled = false;
             Signs.Text("MENU", snack, menuAt + new Vector3(-0.04f, 1.37f, 0f), 90f, 0.16f, Color.white, 1f);
             Signs.Text("FISH TACOS", snack, menuAt + new Vector3(-0.04f, 1.12f, 0f), 90f, 0.13f, new Color(1f, 0.82f, 0.35f), 1f);
-            Signs.Text("SMOOTHIES", snack, menuAt + new Vector3(-0.04f, 0.92f, 0f), 90f, 0.13f, new Color(1f, 0.6f, 0.7f), 1f);
-            Signs.Text("ACAI BOWLS", snack, menuAt + new Vector3(-0.04f, 0.72f, 0f), 90f, 0.13f, new Color(0.6f, 0.9f, 0.8f), 1f);
+            Signs.Text("BURRITOS", snack, menuAt + new Vector3(-0.04f, 0.92f, 0f), 90f, 0.13f, new Color(1f, 0.6f, 0.7f), 1f);
+            Signs.Text("LOADED FRIES", snack, menuAt + new Vector3(-0.04f, 0.72f, 0f), 90f, 0.13f, new Color(0.6f, 0.9f, 0.8f), 1f);
             var snackBar = snack.gameObject.AddComponent<SnackBar>();
             Set(snackBar, "lineSpot", Point("Snack Line Front", snackRoute, new Vector3(56.0f, 0, -24f)));
             Set(snackBar, "approach", Point("Snack Approach", snackRoute, new Vector3(56.0f, 0, -17.5f)));
@@ -419,22 +419,8 @@ namespace SurfPool.EditorTools
             Set(shop, "trashCans", bins);
             mechanic.SetActive(false);
 
-            // Surf shop kiosk near the entrance, hidden until bought.
-            var surfShop = new GameObject("Surf Shop").transform;
-            surfShop.position = new Vector3(40, 0, -33);
-            WorldArt.Model("KioskTeal", surfShop, surfShop.position, 90f);
-            Signs.Kiosk("SURF SHOP", surfShop, surfShop.position, 90f);
-            Hidden(Box("Shop Counter", surfShop, surfShop.position + new Vector3(0, 0.55f, 0), new Vector3(1, 1.1f, 3), deskMat));
-            WorldArt.Model("Counter", surfShop, surfShop.position, 90f);
-            for (int i = 0; i < 4; i++)
-                Board($"Display Board {i + 1}", surfShop, surfShop.position + new Vector3(1.6f, 1.0f, -1.2f + i * 0.8f), Quaternion.Euler(-80, 90, 0), 0.9f, i % 2 == 0 ? rentalBoardMat : mats.sign);
-            var clerkShop = Person("Shop Clerk", surfShop.position + new Vector3(-1.0f, 0, 0), 90f, coachMat, skinMat);
-            clerkShop.transform.SetParent(surfShop, true);
-            surfShop.gameObject.SetActive(false);
-
             Set(shop, "surfCoach", coach);
             Set(shop, "waveOperator", operatorGuy);
-            Set(shop, "surfShop", surfShop.gameObject);
 
             // The other pools' north decks get umbrellas and loungers when they're built.
             PoolDeckDressing(reef.built, ReefZ, 18f, 75f);
@@ -483,6 +469,7 @@ namespace SurfPool.EditorTools
             var hud = hudGo.AddComponent<GameHud>();
             hudGo.AddComponent<SurfHud>();
             hudGo.AddComponent<PerkPicker>();
+            BuildShops(shop, spawner, game, hudGo, skinMat);
             Set(hud, "interactor", interactor);
             Set(hud, "player", fps);
             Set(hud, "pricing", pricing);

@@ -90,6 +90,8 @@ namespace SurfPool
             AddStat("Waves sent", GameStats.WavesSent.ToString());
             AddStat("Boards rented", GameStats.BoardsRented.ToString());
             if (GameStats.SnacksSold > 0) AddStat("Snacks sold", GameStats.SnacksSold.ToString());
+            if (GameStats.ShopSales > 0) AddStat("Shop sales", GameStats.ShopSales.ToString());
+            if (GameStats.CustomBoards > 0) AddStat("Custom boards made", GameStats.CustomBoards.ToString());
             if (GameStats.FishCaught > 0) AddStat("Fish caught", GameStats.FishCaught.ToString());
             if (GameStats.BeachGuests > 0) AddStat("Beach guests", GameStats.BeachGuests.ToString());
             AddStat("Treasures found", $"{Treasure.Found} / {Treasure.Total}");

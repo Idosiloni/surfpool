@@ -222,6 +222,71 @@ MonoBehaviour:
     maxDistance: 260
     pitchJitter: 0.06
     minGap: 0.05
+  - id: 22
+    clips:
+    - {fileID: 8300000, guid: a9e72068cf13a4df0bd6f84179b10174, type: 3}
+    - {fileID: 8300000, guid: 0722f417e67b249d78276c00254f9967, type: 3}
+    - {fileID: 8300000, guid: 2559e759f265947b5bec31afe3ccefc0, type: 3}
+    volume: 0.5
+    spatial: 1
+    minDistance: 2
+    maxDistance: 15
+    pitchJitter: 0.06
+    minGap: 0.03
+  - id: 23
+    clips:
+    - {fileID: 8300000, guid: 117a346a17c854e23a893afdf96eb9dc, type: 3}
+    volume: 0.5
+    spatial: 1
+    minDistance: 3
+    maxDistance: 20
+    pitchJitter: 0.06
+    minGap: 1
+  - id: 24
+    clips:
+    - {fileID: 8300000, guid: 5997b0195ab634d9e86a63a0e6775eb3, type: 3}
+    volume: 0.55
+    spatial: 1
+    minDistance: 3
+    maxDistance: 25
+    pitchJitter: 0.06
+    minGap: 0.1
+  - id: 25
+    clips:
+    - {fileID: 8300000, guid: 55e2efeefbab44fb1b8d3e6bd3950a39, type: 3}
+    volume: 0.45
+    spatial: 1
+    minDistance: 2
+    maxDistance: 15
+    pitchJitter: 0.06
+    minGap: 0.05
+  - id: 26
+    clips:
+    - {fileID: 8300000, guid: 00e55368e833047b396f308f5d2e13a0, type: 3}
+    volume: 0.5
+    spatial: 1
+    minDistance: 3
+    maxDistance: 25
+    pitchJitter: 0.06
+    minGap: 0.9
+  - id: 27
+    clips:
+    - {fileID: 8300000, guid: 0ceb3113f726846aa995bac5f7062f93, type: 3}
+    volume: 0.45
+    spatial: 1
+    minDistance: 3
+    maxDistance: 20
+    pitchJitter: 0.06
+    minGap: 0.5
+  - id: 28
+    clips:
+    - {fileID: 8300000, guid: 1406e763eee704606975758867bbe099, type: 3}
+    volume: 0.8
+    spatial: 1
+    minDistance: 8
+    maxDistance: 70
+    pitchJitter: 0.06
+    minGap: 0.05
   surfLoop: {fileID: 8300000, guid: e5c8464ac255e4245b322d510a71562a, type: 3}
   crowdLoop: {fileID: 8300000, guid: fab8e188244f540feba0dc6d1916069e, type: 3}
   crowdBigLoop: {fileID: 8300000, guid: bb43706cd213f408394c671ed198a63c, type: 3}

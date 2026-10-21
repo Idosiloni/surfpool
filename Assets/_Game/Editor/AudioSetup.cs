@@ -48,6 +48,13 @@ namespace SurfPool.EditorTools
                 Ui(Sound.FanfarePool, 0.9f, "fanfare_pool"),
                 World(Sound.FireworkLaunch, 0.5f, 15f, 140f, 0.05f, "firework_launch_1", "firework_launch_2"),
                 World(Sound.FireworkBang, 0.9f, 30f, 260f, 0.05f, "firework_bang_1", "firework_bang_2", "firework_bang_3"),
+                World(Sound.Plop, 0.5f, 2f, 15f, 0.03f, "plop_1", "plop_2", "plop_3"),
+                World(Sound.Blender, 0.5f, 3f, 20f, 1f, "blender"),
+                World(Sound.ShopBell, 0.55f, 3f, 25f, 0.1f, "shop_bell"),
+                World(Sound.ScanBeep, 0.45f, 2f, 15f, 0.05f, "scan_beep"),
+                World(Sound.Planer, 0.5f, 3f, 25f, 0.9f, "planer"),
+                World(Sound.SprayHiss, 0.45f, 3f, 20f, 0.5f, "spray_hiss"),
+                World(Sound.AirBlast, 0.8f, 8f, 70f, 0.05f, "air_blast"),
             };
             bank.surfLoop = Clip("amb_surf_loop");
             bank.crowdLoop = Clip("amb_crowd_loop");

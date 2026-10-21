@@ -55,6 +55,22 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
+        <ui:VisualElement name="shopTicket" class="card shop-ticket hidden" picking-mode="Ignore">
+            <ui:VisualElement class="title-row card-strip" picking-mode="Ignore">
+                <ui:VisualElement class="icon icon--tag" picking-mode="Ignore" />
+                <ui:Label name="shopTicketShop" class="section-title" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement class="shop-ticket-head" picking-mode="Ignore">
+                <ui:Label name="shopTicketTitle" class="shop-ticket-title" picking-mode="Ignore" />
+                <ui:Label name="shopTicketPrice" class="shop-ticket-price" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement name="shopTicketItems" class="shop-ticket-items" picking-mode="Ignore" />
+            <ui:Label name="shopTicketHint" class="shop-ticket-hint" picking-mode="Ignore" />
+            <ui:VisualElement name="shopTicketBar" class="bar shop-ticket-bar hidden" picking-mode="Ignore">
+                <ui:VisualElement name="shopTicketFill" class="bar-fill" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
         <ui:VisualElement class="top-right" picking-mode="Ignore">
             <ui:VisualElement name="wavePanel" class="card hud-panel" picking-mode="Ignore">
                 <ui:VisualElement class="title-row card-strip" picking-mode="Ignore">

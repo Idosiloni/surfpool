@@ -4,7 +4,7 @@ using UnityEngine;
 namespace SurfPool
 {
     /// <summary>
-    /// Simple walking routes for staff and guests: straight to the goal unless a pool or wave machine house is in
+    /// Simple walking routes for staff and guests: straight to the goal unless a pool, wave machine or shop is in
     /// the way, in which case the route goes around it via its corners.
     /// </summary>
     public static class WalkRouter
@@ -45,8 +45,10 @@ namespace SurfPool
         {
             Rect? first = null;
             float firstDistance = float.MaxValue;
-            foreach (var rect in Obstacles())
+            foreach (var (rect, soft) in Obstacles())
             {
+                // Shops are "soft": you can start or end inside one (customers at the counter, staff at work).
+                if (soft && (rect.Contains(from) || rect.Contains(to))) continue;
                 if (!Crosses(from, to, Shrink(rect))) continue;
                 float distance = Vector2.Distance(from, rect.center);
                 if (distance < firstDistance)
@@ -58,14 +60,15 @@ namespace SurfPool
             return first;
         }
 
-        static IEnumerable<Rect> Obstacles()
+        static IEnumerable<(Rect rect, bool soft)> Obstacles()
         {
             foreach (var pool in PoolRegistry.All)
             {
                 if (!pool.IsOpen) continue;
-                yield return pool.Footprint(1f);
-                yield return pool.MachineHouseFootprint(1f);
+                yield return (pool.Footprint(1f), false);
+                yield return (pool.MachineHouseFootprint(1f), false);
             }
+            foreach (var shop in ShopCounter.All) yield return (shop.Footprint(0.4f), true);
         }
 
         /// <summary>Does the segment a-b pass through the rectangle?</summary>

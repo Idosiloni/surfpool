@@ -678,6 +678,83 @@ def music_party(name, chords, seed, bpm=96, bars=16):
     save(name, stereo_widen(x, seed, 9), peak_db=-3)
 
 
+
+# ---------- shops & machine ----------
+
+def plop(name, seed, f0):
+    # A soft wet "plop": a quick downward pitch blip with a little click (toppings landing).
+    length = 0.18
+    t = secs(length)
+    f = f0 * np.exp(-t * 18) + f0 * 0.45
+    x = tone(f, length, ((1, 1), (2, 0.2))) * np.exp(-t / 0.045)
+    place(x, lowpass(white(int(SR * 0.006), seed), 2500), 0, 0.25)
+    save(name, fade(x, 0.001, 0.03), peak_db=-4)
+
+
+def blender_whirr():
+    # Motor whine that spins up, chops through fruit (wobble), then spins down.
+    length = 1.4
+    t = secs(length)
+    spin = np.clip(t / 0.25, 0, 1) * np.clip((length - t) / 0.3, 0, 1)
+    f = 180 + 260 * spin
+    motor = tone(f, length, ((1, 1), (2, 0.6), (3, 0.35), (5, 0.15)))
+    chop = 0.6 + 0.4 * np.sign(np.sin(2 * np.pi * 9 * t))
+    grind = bandpass(white(len(t), 811), 600, 4000)
+    x = (motor * 0.5 + grind / np.std(grind) * 0.25) * spin * chop
+    save("blender", fade(x, 0.01, 0.1), peak_db=-4)
+
+
+def shop_bell():
+    # The little counter bell: "ding!"
+    length = 1.0
+    x = np.zeros(int(SR * length))
+    place(x, bell(1760, 0.9, 1.6), 0, 0.8)
+    place(x, bell(2640, 0.6, 1.0), 0.0, 0.25)
+    save("shop_bell", fade(x, 0.001, 0.15), peak_db=-3)
+
+
+def scan_beep():
+    length = 0.12
+    t = secs(length)
+    x = np.sin(2 * np.pi * 2350 * t) * np.clip((length - t) / 0.02, 0, 1)
+    save("scan_beep", fade(x, 0.002, 0.01), peak_db=-6)
+
+
+def planer():
+    # Electric planer on foam: motor buzz + a soft shaving hiss in strokes.
+    length = 1.2
+    t = secs(length)
+    buzz = tone(120 + 10 * np.sin(2 * np.pi * 3 * t), length, ((1, 1), (2, 0.7), (3, 0.5), (4, 0.3)))
+    hiss = bandpass(white(len(t), 821), 1500, 7000)
+    stroke = 0.5 + 0.5 * np.sin(2 * np.pi * 1.6 * t) ** 2
+    x = buzz * 0.25 + hiss / np.std(hiss) * 0.35 * stroke
+    save("planer", fade(x, 0.03, 0.15), peak_db=-5)
+
+
+def spray_hiss():
+    length = 0.9
+    t = secs(length)
+    hiss = highpass(white(len(t), 831), 2500)
+    env = np.clip(t / 0.04, 0, 1) * np.clip((length - t) / 0.15, 0, 1)
+    rattle = np.zeros(len(t))
+    for i in range(3):
+        place(rattle, bandpass(white(int(SR * 0.02), 840 + i), 2000, 6000), i * 0.05, 0.6)
+    x = hiss / np.std(hiss) * 0.5 * env + rattle
+    save("spray_hiss", fade(x, 0.005, 0.1), peak_db=-6)
+
+
+def air_blast():
+    # A wave chamber firing: valve clunk, big air whoosh, low "whump".
+    length = 1.6
+    t = secs(length)
+    clunk = bandpass(white(int(SR * 0.05), 851), 200, 1800) * np.exp(-secs(0.05) / 0.012)
+    air = sweep_lowpass(white(len(t), 852), 3500, 500) * np.exp(-t / 0.45)
+    whump = tone(42 * np.exp(-t * 2), length, decay=0.4)
+    x = air / np.std(air) * 0.4 + whump * 0.9
+    place(x, clunk, 0, 0.8)
+    save("air_blast", fade(x, 0.002, 0.3))
+
+
 def main():
     surf_loop()
     crowd_loop()
@@ -722,6 +799,15 @@ def main():
     jetski_loop()
     heli_loop()
     music_party("music_party", CHORDS_A, 21)
+    plop("plop_1", 801, 520)
+    plop("plop_2", 802, 430)
+    plop("plop_3", 803, 610)
+    blender_whirr()
+    shop_bell()
+    scan_beep()
+    planer()
+    spray_hiss()
+    air_blast()
     for name, length, ch in written:
         print(f"{name:20s} {length:6.2f}s  {'stereo' if ch == 2 else 'mono'}")
 

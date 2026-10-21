@@ -55,6 +55,9 @@ namespace SurfPool
             if (shop.IsOwned("snack_bar")) options.Add(() => Make($"Sell {4 + day / 2} snacks", () => GameStats.SnacksSold, 4 + day / 2));
             if (shop.IsOwned("rental_stand")) options.Add(() => Make($"Rent out {3 + day / 2} boards", () => GameStats.BoardsRented, 3 + day / 2));
             if (shop.IsOwned("beach_passes")) options.Add(() => Make($"Host {4 + day / 2} beach guests", () => GameStats.BeachGuests, 4 + day / 2));
+            if (shop.IsOwned("acai_bar") || shop.IsOwned("surf_shop"))
+                options.Add(() => Make($"Make {5 + day / 2} shop sales", () => GameStats.ShopSales, 5 + day / 2));
+            if (shop.IsOwned("board_shaper")) options.Add(() => Make("Shape 2 custom boards", () => GameStats.CustomBoards, 2));
             if (shop.IsOwned("intermediate_waves")) options.Add(() => Make($"See {6 + day} tricks", () => GameStats.TricksLanded, 6 + day));
             if (shop.IsOwned("pro_waves")) options.Add(() => Make("See 3 tube rides", () => GameStats.TubeRides, 3));
             for (int i = 0; i < 3 && options.Count > 0; i++)

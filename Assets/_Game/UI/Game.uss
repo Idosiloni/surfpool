@@ -96,6 +96,9 @@
 .report-totals,
 .fish-status,
 .price-stamp,
+.shop-ticket-title,
+.shop-ticket-price,
+.shop-bubble-title,
 .tab-badge {
     -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
     -unity-font-style: normal;
@@ -2571,4 +2574,111 @@
     color: var(--cream);
     background-color: rgba(11, 46, 58, 0.82);
     border-radius: 12px;
+}
+
+
+/* ---------- Shop customers: order bubbles and the order ticket ---------- */
+
+.shop-bubble-box {
+    flex-direction: column;
+    align-items: center;
+    padding: 5px 10px 6px 10px;
+}
+
+.shop-bubble-say {
+    margin-left: 0;
+    white-space: normal;
+    max-width: 260px;
+    -unity-text-align: middle-center;
+}
+
+.shop-bubble-title {
+    font-size: 17px;
+    color: var(--ink);
+}
+
+.bubble-chips {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 300px;
+    margin-top: 2px;
+}
+
+.bubble-chip,
+.ticket-chip {
+    flex-direction: row;
+    align-items: center;
+    background-color: var(--cream);
+    border-radius: 10px;
+    border-width: 2px;
+    border-color: var(--sand-dark);
+    padding: 1px 8px 1px 4px;
+    margin: 2px;
+}
+
+.bubble-chip--done,
+.ticket-chip--done {
+    opacity: 0.45;
+    border-color: var(--teal);
+}
+
+.order-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 6px;
+    border-width: 2px;
+    border-color: var(--ink);
+    margin-right: 4px;
+}
+
+.order-chip-label {
+    font-size: 14px;
+    color: var(--ink);
+    -unity-font-style: bold;
+}
+
+.shop-ticket {
+    position: absolute;
+    right: 32px;
+    top: 52%;
+    width: 330px;
+}
+
+.shop-ticket-head {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.shop-ticket-title {
+    font-size: 24px;
+    color: var(--ink);
+}
+
+.shop-ticket-price {
+    font-size: 22px;
+    color: var(--money);
+}
+
+.shop-ticket-items {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+
+.ticket-chip .order-chip-label {
+    font-size: 16px;
+}
+
+.shop-ticket-hint {
+    font-size: 16px;
+    color: var(--ink-soft);
+    white-space: normal;
+    margin-top: 8px;
+    -unity-font-style: bold;
+}
+
+.shop-ticket-bar {
+    margin-top: 8px;
 }

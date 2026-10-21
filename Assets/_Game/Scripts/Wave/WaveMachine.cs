@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -29,6 +30,12 @@ namespace SurfPool
         float nextAutoWave;
 
         PoolArea pool;
+
+        /// <summary>Fires the moment each wave leaves the machine (the visible machine plays its chambers on this).</summary>
+        public event Action<WaveLevel, WaveDirection> WaveFired;
+
+        /// <summary>Fires when a press is accepted (a set starts charging). Arg = waves in the set.</summary>
+        public event Action<int> SetStarted;
 
         /// <summary>The pool this machine belongs to.</summary>
         public PoolArea Pool
@@ -126,6 +133,7 @@ namespace SurfPool
             {
                 if (Time.time < pending[i].time) continue;
                 water.SpawnWave(pending[i].level, pending[i].direction, pending[i].preset);
+                WaveFired?.Invoke(pending[i].level, pending[i].direction);
                 pending.RemoveAt(i);
             }
 
@@ -160,6 +168,7 @@ namespace SurfPool
             if (Service != null) Service.AddWear(level, wavesPerSet);
             chargeDuration = cooldown + (wavesPerSet - 1) * setSpacing;
             readyAt = Time.time + chargeDuration;
+            SetStarted?.Invoke(wavesPerSet);
             return true;
         }
 

@@ -10,6 +10,7 @@ namespace SurfPool
         WaveMachine, CrashSmall, CrashMedium, CrashBig,
         Splash, SplashBig, Cheer, Whistle, Seagull,
         PaChime, PaVoice, FanfareLevel, FanfarePool, FireworkLaunch, FireworkBang,
+        Plop, Blender, ShopBell, ScanBeep, Planer, SprayHiss, AirBlast,
     }
 
     /// <summary>

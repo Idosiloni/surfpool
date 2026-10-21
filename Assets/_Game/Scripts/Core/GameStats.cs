@@ -14,6 +14,8 @@ namespace SurfPool
         public static int Wipeouts;
         public static int PlayerRides;
         public static int SnacksSold;
+        public static int ShopSales;
+        public static int CustomBoards;
         public static int BeachGuests;
         public static int FishCaught;
         public static int TrashCollected;
@@ -26,6 +28,8 @@ namespace SurfPool
             FishCaught = 0;
             BeachGuests = 0;
             SnacksSold = 0;
+            ShopSales = 0;
+            CustomBoards = 0;
             TicketsSold = 0;
             WavesSent = 0;
             SurfersServed = 0;

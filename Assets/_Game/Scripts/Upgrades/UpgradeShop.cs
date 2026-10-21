@@ -89,10 +89,14 @@ namespace SurfPool
                 description = "Filter tanks next to every wave machine clean and reuse the pool water. The daily water bill is halved." },
             new Upgrade { id = "snack_bar", category = UpgradeCategory.Park, title = "Snack Bar", cost = 1200, level = 5,
                 description = "A taco and smoothie kiosk by the exit. Happy surfers from the main pool stop for food ($10). Serve them at the grill (E)... and watch out for the wrappers." },
-            new Upgrade { id = "smoothie_bar", category = UpgradeCategory.Park, title = "Smoothie Bar", cost = 2500, level = 8, requires = "snack_bar",
-                description = "Fresh fruit smoothies and acai bowls on the menu. Every snack sells for $8 more." },
-            new Upgrade { id = "surf_shop", category = UpgradeCategory.Park, title = "Surf Shop", cost = 3500, level = 10,
-                description = "A merch kiosk by the entrance. Every happy surfer buys $15 of wax, stickers and tees on the way out." },
+            new Upgrade { id = "smoothie_bar", category = UpgradeCategory.Park, title = "Bigger Snack Menu", cost = 2500, level = 8, requires = "snack_bar",
+                description = "Burritos and loaded fries join the fish tacos. Every snack sells for $8 more (and acai shakes a little more too)." },
+            new Upgrade { id = "acai_bar", category = UpgradeCategory.Park, title = "Acai & Shake Shack", cost = 1500, level = 6,
+                description = "A purple fruit shack by the west deck. Customers order acai bowls and shakes: grab a bowl or cup, add their toppings, blend, serve. Fast service = tips!" },
+            new Upgrade { id = "surf_shop", category = UpgradeCategory.Park, title = "Surf Gear Shop", cost = 3500, level = 10,
+                description = "A surf shack by the entrance full of boardshorts, rash guards, wax, fins and leashes. Grab what customers ask for and ring it up (bring extras: they might buy those too). Happy surfers also buy $15 of wax and stickers on the way out." },
+            new Upgrade { id = "board_shaper", category = UpgradeCategory.Park, title = "Custom Board Shaper", cost = 12000, level = 13, requires = "surf_shop",
+                description = "A shaping shed on the east deck. Surfers order their dream board ($750-$950): plane a foam blank, spray their color, fit their fins. Big money per board." },
             new Upgrade { id = "vip_sessions", category = UpgradeCategory.Park, title = "VIP Sessions", cost = 8000, level = 14, requires = "intermediate_waves",
                 description = "Fancy towels, smoothies, priority lineup. Surfers will pay $25 more (times their skill and pool)." },
             new Upgrade { id = "grandstand", category = UpgradeCategory.Park, title = "Grandstand", cost = 22000, level = 17, requires = "pro_waves",
@@ -119,6 +123,12 @@ namespace SurfPool
                 description = "Wage $8/min. Hands rental boards to renters for you." },
             new Upgrade { id = "snack_cook", category = UpgradeCategory.Staff, title = "Hire Snack Cook", cost = 1500, level = 6, requires = "snack_bar",
                 description = "Wage $6/min. Cooks and serves every snack order at the snack bar for you." },
+            new Upgrade { id = "acai_barista", category = UpgradeCategory.Staff, title = "Hire Acai Barista", cost = 1400, level = 7, requires = "acai_bar",
+                description = "Wage $7/min. Makes and serves every bowl and shake at the Acai & Shake Shack (a little slower than you, smaller tips)." },
+            new Upgrade { id = "gear_clerk", category = UpgradeCategory.Staff, title = "Hire Shop Clerk", cost = 3000, level = 11, requires = "surf_shop",
+                description = "Wage $10/min. Fetches and rings up gear for every customer at the Surf Gear Shop." },
+            new Upgrade { id = "shaper_apprentice", category = UpgradeCategory.Staff, title = "Hire Apprentice Shaper", cost = 9000, level = 14, requires = "board_shaper",
+                description = "Wage $30/min. Takes custom orders and shapes boards by themself (slowly: about 40 s a board)." },
             new Upgrade { id = "janitor", category = UpgradeCategory.Staff, title = "Hire Janitor", cost = 900, level = 5,
                 description = "Wage $5/min. Walks the decks picking up every piece of trash, so the park stays spotless (and the inspector stays happy)." },
             new Upgrade { id = "mechanic", category = UpgradeCategory.Staff, title = "Hire Mechanic", cost = 1800, level = 6,
@@ -150,6 +160,11 @@ namespace SurfPool
         [SerializeField] GameObject snackCook;
         [SerializeField] GameObject fishingPier;
         [SerializeField] GameObject trashCans;
+        [SerializeField] GameObject acaiBar;
+        [SerializeField] GameObject acaiBarista;
+        [SerializeField] GameObject gearClerk;
+        [SerializeField] GameObject boardShaper;
+        [SerializeField] GameObject shaperApprentice;
 
         [Header("Park decoration (hidden until bought)")]
         [Tooltip("Garden pieces: one on the main deck, one on each extra pool's deck (shown once that pool is built).")]
@@ -256,6 +271,9 @@ namespace SurfPool
                 "mechanic" => mechanic,
                 "janitor" => janitor,
                 "snack_cook" => snackCook,
+                "acai_barista" => acaiBarista,
+                "gear_clerk" => gearClerk,
+                "shaper_apprentice" => shaperApprentice,
                 _ => null,
             };
             return worker != null ? worker.GetComponent<StaffMember>() : null;
@@ -300,6 +318,21 @@ namespace SurfPool
                     break;
                 case "snack_bar":
                     if (snackBar != null) snackBar.SetActive(true);
+                    break;
+                case "acai_bar":
+                    if (acaiBar != null) acaiBar.SetActive(true);
+                    break;
+                case "acai_barista":
+                    if (acaiBarista != null) acaiBarista.SetActive(true);
+                    break;
+                case "gear_clerk":
+                    if (gearClerk != null) gearClerk.SetActive(true);
+                    break;
+                case "board_shaper":
+                    if (boardShaper != null) boardShaper.SetActive(true);
+                    break;
+                case "shaper_apprentice":
+                    if (shaperApprentice != null) shaperApprentice.SetActive(true);
                     break;
                 case "smoothie_bar":
                     ParkEffects.SnackPriceBonus += 8;
