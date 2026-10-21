@@ -781,7 +781,7 @@ namespace SurfPool
         /// A set is charging in this pool: the lineup sees it coming like on a real reef. One surfer calls it out,
         /// everyone waiting turns to look at the machine (and gets a bit of patience back: waves are coming).
         /// </summary>
-        public static void SeeSet(PoolArea inPool, Vector3 machine, int waves)
+        public static void SeeSet(PoolArea inPool, Vector3 machine, int waves, WaveLevel level)
         {
             Surfer caller = null;
             int seen = 0;
@@ -794,7 +794,7 @@ namespace SurfPool
                 var local = w.InverseTransformPoint(other.transform.position);
                 local.x = w.InverseTransformPoint(machine).x;
                 other.rig.LookTarget = w.TransformPoint(local) + Vector3.up * 1f;
-                other.patience = Mathf.Min(1f, other.patience + 0.1f);
+                if (other.Skill == level || other.Skill == WaveLevel.Beginner) other.patience = Mathf.Min(1f, other.patience + 0.1f); // their wave is coming
                 if (Random.Range(0, ++seen) == 0) caller = other; // a random one of them
             }
             if (caller == null) return;

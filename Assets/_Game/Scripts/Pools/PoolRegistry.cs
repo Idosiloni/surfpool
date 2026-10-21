@@ -7,17 +7,17 @@ namespace SurfPool
     {
         public static readonly List<PoolArea> All = new();
 
-        public static int TotalPools => All.Count;
+        /// <summary>Pools you can build, counted once each (the Cove's two sides are one pool).</summary>
+        public static int TotalPools => Count(false);
 
-        public static int OpenPools
+        public static int OpenPools => Count(true);
+
+        static int Count(bool openOnly)
         {
-            get
-            {
-                int open = 0;
-                foreach (var pool in All)
-                    if (pool.IsOpen) open++;
-                return open;
-            }
+            var seen = new HashSet<string>();
+            foreach (var pool in All)
+                if (!openOnly || pool.IsOpen) seen.Add(pool.UpgradeId ?? "");
+            return seen.Count;
         }
     }
 }

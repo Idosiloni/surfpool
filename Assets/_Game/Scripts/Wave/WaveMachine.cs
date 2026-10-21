@@ -20,7 +20,7 @@ namespace SurfPool
         [Tooltip("Seconds between waves in a set (real pools: about 5).")]
         [SerializeField] float setSpacing = 4f;
         [Tooltip("Seconds the machine charges after a press before the first wave leaves (\"SET INCOMING\").")]
-        [SerializeField] float setLead = 1.4f;
+        [SerializeField] float setLead = 1f;
         [Tooltip("Auto waves pick the type most waiting surfers want, instead of the selected one.")]
         [SerializeField] bool smartAuto;
 
@@ -276,13 +276,14 @@ namespace SurfPool
             if (OperatingCosts.Instance != null) OperatingCosts.Instance.MeterWaves(level, Pool, count);
             Sfx.Play(Sound.WaveMachine, transform.position);
             if (Service != null) Service.AddWear(level, count);
-            chargeDuration = Cooldown + setLead + (count - 1) * setSpacing;
+            // The charge-up runs during the cooldown (not on top of it), so sets don't feel slower than before.
+            chargeDuration = Mathf.Max(Cooldown, setLead) + (count - 1) * setSpacing;
             readyAt = Time.time + chargeDuration;
             SetCount = count;
             SetFired = 0;
             SetStarted?.Invoke(count);
             // The lineup sees it coming: someone calls "Outside!", everyone looks out to the machine.
-            if (Pool != null) Surfer.SeeSet(Pool, transform.position, count);
+            if (Pool != null) Surfer.SeeSet(Pool, transform.position, count, level);
             // The other side of a Cove's pier fires the same set.
             if (twin != null && !withLeader) twin.TrySendSet(level, direction, preset, true); // it turns non-beginner waves its own way
             return true;

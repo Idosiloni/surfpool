@@ -58,9 +58,9 @@ namespace SurfPool
         [Header("Calm water")]
         [SerializeField] float rippleHeight = 0.04f;
         [Tooltip("Leftover chop each wave leaves when it hits the beach and bounces back (0 to 1).")]
-        [SerializeField] float chopPerWave = 0.22f;
+        [SerializeField] float chopPerWave = 0.15f;
         [Tooltip("Seconds for the leftover chop to settle to half (the lull between sets).")]
-        [SerializeField] float chopHalfLife = 8f;
+        [SerializeField] float chopHalfLife = 5f;
         [Tooltip("Ripples are this many times bigger in fully choppy water.")]
         [SerializeField] float chopRipples = 2.5f;
 
@@ -361,8 +361,15 @@ namespace SurfPool
             float t = Now;
             if (!replaying)
             {
-                int ended = waves.RemoveAll(wave => WaveCenter(wave, t) > length + wave.type.backWidth * 3f);
-                Chop = Mathf.Clamp01(Chop * Mathf.Pow(0.5f, Time.deltaTime / Mathf.Max(0.1f, chopHalfLife)) + ended * chopPerWave);
+                // Bigger waves bounce back harder; whitewater barely stirs the pool.
+                float added = 0f;
+                for (int i = waves.Count - 1; i >= 0; i--)
+                {
+                    if (WaveCenter(waves[i], t) <= length + waves[i].type.backWidth * 3f) continue;
+                    added += chopPerWave * (waves[i].type.level == WaveLevel.Beginner ? 0.4f : waves[i].type.level == WaveLevel.Pro ? 1.3f : 1f);
+                    waves.RemoveAt(i);
+                }
+                Chop = Mathf.Clamp01(Chop * Mathf.Pow(0.5f, Time.deltaTime / Mathf.Max(0.1f, chopHalfLife)) + added);
             }
             UpdateStates(t);
 

@@ -255,7 +255,7 @@ namespace SurfPool
                 {
                     Count("Give 300 full sessions", () => GameStats.SurfersServed, 300),
                     Flag("Reach a 5-star rating", () => ParkReputation.Instance != null && ParkReputation.Instance.Stars >= 5f),
-                    Flag("Open all pools", () => PoolRegistry.OpenPools >= PoolRegistry.TotalPools && PoolRegistry.TotalPools > 1),
+                    Flag("Open all pools", () => PoolRegistry.OpenPools >= Mathf.Min(3, PoolRegistry.TotalPools) && PoolRegistry.TotalPools > 1), // main, Reef, Lagoon (the Cove and the Ranch come later)
                     Count("Earn $500,000 in total", () => GameStats.TotalEarned, 500000),
                 },
             });

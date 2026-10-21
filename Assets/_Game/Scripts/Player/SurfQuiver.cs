@@ -21,7 +21,7 @@ namespace SurfPool
         static readonly System.Collections.Generic.HashSet<BoardKind> owned = new() { BoardKind.Shortboard, BoardKind.Foamie };
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics()
+        public static void ResetStatics()
         {
             Current = BoardKind.Shortboard;
             Changed = null;

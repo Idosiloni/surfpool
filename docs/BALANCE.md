@@ -173,11 +173,13 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
 - Alternate L/R sends lefts and rights in turn. Set size can be chosen from 1 up to what Wave Sets allows.
 
 ## Sets and lulls (2026-10-22, proposals)
-- A press charges 1.4 s ("SET INCOMING", the lineup calls "Outside!" and looks out, +10% patience), then the waves
-  leave 4 s apart (was 2.5 s; real PerfectSwell sets: 5 s apart, ~30 s lull). Recharge = cooldown + 1.4 s + spacing.
-- Leftover chop: every wave that hits the beach adds 0.22 chop (max 1), which halves every 8 s. Ride quality and your
-  flow build x(1 - 0.2 x chop): back-to-back sets on a choppy pool score up to 20% less. A set of 3 leaves ~0.6 chop,
-  glassy again (< 0.15) after ~16 s of lull. Ripples grow up to x3.5 when fully choppy.
+- A press charges 1 s ("SET INCOMING", the lineup calls "Outside!" and looks out; surfers whose wave it is get +10%
+  patience), then the waves leave 4 s apart (was 2.5 s; real PerfectSwell: 5 s apart, ~30 s lull). The charge-up runs
+  during the cooldown: recharge = max(cooldown, 1 s) + spacing per extra wave (Turbo + sets of 2: 6 s, was 4.5 s).
+- Leftover chop: a wave hitting the beach adds 0.15 (whitewater x0.4, Pro x1.3), halving every 5 s. Ride quality and
+  your flow build x(1 - 0.2 x chop). Auto Waves every 12 s with sets of 2 keeps it at ~0.13-0.26 (rides ~3-5% worse);
+  back-to-back manual sets can make it choppy. Ripples grow up to x3.5 when fully choppy.
+- The SET INCOMING call shows for sets you send yourself, and for every set while you're surfing.
 
 ## Wind (2026-10-21, proposal)
 - From day 2: 50% calm, 25% offshore, 25% onshore (independent of the day's event). Offshore: glassy water (ripples

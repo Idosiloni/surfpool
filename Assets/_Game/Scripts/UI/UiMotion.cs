@@ -18,8 +18,10 @@ namespace SurfPool
             if (overlay.ClassListContains(OverlayLeave))
             {
                 overlay.RemoveFromClassList(OverlayLeave); // opened again while closing: just come back
+                overlay.pickingMode = PickingMode.Position;
                 return;
             }
+            overlay.pickingMode = PickingMode.Position;
             if (!overlay.ClassListContains("hidden")) return;
             Enter(overlay, OverlayEnter);
         }
@@ -32,6 +34,7 @@ namespace SurfPool
         {
             if (overlay == null || overlay.ClassListContains("hidden") || overlay.ClassListContains(OverlayLeave)) return;
             overlay.AddToClassList(OverlayLeave);
+            overlay.pickingMode = PickingMode.Ignore; // fading out: clicks go through to the game
             overlay.schedule.Execute(() =>
             {
                 if (!overlay.ClassListContains(OverlayLeave)) return; // reopened meanwhile

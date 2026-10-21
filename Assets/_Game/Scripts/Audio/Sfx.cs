@@ -141,12 +141,17 @@ namespace SurfPool
 
         static Button hovered;
         static float nextHover;
+        static Vector2 lastHoverAt;
 
         /// <summary>A barely-there tick when the mouse moves onto a new button.</summary>
         static void OnUiHover(PointerOverEvent evt)
         {
             var button = ButtonOf(evt.target);
-            if (button == hovered) return;
+            // Screens rebuild their buttons now and then: a "new" button under a still mouse isn't a hover.
+            Vector2 at = evt.position;
+            bool moved = (at - lastHoverAt).sqrMagnitude > 1f;
+            lastHoverAt = at;
+            if (button == hovered || !moved) { hovered = button; return; }
             hovered = button;
             if (button == null || !button.enabledInHierarchy || Time.unscaledTime < nextHover) return;
             nextHover = Time.unscaledTime + 0.06f;

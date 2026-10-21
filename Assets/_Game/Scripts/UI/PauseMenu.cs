@@ -138,6 +138,7 @@ namespace SurfPool
             ParkEffects.ResetStatics();
             DailyEvents.ResetStatics();
             MachineService.ResetStatics();
+            SurfQuiver.ResetStatics();
             saveSystem.enabled = false; // don't save the old park on the way out
             Time.timeScale = 1f;
             InputBlocker.ResetAll();

@@ -22,7 +22,7 @@ namespace SurfPool
         int shownOwned = -1;
         int shownLevel = -1;
         // The card you just bought keeps its place for a moment and gets its OWNED stamp slammed on.
-        string justBought;
+        string justBought, stamped;
         float justBoughtAt = -10f;
         bool staggerNext;
 
@@ -30,6 +30,7 @@ namespace SurfPool
         {
             justBought = upgrade.id;
             justBoughtAt = Time.unscaledTime;
+            stamped = null;
         }
 
         void OnDisable() => UpgradeShop.Bought -= OnBought;
@@ -248,10 +249,10 @@ namespace SurfPool
                 corner.AddToClassList(upgrade.owned ? "price-stamp" : "cost-chip");
                 corner.EnableInClassList("cost-chip--short", !upgrade.owned && cash < upgrade.cost);
                 card.Add(corner);
-                if (upgrade.owned && upgrade.id == justBought && boughtRecently)
+                if (upgrade.owned && upgrade.id == justBought && boughtRecently && stamped != justBought)
                 {
                     // Rubber stamp on a surf-shop receipt: it slams down big and crooked, the card jolts.
-                    justBought = null;
+                    stamped = justBought;
                     UiMotion.Enter(corner, "price-stamp--slam");
                     card.schedule.Execute(() =>
                     {
