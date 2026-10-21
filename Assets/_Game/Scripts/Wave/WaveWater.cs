@@ -101,6 +101,9 @@ namespace SurfPool
             public float closeoutAge;    // closeouts: seconds since they started breaking (-1 = not yet)
             public float seedA, seedB;   // closeouts: the two spots along the crest where they start to spill
             public float steepen;        // 0 = just launched (a fat, soft swell) .. 1 = breaking (the face at its steepest)
+            public WaveShape shape;
+            public float peel;           // 0..1 how far along its line the break has run (the sections)
+            public float hollow;         // 0..1 in the barrel section: the pocket stands up and the lip throws
             public float born;           // seconds since it left the machine (for the boil at the wall)
         }
 
@@ -253,7 +256,7 @@ namespace SurfPool
                 };
                 pocketZ = BreakPoint(state, rideDirection);
                 breaking = state.breaking;
-                barrel = state.type.barrel && state.breaking;
+                barrel = (state.type.barrel || state.hollow > 0.5f) && state.breaking;
                 finished = Mathf.Abs(pocketZ) > HalfWidth - 1.5f;
                 return true;
             }
@@ -402,7 +405,7 @@ namespace SurfPool
                 float added = 0f;
                 for (int i = waves.Count - 1; i >= 0; i--)
                 {
-                    if (WaveCenter(waves[i], t) <= length + waves[i].type.backWidth * 3f) continue;
+                    if (WaveCenter(waves[i], t) <= RemoveAt(waves[i].type)) continue;
                     added += chopPerWave * (waves[i].type.level == WaveLevel.Beginner ? 0.4f : waves[i].type.level == WaveLevel.Pro ? 1.3f : 1f);
                     waves.RemoveAt(i);
                 }
@@ -535,10 +538,14 @@ namespace SurfPool
                     back = type.backWidth * (1f + beachBreak),
                     beachBreak = beachBreak,
                     breaking = breaking,
-                    breakDistance = breaking ? (t - breakTime) * type.peelSpeed : 0f,
+                    breakDistance = breaking ? PeelDistance(wave, t - breakTime) : 0f,
                     closeoutAge = type.closeout && breaking ? t - breakTime : -1f,
                     steepen = breaking ? 1f : Mathf.Clamp01((t - wave.start) / Mathf.Max(0.1f, breakTime - wave.start)),
                     born = t - wave.start - headStart,
+                    shape = wave.shape,
+                    peel = breaking && !type.closeout ? Mathf.Clamp01(PeelDistance(wave, t - breakTime) / Mathf.Max(1f, PeelLength(wave.direction))) : 0f,
+                    hollow = breaking ? Hollowness(type, wave.shape, true,
+                        Mathf.Clamp01(PeelDistance(wave, t - breakTime) / Mathf.Max(1f, PeelLength(wave.direction)))) : 0f,
                     seedA = -HalfWidth * (0.5f + 0.3f * (Hash(wave.start) - 0.5f)),
                     seedB = HalfWidth * (0.5f + 0.3f * (Hash(wave.start + 17.3f) - 0.5f)),
                 });
@@ -657,12 +664,14 @@ namespace SurfPool
             // A wave leaves the machine as a fat, soft swell and its face sharpens until it breaks.
             r.frontG = state.type.frontWidth * (1f + 0.5f * far) * Mathf.Lerp(1.8f, 1f, Mathf.SmoothStep(0f, 1f, state.steepen));
             r.mask = state.breaking && !state.type.closeout ? PocketMask(state, z) : 0f;
-            if (state.type.barrel && state.breaking && state.beachBreak <= 0.5f)
+            if (HasLip(state) && state.breaking && state.beachBreak <= 0.5f)
             {
                 if (state.direction != WaveDirection.Left) TubeAt(state, -1, z, ref r);
                 if (state.direction != WaveDirection.Right) TubeAt(state, 1, z, ref r);
             }
-            r.pocket = r.mask * (1f - r.broken) * 0.25f;
+            r.pocket = r.mask * (1f - r.broken) * (0.25f + 0.2f * state.hollow);
+            // In the barrel section the face by the pocket stands up even steeper.
+            r.frontG *= Mathf.Lerp(1f, 0.7f, state.hollow * r.mask);
             return r;
         }
 
@@ -674,12 +683,19 @@ namespace SurfPool
             if (s <= 0f || s >= 1f) return;
             float tau = 0.8f * (1f - s) * Mathf.Clamp01(state.breakDistance / 1.5f);
             LipShape(tau, out float lengthA, out _);
+            lengthA *= LipScale(state);
             // Only where the lip is out far enough to roof the face, fading toward the far end where it barely pitches.
             float covered = Smooth(0.3f, 0.75f, lengthA) * (1f - Smooth(0.8f, 1f, s));
             if (covered <= r.tube) return;
             r.tube = covered;
             r.tubeReach = lengthA * state.amplitude;
         }
+
+        /// <summary>Barreling waves throw a lip everywhere; others only in the barrel section.</summary>
+        static bool HasLip(in WaveState state) => state.type.barrel || state.hollow > 0.15f;
+
+        /// <summary>How big the thrown lip is: barreling waves throw more in the barrel section, others only there.</summary>
+        static float LipScale(in WaveState state) => state.type.barrel ? 0.8f + 0.35f * state.hollow : state.hollow;
 
         /// <summary>How far ahead of the break the lip starts to pitch (about 1.5 s of peel; docs/research/wave-look-2.md).</summary>
         float LipLengthOf(in WaveState state) => Mathf.Max(lipLength, state.type.peelSpeed * 1.5f);
@@ -807,7 +823,7 @@ namespace SurfPool
 
             foreach (var state in states)
             {
-                if (!state.type.barrel || !state.breaking || state.beachBreak > 0.5f) continue;
+                if (!HasLip(state) || !state.breaking || state.beachBreak > 0.5f) continue;
                 if (state.direction != WaveDirection.Left) AddLipStrip(state, -1, t);
                 if (state.direction != WaveDirection.Right) AddLipStrip(state, 1, t);
             }
@@ -855,6 +871,7 @@ namespace SurfPool
                 // Section age: 0.8 = landing at the break point, 0 = just starting to pitch at the far end.
                 float tau = 0.8f * (1f - s) * grown;
                 LipShape(tau, out float lengthA, out float hookDeg);
+                lengthA *= LipScale(state);
                 float reach = lengthA * state.amplitude;
                 float top = LocalHeight(state.center, z, t);
                 var p = new Vector3(state.center - 0.3f, top, z);
@@ -986,7 +1003,7 @@ namespace SurfPool
                 }, 1);
             }
 
-            if (state.type.barrel && state.breakDistance > 1.5f)
+            if (HasLip(state) && state.breakDistance > 1.5f)
             {
                 // The lip lands: a white burst thrown up off the flat water out in front of the face.
                 LipShape(0.8f, out float landA, out _);
@@ -1009,7 +1026,7 @@ namespace SurfPool
             }
 
             // Spit: air squeezed out of the barrel blows mist out of the tube mouth, ahead of the break, in puffs.
-            if (state.type.barrel && state.breakDistance > 1.5f)
+            if (HasLip(state) && state.breakDistance > 1.5f)
             {
                 float pulse = Mathf.Max(0f, Mathf.Sin(Now * 4.2f + state.id)) * 2f;
                 int puffs = RandomCount(spitRate * strength * pulse);
@@ -1078,7 +1095,62 @@ namespace SurfPool
             return t * t * (3f - 2f * t);
         }
 
-        static float WaveCenter(ActiveWave wave, float t) => -wave.type.backWidth + (t - wave.start) * wave.type.speed;
+        /// <summary>
+        /// Where the crest is (local x). Full speed over the deep water, then past the beach-break line it feels the
+        /// bottom and slows, to about 55% of its speed at the beach: v = c (end - x) / (end - xs), solved exactly so
+        /// replays (which rewind the clock) land on the same spot.
+        /// </summary>
+        float WaveCenter(ActiveWave wave, float t)
+        {
+            float c = wave.type.speed, x = -wave.type.backWidth + (t - wave.start) * c;
+            float xs = beachBreakStart * length;
+            if (x <= xs) return x;
+            float end = ShoalEnd;
+            return xs + (end - xs) * (1f - Mathf.Exp(-(x - xs) / Mathf.Max(0.1f, end - xs)));
+        }
+
+        /// <summary>Where a slowing wave would stop (beyond the beach: it gets there at 55% speed).</summary>
+        float ShoalEnd => (length - 0.55f * beachBreakStart * length) / 0.45f;
+
+        /// <summary>Gone: well up the beach (the crest never reaches ShoalEnd).</summary>
+        float RemoveAt(in WaveType type) => length + Mathf.Min(type.backWidth * 3f, (ShoalEnd - length) * 0.85f);
+
+        /// <summary>The break's length of run: from where it starts to the far wall (a peak: from the middle out).</summary>
+        float PeelLength(WaveDirection direction) => direction == WaveDirection.Peak ? HalfWidth : PeakOffset + HalfWidth;
+
+        /// <summary>
+        /// How far the break has peeled after `seconds`: steady along the line, then over the last fifth the rest of
+        /// the wave goes all at once (the closeout section, three times as fast).
+        /// </summary>
+        float PeelDistance(ActiveWave wave, float seconds)
+        {
+            float d = seconds * wave.type.peelSpeed;
+            if (wave.type.closeout) return d;
+            float end = 0.8f * PeelLength(wave.direction);
+            return d <= end ? d : end + (d - end) * 3f;
+        }
+
+        /// <summary>The barrel section: about 35-80% along the line the pocket stands up and throws (Mellow waves barely).</summary>
+        static float Hollowness(WaveType type, WaveShape shape, bool breaking, float peel)
+        {
+            if (type.closeout || !breaking) return 0f;
+            float h = Smooth(0.35f, 0.48f, peel) * (1f - Smooth(0.7f, 0.8f, peel));
+            return shape == WaveShape.Mellow ? h * 0.4f : h;
+        }
+
+        /// <summary>Which section this wave's break is in right now (the takeoff for whitewater and missing waves).</summary>
+        public WaveSection SectionOf(float waveId)
+        {
+            foreach (var state in states)
+            {
+                if (state.id != waveId) continue;
+                if (state.type.closeout || !state.breaking) return WaveSection.Takeoff;
+                if (state.peel >= 0.8f) return WaveSection.Closeout;
+                if (state.hollow > 0.5f || (state.type.barrel && state.peel >= 0.4f)) return WaveSection.Barrel;
+                return state.peel < 0.15f ? WaveSection.Takeoff : WaveSection.Wall;
+            }
+            return WaveSection.Takeoff;
+        }
 
         void BuildMesh()
         {

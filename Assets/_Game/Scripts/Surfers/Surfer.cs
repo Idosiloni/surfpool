@@ -1216,7 +1216,7 @@ namespace SurfPool
                 float m = MoveProgress();
                 if (move == Move.Cutback) targetZ -= side * 3f * Mathf.Sin(m * Mathf.PI);
                 if (move == Move.Floater) offset -= 0.4f * Mathf.Sin(m * Mathf.PI);
-                inBarrel = barrel && breaking && Skill == WaveLevel.Pro;
+                inBarrel = barrel && breaking && Skill != WaveLevel.Beginner; // pros on any barrel, intermediates in the barrel section
                 if (inBarrel) offset = 0.9f;
             }
             else

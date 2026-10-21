@@ -18,6 +18,12 @@ namespace SurfPool
     /// </summary>
     public enum WaveShape { Mellow, Standard, Hollow }
 
+    /// <summary>
+    /// Where along its peel a wave is (like the Surf Ranch): the takeoff, an open wall to carve, a hollow barrel
+    /// section, then it closes out.
+    /// </summary>
+    public enum WaveSection { Takeoff, Wall, Barrel, Closeout }
+
     /// <summary>XL waves for the deepest pools (Lagoon, Surf Ranch): bigger Pro waves, for pros only.</summary>
     public enum WaveSize { Normal, Big, Giant }
 

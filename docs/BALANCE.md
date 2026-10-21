@@ -215,3 +215,10 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
 - Pros ride better on them (ride quality x1.2 + 0.05) but everyone wipes out x1.3 more; you get +300 (Big) / +600
   (Giant) for riding one to the end. Ideas: a gun board for XL, contest day on Giants.
 
+## Wave sections and shoaling (2026-10-22)
+- Every peeling wave has sections along its line (by how far the break has run, 0-1): Takeoff (0-15%), Wall,
+  Barrel (~35-80%: the pocket stands up, a lip throws even on Intermediate waves; Mellow x0.4), then Closeout (last
+  20%: the rest of the wave breaks 3x faster, so rides end there). Intermediates can now get barreled in the barrel
+  section (NPCs too). Your HUD calls out THE WALL / BARREL SECTION / CLOSEOUT.
+- Past the beach-break line (85% down the pool) waves slow to ~55% speed at the beach (exact formula, replay-safe).
+

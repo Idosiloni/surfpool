@@ -551,6 +551,7 @@ namespace SurfPool
                     Grab = 0f;
                     partyAwarded = false;
                     waveLevel = water.LevelOf(wave);
+                    lastSection = WaveSection.Takeoff;
                     lineMeters = 0f;
                     lastRideZ = rideZ;
                     behindSince = -1f;
@@ -664,9 +665,27 @@ namespace SurfPool
             comboCount = comboPoints = 0;
         }
 
+        WaveSection lastSection;
+
+        /// <summary>The wave changes as you ride it (like the Surf Ranch): call out each new section.</summary>
+        void CallSections(WaveWater water)
+        {
+            if (waveLevel == WaveLevel.Beginner) return;
+            var section = water.SectionOf(rideWave);
+            if (section == lastSection) return;
+            lastSection = section;
+            switch (section)
+            {
+                case WaveSection.Wall: Called?.Invoke("THE WALL - carve it up!", Notice.Info); break;
+                case WaveSection.Barrel: Called?.Invoke("BARREL SECTION! Get high, ahead of the break", Notice.Reward); break;
+                case WaveSection.Closeout: Called?.Invoke("CLOSEOUT! Kick out or go big", Notice.Bad); break;
+            }
+        }
+
         void Ride(Keyboard keyboard)
         {
             var water = pool.Water;
+            CallSections(water);
             float crest = water.CurrentWaveCenter(rideWave);
             if (crest / water.Length > 0.9f)
             {
