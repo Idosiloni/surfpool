@@ -571,6 +571,7 @@ namespace SurfPool.EditorTools
             Set(shop, "fishingPier", ParkExtras.FishingPier(panelSettings));
             ParkExtras.ParkingLot();
             GlowUpBuilder.Build(shop, reef.built, lagoon.built, deckMat, copingMat, tileMat, ReefZ, LagoonZ);
+            BuildUpgradeProps();
             var wornTile = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/PoolTileWorn.mat");
             if (wornTile != null)
             {
@@ -674,10 +675,9 @@ namespace SurfPool.EditorTools
             spray.transform.SetParent(built, true);
             Set(water, "spray", spray);
 
-            var machineGo = Box("Wave Machine", built, new Vector3(-9, 2.5f, zc), new Vector3(10, 5, poolWidth - 2), mats.machine);
-            machineGo.GetComponent<MeshRenderer>().enabled = false; // keeps its collider; the model is the look
-            WorldArt.Model("WaveMachineHouse", built, new Vector3(-9, 0, zc));
-            Signs.Text(spec.display.ToUpperInvariant(), built, new Vector3(-3.92f, 1.75f, zc), -90f, 0.75f, new Color(0.06f, 0.18f, 0.23f), 16f);
+            // The machine's collider (hold E to repair); the open "air wall" machine built below is the look.
+            var machineGo = Box("Wave Machine", built, new Vector3(-7.25f, 2.5f, zc), new Vector3(14.5f, 5, poolWidth), mats.machine);
+            machineGo.GetComponent<MeshRenderer>().enabled = false;
             var machine = machineGo.AddComponent<WaveMachine>();
             Set(machine, "water", water);
             var autoLight = Box("Auto Wave Light", built, new Vector3(-6, 4.85f, zc - 9), new Vector3(0.6f, 0.5f, 0.6f), mats.beacon);
@@ -793,12 +793,13 @@ namespace SurfPool.EditorTools
             if (lot != null) Set(area, "lotVisuals", lot);
             Set(area, "autoWaveLight", autoLight);
             Set(surfPeg, "pool", area);
+            BuildAirWall(built, zc, southZ, poolWidth, spec.display, machine, area, autoLight, brokenLight, smoke.transform);
             if (!spec.open) built.gameObject.SetActive(false);
 
             return new PoolBuild { area = area, built = built, water = water, machine = machine, panel = panel, peg = peg };
         }
 
-        /// <summary>Rows of tilted solar panels on the machine house roof (hidden until Solar Panels are bought).</summary>
+        /// <summary>Rows of tilted solar panels on the blower roof behind the machine (hidden until Solar Panels are bought).</summary>
         static GameObject SolarPanels(Transform parent, float zc)
         {
             var root = new GameObject("Solar Panels");
@@ -808,7 +809,7 @@ namespace SurfPool.EditorTools
             for (int row = 0; row < 2; row++)
             for (int i = 0; i < 4; i++)
             {
-                var center = new Vector3(-11.5f + row * 3.6f, 5.55f, zc - 7.5f + i * 5f);
+                var center = new Vector3(-12.3f + row * 3.6f, 4.95f, zc - 7.5f + i * 5f);
                 var panel = Box("Solar Panel", root.transform, center, new Vector3(3f, 0.08f, 4.4f), cell);
                 panel.transform.rotation = Quaternion.Euler(0, 0, 18f);
                 Object.DestroyImmediate(panel.GetComponent<Collider>());

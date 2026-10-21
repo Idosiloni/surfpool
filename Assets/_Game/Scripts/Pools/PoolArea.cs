@@ -61,6 +61,7 @@ namespace SurfPool
         [SerializeField] GameObject waterTanks;
 
         public string DisplayName => displayName;
+        public float SouthEdge => southEdge;
         public string UpgradeId => upgradeId;
         public GameObject AutoWaveLight => autoWaveLight;
         public WaveWater Water => water;
@@ -150,9 +151,11 @@ namespace SurfPool
         /// <summary>The wave machine house next to the pool (x, z), grown by a margin.</summary>
         public Rect MachineHouseFootprint(float margin)
         {
-            float zc = southEdge + (StageCount > 0 ? stages[StageCount - 1].width : water.Width) / 2f;
-            return Rect.MinMaxRect(-14f - margin, zc - 11f - margin, -4f + margin, zc + 11f + margin);
+            // The open "air wall" machine: chambers along the deep end (x -6..0) and the blowers behind (to x -14).
+            float width = StageCount > 0 ? stages[StageCount - 1].width : water.Width;
+            return Rect.MinMaxRect(-14.5f - margin, southEdge - margin, -0.2f + margin, southEdge + width + margin);
         }
+
 
         /// <summary>Surfers waiting in this pool's water right now.</summary>
         public int WaitingSurfers
