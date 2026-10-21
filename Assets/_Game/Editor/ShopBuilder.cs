@@ -190,6 +190,9 @@ namespace SurfPool.EditorTools
                 var pile = WorldArt.Model(models[i], tub.transform, tub.transform.TransformPoint(new Vector3(0f, 0.1f, 0f)), AcaiYaw, 2.3f);
                 if (pile != null) pile.transform.SetParent(tub.transform.GetChild(0), true);
                 toppingAssets[i] = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/_Game/Models/{models[i]}.fbx");
+                // Name label on the counter's front lip, readable from behind the counter (the server's side).
+                Signs.Text(AcaiBar.Label(ids[i]).ToUpperInvariant(), tub.transform, root.TransformPoint(L(-1.88f + i * 0.33f, -0.62f, 1.1f)),
+                    AcaiYaw + 180f, 0.045f, new Color(0.33f, 0.1f, 0.4f), 0.3f).transform.rotation = root.rotation * Quaternion.Euler(60f, 180f, 0f);
             }
             SetStringArray(bar, "toppingIds", ids);
             SetArray(bar, "toppingModels", toppingAssets);
@@ -276,6 +279,7 @@ namespace SurfPool.EditorTools
             }
             var rash = Station(root, gear, "rash", "RashRack", L(2.4f, 1.45f, 0f), 0f, new Vector3(0f, 1.0f, 0f), new Vector3(1.45f, 1.0f, 0.5f));
             Recolor(rash, "Garment", Mat("Garment rash", new Color(0.2f, 0.32f, 0.62f), 0.25f));
+            foreach (var item in GearShop.Catalog) GearTag(root, item);
             Station(root, gear, "fins", "FinWall", L(-3.05f, 0.2f, 0f), -90f, new Vector3(0f, 1.15f, 0f), new Vector3(1.2f, 1.0f, 0.3f));
             Station(root, gear, "leash", "LeashHooks", L(-3.05f, -1.15f, 0f), -90f, new Vector3(0f, 1.2f, 0f), new Vector3(0.9f, 0.8f, 0.3f));
             Station(root, gear, "wax", "WaxCrate", L(-0.9f, -0.2f, 0f), 15f, new Vector3(0f, 0.25f, 0f), new Vector3(0.65f, 0.5f, 0.5f));
@@ -303,6 +307,27 @@ namespace SurfPool.EditorTools
             var clerk = Worker(root, gear, "Shop Clerk", L(2.3f, -0.4f, 0f), 180f, new Color(1f, 0.78f, 0.25f), skinMat, 10);
             root.gameObject.SetActive(false);
             return new BuiltShop { gameObject = root.gameObject, clerk = clerk };
+        }
+
+        /// <summary>A little price tag on a gear display ("WAX $6"), facing into the shop.</summary>
+        static void GearTag(Transform root, GearShop.Item item)
+        {
+            var spots = new System.Collections.Generic.Dictionary<string, (Vector3 at, float yaw)>
+            {
+                { "shorts_coral", (L(-2.55f, 1.2f, 1.62f), 0f) }, { "shorts_teal", (L(-0.9f, 1.2f, 1.62f), 0f) },
+                { "shorts_sun", (L(0.75f, 1.2f, 1.62f), 0f) }, { "rash", (L(2.4f, 1.2f, 1.62f), 0f) },
+                { "fins", (L(-2.95f, 0.2f, 0.62f), -90f) }, { "leash", (L(-2.95f, -1.15f, 0.72f), -90f) },
+                { "wax", (L(-0.9f, -0.48f, 0.42f), 15f) }, { "sunscreen", (L(0.7f, -0.33f, 1.48f), 0f) },
+            };
+            if (!spots.TryGetValue(item.id, out var spot)) return;
+            var rotation = root.rotation * Quaternion.Euler(0f, spot.yaw, 0f);
+            var tag = Box($"Price Tag ({item.id})", root, root.TransformPoint(spot.at), new Vector3(0.62f, 0.2f, 0.02f), Mat("PropSun", new Color(1f, 0.8f, 0.3f), 0.35f));
+            tag.transform.rotation = rotation;
+            Object.DestroyImmediate(tag.GetComponent<Collider>());
+            string label = item.id.StartsWith("shorts") ? "SHORTS" : item.label.ToUpperInvariant();
+            var text = Signs.Text($"{label} ${item.price}", root, tag.transform.position + rotation * new Vector3(0f, 0f, -0.015f), 0f, 0.07f,
+                new Color(0.06f, 0.16f, 0.22f), 0.58f);
+            text.transform.rotation = rotation;
         }
 
         static void Recolor(GameObject root, string materialName, Material material)

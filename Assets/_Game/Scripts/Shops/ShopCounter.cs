@@ -103,8 +103,11 @@ namespace SurfPool
         /// <summary>The order a new customer of this shop wants.</summary>
         public abstract ShopOrder NewOrder();
 
-        /// <summary>A customer just stepped up to the counter.</summary>
-        public virtual void ReachedCounter(Shopper shopper) { }
+        /// <summary>A customer just stepped up to the counter: ring the little bell (you hear it nearby).</summary>
+        public virtual void ReachedCounter(Shopper shopper)
+        {
+            if (!StaffOnDuty) Sfx.Play(Sound.ShopBell, lineSpot.position, 0.6f);
+        }
 
         public abstract string Prompt { get; }
         public abstract void Interact();
