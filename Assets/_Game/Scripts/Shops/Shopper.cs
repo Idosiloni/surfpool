@@ -191,8 +191,8 @@ namespace SurfPool
                     item.transform.localPosition = new Vector3(0.42f, 0.82f, 0.05f);
                     item.transform.localRotation = Quaternion.identity;
                     break;
-                case CarryStyle.Front: // a bowl or cup held in front of the chest
-                    item.transform.localPosition = new Vector3(0.12f, 1.05f, 0.3f);
+                case CarryStyle.Front: // a bowl or cup carried in the right hand
+                    item.transform.localPosition = new Vector3(0.42f, 0.8f, 0.12f);
                     item.transform.localRotation = Quaternion.identity;
                     break;
                 case CarryStyle.UnderArm: // a board on its edge under the right arm, like surfers carry them

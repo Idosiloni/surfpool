@@ -1,3 +1,4 @@
+using UnityEditor;
 using UnityEngine;
 
 namespace SurfPool.EditorTools
@@ -52,9 +53,11 @@ namespace SurfPool.EditorTools
             SetChambers(rig, chambers);
 
             // Pool name banner on the catwalk railing, facing the water.
-            var banner = Box("Name Banner", root, new Vector3(-0.09f, 2.38f, zc), new Vector3(0.05f, 0.4f, Mathf.Min(9f, width - 3f)), navy);
+            // (Near the south end, over the chambers every pool size has, by the wave console.)
+            float bannerZ = southZ + 6f;
+            var banner = Box("Name Banner", root, new Vector3(-0.09f, 2.38f, bannerZ), new Vector3(0.05f, 0.4f, 8f), navy);
             Object.DestroyImmediate(banner.GetComponent<Collider>());
-            Signs.Text(display.ToUpperInvariant(), root, new Vector3(-0.05f, 2.38f, zc), -90f, 0.3f, Color.white, Mathf.Min(8.6f, width - 3.4f));
+            Signs.Text(display.ToUpperInvariant(), root, new Vector3(-0.05f, 2.38f, bannerZ), -90f, 0.3f, Color.white, 7.6f);
 
             // Duct manifold behind the chambers, joining every chamber's duct.
             var manifold = Cylinder("Duct Manifold", root, new Vector3(-6.4f, 3.4f, zc), new Vector3(0.95f, (width - module) / 2f + 0.4f, 0.95f),
@@ -253,7 +256,8 @@ namespace SurfPool.EditorTools
             main.loop = false;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.startLifetime = new ParticleSystem.MinMaxCurve(0.6f, 1.1f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.18f, 0.42f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.35f, 0.8f);
+            main.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 1f, 1f, 0.9f), new Color(0.8f, 0.93f, 1f, 0.75f));
             main.gravityModifier = 1.1f;
             main.maxParticles = 600;
             var emission = ps.emission;
@@ -263,10 +267,17 @@ namespace SurfPool.EditorTools
             size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 0.6f), new Keyframe(0.3f, 1f), new Keyframe(1f, 0f)));
             var renderer = go.GetComponent<ParticleSystemRenderer>();
             renderer.renderMode = ParticleSystemRenderMode.Mesh;
-            var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            renderer.mesh = sphere.GetComponent<MeshFilter>().sharedMesh;
-            Object.DestroyImmediate(sphere);
-            renderer.sharedMaterial = Mat("ChamberSpray", new Color(0.95f, 0.98f, 1f), 0.6f);
+            var ico = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            renderer.mesh = ico.GetComponent<MeshFilter>().sharedMesh;
+            Object.DestroyImmediate(ico);
+            var sprayMat = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/ChamberSprayPuff.mat");
+            if (sprayMat == null)
+            {
+                sprayMat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+                AssetDatabase.CreateAsset(sprayMat, $"{MaterialFolder}/ChamberSprayPuff.mat");
+            }
+            sprayMat.SetColor("_BaseColor", Color.white);
+            renderer.sharedMaterial = sprayMat;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             return ps;
         }

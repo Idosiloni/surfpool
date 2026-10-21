@@ -146,10 +146,12 @@ namespace SurfPool
             {
                 Vector3 mouth = chamber.root.position + Vector3.right * 3.3f + Vector3.up * 0.2f;
                 var emit = new ParticleSystem.EmitParams { applyShapeToPosition = true };
-                for (int i = 0; i < 14; i++)
+                for (int i = 0; i < 22; i++)
                 {
-                    emit.position = mouth + new Vector3(Random.Range(0f, 0.4f), Random.Range(-0.1f, 0.3f), Random.Range(-1.2f, 1.2f));
-                    emit.velocity = new Vector3(Random.Range(2f, 5f), Random.Range(2.5f, 5.5f), Random.Range(-1f, 1f));
+                    // A white burst out of the mouth, thrown up and out over the water.
+                    emit.position = mouth + new Vector3(Random.Range(0f, 0.6f), Random.Range(-0.3f, 0.2f), Random.Range(-1.3f, 1.3f));
+                    emit.velocity = new Vector3(Random.Range(2.5f, 6f), Random.Range(1.5f, 4.5f), Random.Range(-1.2f, 1.2f));
+                    emit.startSize = Random.Range(0.3f, 0.75f);
                     spray.Emit(emit, 1);
                 }
             }
@@ -164,7 +166,8 @@ namespace SurfPool
                 foreach (var chamber in chambers)
                     if (chamber.root != null)
                     {
-                        bool built = chamber.root.position.z < north - 0.5f;
+                        // Built once the pool reaches past the chamber's middle (the last one may overhang a little).
+                        bool built = chamber.root.position.z < north;
                         if (chamber.root.gameObject.activeSelf != built) chamber.root.gameObject.SetActive(built);
                     }
             }
