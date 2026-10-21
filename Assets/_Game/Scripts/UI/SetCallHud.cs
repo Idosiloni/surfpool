@@ -31,10 +31,12 @@ namespace SurfPool
         public void Update(WaveMachine machine)
         {
             if (call == null) return;
-            // The set lasts until its last wave has rolled through the pool; the lull starts when the water's empty.
+            // The set runs from the press until a moment after its last wave left the machine; then the lull.
+            // Timer (auto) sets only get the call while you're surfing: otherwise it would never leave the screen.
             var water = machine != null && machine.Pool != null ? machine.Pool.Water : null;
-            bool rolling = water != null && water.ActiveWaves > 0;
-            bool running = machine != null && (machine.SetRunning || (rolling && Time.time - machine.LastWaveAt < 30f));
+            bool surfing = PlayerSurfing.Instance != null && PlayerSurfing.Instance.IsSurfing;
+            if (machine != null && machine.LastSetAuto && !surfing) machine = null;
+            bool running = machine != null && (machine.SetRunning || Time.time - machine.LastWaveAt < 2.5f);
             if (machine != lastMachine)
             {
                 lastMachine = machine;

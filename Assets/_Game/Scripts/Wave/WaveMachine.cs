@@ -63,6 +63,9 @@ namespace SurfPool
         /// <summary>A set is on its way: charging, or some of its waves are still to come.</summary>
         public bool SetRunning => pending.Count > 0;
 
+        /// <summary>The last set came from the timer or the wave operator, not a button press.</summary>
+        public bool LastSetAuto { get; private set; }
+
         /// <summary>When the last wave left the machine (the lull starts then).</summary>
         public float LastWaveAt { get; private set; } = -100f;
 
@@ -223,7 +226,11 @@ namespace SurfPool
             if (autoInterval <= 0f || Time.time < nextAutoWave || leader != null) return; // a follower fires with its leader
             var level = smartAuto ? MostWantedLevel() : Selected;
             var direction = smartAuto ? MostWantedDirection(level) : SelectedDirection;
-            if (TrySendSet(level, direction, smartAuto ? null : Preset)) nextAutoWave = Time.time + autoInterval;
+            if (TrySendSet(level, direction, smartAuto ? null : Preset))
+            {
+                nextAutoWave = Time.time + autoInterval;
+                LastSetAuto = true;
+            }
         }
 
         /// <summary>For the wave operator: send the wave most of this pool's waiting surfers want, if any are waiting.</summary>
@@ -235,11 +242,19 @@ namespace SurfPool
                 if (surfer.WaitingForWave && IsMine(surfer)) anyoneWaiting = true;
             if (!anyoneWaiting) return false;
             var level = MostWantedLevel();
-            return TrySendSet(level, MostWantedDirection(level));
+            bool sent = TrySendSet(level, MostWantedDirection(level));
+            if (sent) LastSetAuto = true;
+            return sent;
         }
 
         /// <summary>Sends the selected wave type and direction (a whole set if upgraded).</summary>
-        public bool TryTriggerWave() => leader != null ? leader.TryTriggerWave() : TrySendSet(Selected, SelectedDirection, Preset);
+        public bool TryTriggerWave()
+        {
+            if (leader != null) return leader.TryTriggerWave();
+            bool sent = TrySendSet(Selected, SelectedDirection, Preset);
+            if (sent) LastSetAuto = false;
+            return sent;
+        }
 
         bool TrySendSet(WaveLevel level, WaveDirection direction, FamousWave preset = null, bool withLeader = false)
         {

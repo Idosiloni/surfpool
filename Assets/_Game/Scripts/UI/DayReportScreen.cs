@@ -32,7 +32,7 @@ namespace SurfPool
 
         readonly System.Collections.Generic.List<Beat> beats = new();
         bool revealing;
-        float nextTick;
+        float nextTick, skippedAt = -10f;
         const float RowGap = 0.09f, CountTime = 0.45f;
 
         void OnEnable()
@@ -50,7 +50,8 @@ namespace SurfPool
             totalSpent = doc.Q<Label>("totalSpent");
             totalProfit = doc.Q<Label>("totalProfit");
             next = doc.Q<Button>("reportNext");
-            next.clicked += () => { if (revealing) Skip(); else Close(); };
+            // The same click that skipped the reveal (pointer down on the window) mustn't also close it.
+            next.clicked += () => { if (revealing) Skip(); else if (Time.unscaledTime - skippedAt > 0.3f) Close(); };
             // Clicking anywhere on the report while it plays out skips to the end.
             root.RegisterCallback<PointerDownEvent>(_ => { if (revealing) Skip(); });
         }
@@ -140,6 +141,7 @@ namespace SurfPool
         /// <summary>Everything appears at once, with the final numbers.</summary>
         void Skip()
         {
+            skippedAt = Time.unscaledTime;
             foreach (var beat in beats)
             {
                 if (beat.done) continue;
