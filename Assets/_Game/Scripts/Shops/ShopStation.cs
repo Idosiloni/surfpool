@@ -18,6 +18,7 @@ namespace SurfPool
         float bumpAt = -10f;
 
         public string Id => id;
+        public ShopCounter Shop => shop;
 
         void Awake()
         {

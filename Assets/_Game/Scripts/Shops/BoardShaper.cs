@@ -128,7 +128,7 @@ namespace SurfPool
             hasJob = true;
             jobStarted = Time.time;
             depositPaid = Deposit(customer.Order);
-            Wallet.Instance.Add(depositPaid, "board deposit");
+            Wallet.Instance.Add(depositPaid, "custom boards");
             Sfx.Play(Sound.ShopBell, transform.position);
             customer.Say("Can't wait!", 2f);
             customer.WaitAt(bench, benchPatience);

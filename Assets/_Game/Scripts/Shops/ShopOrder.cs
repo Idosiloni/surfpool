@@ -23,6 +23,28 @@ namespace SurfPool
         public int price;
         /// <summary>When the customer reached the counter (speed tips count from here).</summary>
         public float placedAt = -1f;
+        /// <summary>A twist on this customer ("In a hurry!", "Big tipper"), shown on the bubble and ticket. Null = none.</summary>
+        public string mood;
+        public bool moodGood;
+        public float patienceScale = 1f, tipScale = 1f;
+
+        /// <summary>Rolls an occasional twist: in a hurry (less patience, double tip) or a big tipper.</summary>
+        public void RollMood()
+        {
+            float roll = Random.value;
+            if (roll < 0.15f)
+            {
+                mood = "In a hurry!";
+                patienceScale = 0.6f;
+                tipScale = 2f;
+            }
+            else if (roll < 0.27f)
+            {
+                mood = "Big tipper";
+                moodGood = true;
+                tipScale = 2.5f;
+            }
+        }
 
         public bool AllDone => items.TrueForAll(i => i.done);
         public int DoneCount => items.FindAll(i => i.done).Count;

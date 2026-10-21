@@ -29,6 +29,10 @@ namespace SurfPool
         public bool Broken { get; private set; }
         public bool NeedsService => Broken || Wear >= warnAt;
         public float RepairProgress => repairProgress;
+
+        /// <summary>0..1 while you're holding E on a repair or service (for the crosshair ring), otherwise -1.</summary>
+        public float HoldFraction => Time.time - lastHoldTime < 0.25f && repairProgress > 0f
+            ? Mathf.Clamp01(repairProgress / (Broken ? repairSeconds : repairSeconds * 0.5f)) : -1f;
         string PoolName => machine.Pool != null ? machine.Pool.DisplayName : "the";
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -68,7 +72,7 @@ namespace SurfPool
             bool wasWarned = Wear >= warnAt;
             Wear = Mathf.Clamp01(Wear + wearPerWave[Mathf.Clamp((int)level, 0, wearPerWave.Length - 1)] * waves * WearMultiplier * ParkPerks.WearMultiplier);
             if (!wasWarned && Wear >= warnAt)
-                Notifications.Post($"The {PoolName} machine needs a service! Hold E at the machine house.", true);
+                Notifications.Post($"The {PoolName} machine needs a service! Hold E at the wave machine.", true);
             // Past the warning, each wave has a growing chance to break it; at 100% it always breaks.
             if (Wear >= 1f || (Wear >= warnAt && Random.value < (Wear - warnAt) * 0.12f)) Break();
         }

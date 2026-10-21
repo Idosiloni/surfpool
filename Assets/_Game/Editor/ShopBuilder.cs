@@ -11,7 +11,7 @@ namespace SurfPool.EditorTools
     /// </summary>
     public static partial class GreyboxBuilder
     {
-        public static readonly Vector3 AcaiAt = new(5f, 0f, -31f), GearAt = new(42f, 0f, -33f), ShaperAt = new(64f, 0f, -34f);
+        public static readonly Vector3 AcaiAt = new(5f, 0f, -31f), GearAt = new(42f, 0f, -33f), ShaperAt = new(72f, 0f, -36f);
         const float AcaiYaw = 180f, GearYaw = 90f, ShaperYaw = 180f;
 
         static Vector3 L(float x, float y, float z) => new(x, z, y);

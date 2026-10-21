@@ -90,7 +90,7 @@ namespace SurfPool
             new Upgrade { id = "snack_bar", category = UpgradeCategory.Park, title = "Snack Bar", cost = 1200, level = 5,
                 description = "A taco and smoothie kiosk by the exit. Happy surfers from the main pool stop for food ($10). Serve them at the grill (E)... and watch out for the wrappers." },
             new Upgrade { id = "smoothie_bar", category = UpgradeCategory.Park, title = "Bigger Snack Menu", cost = 2500, level = 8, requires = "snack_bar",
-                description = "Burritos and loaded fries join the fish tacos. Every snack sells for $8 more (and acai shakes a little more too)." },
+                description = "Burritos and loaded fries join the fish tacos and smoothies. Every snack sells for $8 more (and acai shakes a little more too)." },
             new Upgrade { id = "acai_bar", category = UpgradeCategory.Park, title = "Acai & Shake Shack", cost = 1500, level = 6,
                 description = "A purple fruit shack by the west deck. Customers order acai bowls and shakes: grab a bowl or cup, add their toppings, blend, serve. Fast service = tips!" },
             new Upgrade { id = "surf_shop", category = UpgradeCategory.Park, title = "Surf Gear Shop", cost = 3500, level = 10,

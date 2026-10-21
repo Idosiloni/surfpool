@@ -230,9 +230,10 @@ namespace SurfPool.EditorTools
             var rentalSide = Point("Rental Side", route, new Vector3(27.3f, 0, -19));
             var binSpot = Point("Return Bin Spot", route, new Vector3(35.8f, 0, -25.8f));
 
-            // Renters return their board past the bin on the way out of the main pool.
+            // Renters return their board past the bin on the way out of the main pool (then west of the gear shop).
             var mainOut = main.area.PathOut;
-            SetArray(main.area, "returnPathOut", mainOut[0], binSpot, mainOut[mainOut.Length - 1]);
+            var pastShop = Point("Past Gear Shop", route, new Vector3(37f, 0, -37.8f));
+            SetArray(main.area, "returnPathOut", mainOut[0], binSpot, pastShop, mainOut[mainOut.Length - 1]);
 
             // Two more pools to the north, built later. Surfers walk up the west side past the machine houses.
             var reef = BuildPool(new PoolSpec
@@ -365,8 +366,8 @@ namespace SurfPool.EditorTools
             Box("Menu Leg", snack, menuAt + new Vector3(0f, 0.3f, 0.45f), new Vector3(0.06f, 0.6f, 0.06f), mats.coping).GetComponent<Collider>().enabled = false;
             Signs.Text("MENU", snack, menuAt + new Vector3(-0.04f, 1.37f, 0f), 90f, 0.16f, Color.white, 1f);
             Signs.Text("FISH TACOS", snack, menuAt + new Vector3(-0.04f, 1.12f, 0f), 90f, 0.13f, new Color(1f, 0.82f, 0.35f), 1f);
-            Signs.Text("BURRITOS", snack, menuAt + new Vector3(-0.04f, 0.92f, 0f), 90f, 0.13f, new Color(1f, 0.6f, 0.7f), 1f);
-            Signs.Text("LOADED FRIES", snack, menuAt + new Vector3(-0.04f, 0.72f, 0f), 90f, 0.13f, new Color(0.6f, 0.9f, 0.8f), 1f);
+            Signs.Text("SMOOTHIES", snack, menuAt + new Vector3(-0.04f, 0.92f, 0f), 90f, 0.13f, new Color(1f, 0.6f, 0.7f), 1f);
+            Signs.Text("COLD DRINKS", snack, menuAt + new Vector3(-0.04f, 0.72f, 0f), 90f, 0.13f, new Color(0.6f, 0.9f, 0.8f), 1f);
             var snackBar = snack.gameObject.AddComponent<SnackBar>();
             Set(snackBar, "lineSpot", Point("Snack Line Front", snackRoute, new Vector3(56.0f, 0, -24f)));
             Set(snackBar, "approach", Point("Snack Approach", snackRoute, new Vector3(56.0f, 0, -17.5f)));

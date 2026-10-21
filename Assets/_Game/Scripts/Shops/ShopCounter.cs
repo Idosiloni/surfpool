@@ -14,6 +14,9 @@ namespace SurfPool
     {
         public static readonly List<ShopCounter> All = new();
 
+        /// <summary>A sale went through: where (over the counter), the price and the tip. The HUD floats "+$" there.</summary>
+        public static event System.Action<Vector3, int, int> Sold;
+
         [SerializeField] protected string shopName = "Shop";
         [Tooltip("Reason shown on money pop-ups and in the day report.")]
         [SerializeField] protected string moneyReason = "shop";
@@ -135,8 +138,9 @@ namespace SurfPool
         protected void Sell(Shopper shopper, int price, int tip, GameObject carry = null, Shopper.CarryStyle style = Shopper.CarryStyle.Hand,
             string thanks = null)
         {
-            tip = Mathf.RoundToInt(tip * ParkPerks.TipMultiplier);
+            tip = Mathf.RoundToInt(tip * ParkPerks.TipMultiplier * (shopper.Order != null ? shopper.Order.tipScale : 1f));
             Wallet.Instance.Add(price + tip, moneyReason);
+            Sold?.Invoke(lineSpot.position + Vector3.up * 2.2f, price, tip);
             GameStats.ShopSales++;
             ParkLevel.Add(2);
             Leave(shopper);

@@ -124,7 +124,7 @@ namespace SurfPool.EditorTools
             Box("Tackle Box", rods, rods.position + new Vector3(1.0f, 0.2f, -0.3f), new Vector3(0.6f, 0.4f, 0.35f), sun);
 
             // Premium Boards: a glossy display stand next to the rental stand.
-            var premium = Prop(root, "Premium Board Stand", "premium_boards", new Vector3(35.8f, 0f, -24.2f));
+            var premium = Prop(root, "Premium Board Stand", "premium_boards", new Vector3(35.2f, 0f, -19.8f));
             Box("Stand Base", premium, premium.position + new Vector3(0f, 0.1f, 0f), new Vector3(0.8f, 0.2f, 2.2f), navy);
             var gloss = Mat("PremiumBoard", new Color(0.98f, 0.97f, 0.95f), 0.9f);
             for (int i = 0; i < 3; i++)

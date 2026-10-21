@@ -55,7 +55,8 @@ namespace SurfPool
             shop = target;
             exit = entrance;
             Order = shop.NewOrder();
-            patienceTotal = patienceLeft = shop.Patience;
+            Order.RollMood();
+            patienceTotal = patienceLeft = shop.Patience * Order.patienceScale;
             transform.position = entrance;
             WalkRouter.Plan(entrance, shop.ApproachPoint, route);
             phase = Phase.WalkingIn;

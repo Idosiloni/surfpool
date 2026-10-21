@@ -21,13 +21,16 @@ namespace SurfPool
         class Bubble
         {
             public VisualElement root, chips, patience, patienceFill;
-            public Label title, say;
+            public Label title, say, mood;
             public ShopOrder shownOrder;
             public int shownDone = -1;
         }
 
-        VisualElement root, bubbleLayer, ticket, ticketItems, ticketBar, ticketFill;
-        Label ticketShop, ticketTitle, ticketHint, ticketPrice;
+        VisualElement root, bubbleLayer, ticket, ticketItems, ticketBar, ticketFill, cashLayer;
+        Label ticketShop, ticketTitle, ticketHint, ticketPrice, ticketMood;
+        HoldRing holdRing;
+        PlayerInteractor interactor;
+        readonly List<(Label label, Vector3 world, float born)> cashPops = new();
         readonly Dictionary<Shopper, Bubble> bubbles = new();
         readonly List<Shopper> stale = new();
         ShopOrder ticketOrder;
@@ -45,7 +48,70 @@ namespace SurfPool
             ticketTitle = root.Q<Label>("shopTicketTitle");
             ticketHint = root.Q<Label>("shopTicketHint");
             ticketPrice = root.Q<Label>("shopTicketPrice");
+            ticketMood = root.Q<Label>("shopTicketMood");
+            holdRing = root.Q<HoldRing>("holdRing");
+            cashLayer = root.Q("cashPopLayer");
             bubbles.Clear();
+            ShopCounter.Sold += OnSold;
+        }
+
+        void OnDisable() => ShopCounter.Sold -= OnSold;
+
+        /// <summary>Floats "+$price" (and the tip under it) up from the counter.</summary>
+        void OnSold(Vector3 at, int price, int tip)
+        {
+            if (cashLayer == null) return;
+            AddCashPop("+" + MoneyText.Format(price), at, false);
+            if (tip > 0) AddCashPop("+" + MoneyText.Format(tip) + " tip", at + Vector3.down * 0.35f, true);
+        }
+
+        void AddCashPop(string text, Vector3 world, bool tip)
+        {
+            var label = new Label(text) { pickingMode = PickingMode.Ignore };
+            label.AddToClassList("cash-pop");
+            label.EnableInClassList("cash-pop--tip", tip);
+            cashLayer.Add(label);
+            cashPops.Add((label, world, Time.unscaledTime));
+        }
+
+        void UpdateCashPops()
+        {
+            var cam = Camera.main;
+            for (int i = cashPops.Count - 1; i >= 0; i--)
+            {
+                var (label, world, born) = cashPops[i];
+                float age = Time.unscaledTime - born;
+                if (age > 1.6f || cam == null)
+                {
+                    label.RemoveFromHierarchy();
+                    cashPops.RemoveAt(i);
+                    continue;
+                }
+                Vector3 at = world + Vector3.up * (age * 0.8f);
+                bool visible = cam.WorldToViewportPoint(at).z > 0f && !InputBlocker.Blocked;
+                label.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+                if (!visible) continue;
+                Vector2 panelPos = RuntimePanelUtils.CameraTransformWorldToPanel(root.panel, at, cam);
+                label.style.left = panelPos.x;
+                label.style.top = panelPos.y;
+                label.style.opacity = age < 1f ? 1f : 1f - (age - 1f) / 0.6f;
+                float pop = age < 0.15f ? Mathf.Lerp(0.6f, 1.15f, age / 0.15f) : Mathf.Lerp(1.15f, 1f, Mathf.Clamp01((age - 0.15f) / 0.2f));
+                label.style.scale = new Scale(new Vector3(pop, pop, 1f));
+            }
+        }
+
+        /// <summary>The crosshair ring for hold-E jobs: blending, shaping, repairing a wave machine.</summary>
+        void UpdateHoldRing()
+        {
+            if (holdRing == null) return;
+            if (interactor == null) interactor = FindAnyObjectByType<PlayerInteractor>();
+            float progress = -1f;
+            var target = interactor != null ? interactor.Target : null;
+            if (target is ShopStation station && station.Shop != null && (station.Id == AcaiBar.Blend || station.Id == BoardShaper.Stand))
+                progress = station.Shop.JobProgress;
+            else if (target is MachineService service) progress = service.HoldFraction;
+            holdRing.EnableInClassList("hidden", progress < 0f);
+            if (progress >= 0f) holdRing.Progress = progress;
         }
 
         void LateUpdate()
@@ -53,6 +119,8 @@ namespace SurfPool
             if (bubbleLayer == null) return;
             UpdateBubbles();
             UpdateTicket();
+            UpdateCashPops();
+            UpdateHoldRing();
         }
 
         void UpdateBubbles()
@@ -93,6 +161,13 @@ namespace SurfPool
                 if (hasSay && bubble.say.text != say) bubble.say.text = say;
                 bubble.title.EnableInClassList("hidden", !showOrder || hasSay);
                 bubble.chips.EnableInClassList("hidden", !showOrder);
+                bool hasMood = showOrder && !string.IsNullOrEmpty(shopper.Order.mood);
+                bubble.mood.EnableInClassList("hidden", !hasMood);
+                if (hasMood)
+                {
+                    bubble.mood.text = shopper.Order.mood;
+                    bubble.mood.EnableInClassList("order-mood--good", shopper.Order.moodGood);
+                }
                 if (showOrder)
                 {
                     if (bubble.title.text != shopper.Order.title) bubble.title.text = shopper.Order.title;
@@ -127,8 +202,11 @@ namespace SurfPool
             bubble.title.AddToClassList("shop-bubble-title");
             bubble.chips = new VisualElement { pickingMode = PickingMode.Ignore };
             bubble.chips.AddToClassList("bubble-chips");
+            bubble.mood = new Label { pickingMode = PickingMode.Ignore };
+            bubble.mood.AddToClassList("order-mood");
             box.Add(bubble.say);
             box.Add(bubble.title);
+            box.Add(bubble.mood);
             box.Add(bubble.chips);
             var tail = new VisualElement { pickingMode = PickingMode.Ignore };
             tail.AddToClassList("bubble-tail");
@@ -191,6 +269,13 @@ namespace SurfPool
             ticketTitle.EnableInClassList("hidden", order == null);
             ticketItems.EnableInClassList("hidden", order == null);
             ticketPrice.EnableInClassList("hidden", order == null);
+            bool mood = order != null && !string.IsNullOrEmpty(order.mood);
+            ticketMood.EnableInClassList("hidden", !mood);
+            if (mood)
+            {
+                ticketMood.text = order.mood + (order.tipScale > 1f ? $"  (tips x{order.tipScale:0.#})" : "");
+                ticketMood.EnableInClassList("order-mood--good", order.moodGood);
+            }
             if (order != null)
             {
                 ticketTitle.text = order.title;

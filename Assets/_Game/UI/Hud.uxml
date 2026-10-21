@@ -55,6 +55,9 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
+        <SurfPool.HoldRing name="holdRing" class="hold-ring hidden" />
+        <ui:VisualElement name="cashPopLayer" class="layer" picking-mode="Ignore" />
+
         <ui:VisualElement name="shopTicket" class="card shop-ticket hidden" picking-mode="Ignore">
             <ui:VisualElement class="title-row card-strip" picking-mode="Ignore">
                 <ui:VisualElement class="icon icon--tag" picking-mode="Ignore" />
@@ -64,6 +67,7 @@
                 <ui:Label name="shopTicketTitle" class="shop-ticket-title" picking-mode="Ignore" />
                 <ui:Label name="shopTicketPrice" class="shop-ticket-price" picking-mode="Ignore" />
             </ui:VisualElement>
+            <ui:Label name="shopTicketMood" class="order-mood hidden" picking-mode="Ignore" />
             <ui:VisualElement name="shopTicketItems" class="shop-ticket-items" picking-mode="Ignore" />
             <ui:Label name="shopTicketHint" class="shop-ticket-hint" picking-mode="Ignore" />
             <ui:VisualElement name="shopTicketBar" class="bar shop-ticket-bar hidden" picking-mode="Ignore">

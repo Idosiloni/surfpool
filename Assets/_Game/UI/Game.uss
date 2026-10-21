@@ -2682,3 +2682,44 @@
 .shop-ticket-bar {
     margin-top: 8px;
 }
+
+/* Ring around the crosshair while holding E (blend, shape, repair). */
+.hold-ring {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 64px;
+    height: 64px;
+    translate: -50% -50%;
+}
+
+/* "+$18" rising from a shop counter on each sale. */
+.cash-pop {
+    position: absolute;
+    translate: -50% -100%;
+    font-size: 30px;
+    color: var(--sun);
+    -unity-text-outline-width: 2px;
+    -unity-text-outline-color: var(--ink);
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+}
+
+.cash-pop--tip {
+    font-size: 20px;
+    color: var(--lagoon);
+}
+
+/* An order modifier ("In a hurry!", "Big tipper") on bubbles and the ticket. */
+.order-mood {
+    font-size: 14px;
+    color: white;
+    background-color: var(--coral);
+    border-radius: 8px;
+    padding: 1px 8px;
+    margin-top: 2px;
+    -unity-font-style: bold;
+}
+
+.order-mood--good {
+    background-color: var(--money);
+}
