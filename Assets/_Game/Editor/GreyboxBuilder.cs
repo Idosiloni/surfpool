@@ -235,14 +235,15 @@ namespace SurfPool.EditorTools
             var pastShop = Point("Past Gear Shop", route, new Vector3(37f, 0, -37.8f));
             SetArray(main.area, "returnPathOut", mainOut[0], binSpot, pastShop, mainOut[mainOut.Length - 1]);
 
-            // Two more pools to the north, built later. Surfers walk up the west side past the machine houses.
+            // Two more pools to the north, built later. Surfers walk up the far west edge of the decks, behind the wave
+            // machines (their chambers fill x -6..0 and the blowers, tanks and control cabins sit behind them).
             var reef = BuildPool(new PoolSpec
             {
                 // A long point-break pool: 75 x 36 m, slower waves that peel from near the north wall (~10 s rides).
                 name = "Reef Pool", display = "Reef Pool", upgradeId = "pool_reef", z = ReefZ, open = false, depth = PoolDepth,
                 waterLevel = WaterLevel, size = 1.08f, peel = 0.85f, price = 2.5f, water = 60f,
                 length = 75f, width = 36f, travel = 0.7f, peakOffset = 12f,
-                pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-2, 0, ReefZ - 24), new Vector3(14, 0, ReefZ - 18 - 0.6f) },
+                pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-19.3f, 0, -18.8f), new Vector3(-19.3f, 0, ReefZ - 26), new Vector3(14, 0, ReefZ - 26), new Vector3(14, 0, ReefZ - 18 - 0.6f) },
                 pathOut = new[] { new Vector3(75 + 3, 0, ReefZ - 6), new Vector3(75 + 40, 0, ReefZ - 6) },
             });
             var lagoon = BuildPool(new PoolSpec
@@ -251,7 +252,7 @@ namespace SurfPool.EditorTools
                 name = "Big Wave Lagoon", display = "Big Wave Lagoon", upgradeId = "pool_lagoon", z = LagoonZ, open = false,
                 depth = PoolDepth + 1f, waterLevel = WaterLevel - 0.8f, size = 1.25f, peel = 0.9f, price = 5f, water = 150f,
                 length = 75f, width = 48f, travel = 0.65f, peakOffset = 16f,
-                pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-2, 0, LagoonZ - 30), new Vector3(14, 0, LagoonZ - 24 - 0.6f) },
+                pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-19.3f, 0, -18.8f), new Vector3(-19.3f, 0, LagoonZ - 32), new Vector3(14, 0, LagoonZ - 32), new Vector3(14, 0, LagoonZ - 24 - 0.6f) },
                 pathOut = new[] { new Vector3(75 + 3, 0, LagoonZ - 6), new Vector3(75 + 40, 0, LagoonZ - 6) },
             });
 
