@@ -22,12 +22,12 @@ namespace SurfPool
         enum Pose { Walk, Paddle, Ride, Wipeout, Straddle }
 
         /// <summary>A maneuver the body and board act out over a moment of the ride.</summary>
-        enum Move { None, Snap, Cutback, Floater, BottomTurn }
+        enum Move { None, Snap, Cutback, Floater, BottomTurn, TailSlide }
 
         static readonly Color RentalBoardColor = new(1f, 0.85f, 0.15f);
         static readonly string[] BeginnerTricks = { "Popped up!", "Trimming!", "Standing!" };
-        static readonly string[] IntermediateTricks = { "Bottom turn!", "Cutback!", "Snap!" };
-        static readonly string[] ProTricks = { "Floater!", "Re-entry!", "AIR!", "Tube ride!" };
+        static readonly string[] IntermediateTricks = { "Bottom turn!", "Cutback!", "Snap!", "Tail slide!" };
+        static readonly string[] ProTricks = { "Floater!", "Re-entry!", "AIR!", "Tube ride!", "Tail slide!", "Air reverse!" };
 
         [Header("Parts")]
         [SerializeField] CharacterRig rig;
@@ -99,7 +99,8 @@ namespace SurfPool
         bool rideMatched;
         float nextTrickAt;
         float airStart = -10f;
-        bool airSpin, wasAirborne;
+        bool wasAirborne;
+        float airSpinDegrees, landSpin; // 0, 180 (air reverse), 360 or 540; a half turn whips back after landing
         float landSquash, kickOutStart = -10f;
 
         float kickOutTime = 0.7f;
@@ -1174,7 +1175,7 @@ namespace SurfPool
             var heading = transform.rotation;
             // Maneuvers: how far the board lays over, the head/shoulder twist, arms, crouch, spray and nose lift.
             float m = MoveProgress(), k = m < 0f ? 0f : Mathf.Sin(m * Mathf.PI);
-            float roll = 0f, twist = 0f, armsUp = 0f, crouch = 0f, spray = 0f, noseUp = 0f;
+            float roll = 0f, twist = 0f, armsUp = 0f, crouch = 0f, spray = 0f, noseUp = 0f, slideYaw = 0f;
             switch (move)
             {
                 case Move.Snap: // short and hard at the top of the wave, a fan of spray
@@ -1189,6 +1190,15 @@ namespace SurfPool
                 case Move.BottomTurn: // compress, lean hard on the rail, extend out of it
                     roll = moveDirection * 24f * k; crouch = 0.35f * Mathf.Cos(m * Mathf.PI); spray = 0.5f * k;
                     break;
+                case Move.TailSlide: // the fins break loose: the tail swings out over the lip in a fan of spray
+                    slideYaw = moveDirection * 60f * k; crouch = 0.15f * k; spray = 1.2f * k; twist = 20f * k;
+                    break;
+                case Move.None when Skill != WaveLevel.Beginner && water.LevelOf(rideWave) != WaveLevel.Beginner && air >= 1f:
+                    // Pumping between moves: an S rhythm of compress and extend, rail to rail, to keep speed.
+                    float beat = Mathf.Sin(Time.time * Mathf.PI * 2f * (Skill == WaveLevel.Pro ? 1.5f : 1.2f));
+                    roll = beat * 7f;
+                    crouch = (beat * 0.5f + 0.5f) * 0.18f;
+                    break;
             }
             feel.ExtraRoll = roll
                 + (Skill == WaveLevel.Beginner ? Mathf.Sin(Time.time * 4.1f) * 5f + Mathf.Sin(Time.time * 6.7f) * 3f : 0f);
@@ -1196,14 +1206,16 @@ namespace SurfPool
 
             bool airborne = air < 1f;
             float lift = airborne ? Mathf.Sin(air * Mathf.PI) : 0f;
-            float spin = airborne && airSpin ? Mathf.SmoothStep(0f, 360f, air) : 0f;
-            var tilt = Quaternion.AngleAxis(spin, Vector3.up) * feel.Tilt * Quaternion.Euler(-15f * lift - noseUp, 0f, 0f);
+            float spin = airborne ? Mathf.SmoothStep(0f, airSpinDegrees, air) : landSpin;
+            landSpin = Mathf.MoveTowards(landSpin, 0f, 520f * Time.deltaTime);
+            var tilt = Quaternion.AngleAxis(spin + slideYaw, Vector3.up) * feel.Tilt * Quaternion.Euler(-15f * lift - noseUp, 0f, 0f);
             rig.BoardTilt = tilt;
             board.localPosition = CharacterRig.BoardPivot;
             board.localRotation = tilt;
 
             if (wasAirborne && !airborne)
             {
+                landSpin = airSpinDegrees % 360f; // an air reverse lands backwards, then the board whips round
                 landSquash = 0.45f;
                 RideFeel.Splash(water, transform.position, 16, 2.6f);
                 Sfx.Play(Sound.Splash, transform.position, 0.5f);
@@ -1265,12 +1277,15 @@ namespace SurfPool
             if (inBarrel || Skill == WaveLevel.Pro || Random.value < 0.3f) Sfx.Play(Sound.Cheer, transform.position, inBarrel ? 1f : 0.7f);
             // Tube rides and pro airs are the moments people come to see.
             if (inBarrel || signature) Highlights.Moment(transform.position, 1f);
-            else if (trick == "AIR!" && Skill == WaveLevel.Pro) Highlights.Moment(transform.position, 0.8f);
-            if (trick == "AIR!" || signature && Famous.signature.Contains("AIR") || signature && Famous.signature.Contains("540"))
+            else if (trick is "AIR!" or "Air reverse!" && Skill == WaveLevel.Pro) Highlights.Moment(transform.position, 0.8f);
+            if (trick is "AIR!" or "Air reverse!" || signature && Famous.signature.Contains("AIR") || signature && Famous.signature.Contains("540"))
             {
                 airStart = Time.time;
-                airSpin = Random.value < 0.5f;
+                airSpinDegrees = signature && Famous.signature.Contains("540") ? 540f
+                    : trick == "Air reverse!" ? 180f
+                    : Random.value < 0.5f ? 360f : 0f;
             }
+            else if (trick == "Tail slide!") StartMove(Move.TailSlide, 0.75f);
             else if (trick is "Snap!" or "Re-entry!") StartMove(Move.Snap, 0.5f);
             else if (trick == "Cutback!") StartMove(Move.Cutback, 1.4f);
             else if (trick == "Floater!") StartMove(Move.Floater, 0.8f);
