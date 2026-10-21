@@ -2,6 +2,8 @@
 // Vertex color (written by WaveWater every frame): R = foam amount, G = height up the wave (0 trough .. 1 crest),
 // B = shallowness (pale aqua over the shallow beach end), A = foam freshness (old foam breaks into lace).
 // UV2.x (TEXCOORD1) = tube shadow: the face under a thrown lip and the lip's underside, dark like the inside of a barrel.
+// UV2.y = 1 on the barrel lip: with the chase cam (global _LipSeeThrough) the lip dissolves within ~6 m of the camera
+// so it never hides your own surfer.
 // Steep faces turn a lighter teal and glow when the sun shines through them from behind (like real pool waves),
 // foam is broken up by moving noise, lighting is soft-stepped like a toon shader.
 Shader "SurfPool/StylizedWater"
@@ -60,6 +62,7 @@ Shader "SurfPool/StylizedWater"
                 half _FresnelPower;
                 half _SparkleSize;
             CBUFFER_END
+            float _LipSeeThrough; // global, set by PlayerSurfing
 
             struct Attributes
             {
@@ -76,7 +79,7 @@ Shader "SurfPool/StylizedWater"
                 float3 normalWS : TEXCOORD1;
                 half4 color : COLOR;
                 half fogFactor : TEXCOORD2;
-                half tube : TEXCOORD3;
+                half2 tubeLip : TEXCOORD3;
             };
 
             float Hash(float2 p)
@@ -105,13 +108,19 @@ Shader "SurfPool/StylizedWater"
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 output.positionCS = TransformWorldToHClip(output.positionWS);
                 output.color = input.color;
-                output.tube = input.uv1.x;
+                output.tubeLip = input.uv1;
                 output.fogFactor = ComputeFogFactor(output.positionCS.z);
                 return output;
             }
 
             half4 Frag(Varyings input, FRONT_FACE_TYPE face : FRONT_FACE_SEMANTIC) : SV_Target
             {
+                // Chase cam: the lip near the camera dissolves (dithered) so it doesn't block the view of the surfer.
+                if (input.tubeLip.y > 0.5 && _LipSeeThrough > 0.5)
+                {
+                    half fade = saturate((6.0 - distance(input.positionWS, _WorldSpaceCameraPos)) / 3.0);
+                    clip(Hash(floor(input.positionCS.xy)) - fade);
+                }
                 float3 normal = normalize(input.normalWS);
                 half inside = IS_FRONT_VFACE(face, 0.0, 1.0); // the underside: inside of a barrel's lip
                 normal = IS_FRONT_VFACE(face, normal, -normal);
@@ -127,11 +136,11 @@ Shader "SurfPool/StylizedWater"
                 faceColor = lerp(faceColor, _FaceTop.rgb, smoothstep(0.78, 0.94, hf));
                 half onWave = saturate(steep * 1.8) * saturate(hf * 5.0);
                 half3 water = lerp(deep, faceColor, onWave);
-                half lip = smoothstep(0.9, 1.0, hf);
+                half lip = smoothstep(0.9, 1.0, hf) * saturate(steep * 2.5); // only a steep, thin crest glows
                 water = lerp(water, _LipBright.rgb, lip * 0.85);
                 water = lerp(water, _TubeColor.rgb, inside * 0.7);
                 // Inside the tube: the lip roofs the face, so it sits in a deep teal shadow.
-                half tube = saturate(input.tube);
+                half tube = saturate(input.tubeLip.x);
                 water = lerp(water, _TubeColor.rgb * 0.55, tube * 0.85);
 
                 // Foam from the vertex color, broken into cartoon blobs by two layers of moving noise. Old foam

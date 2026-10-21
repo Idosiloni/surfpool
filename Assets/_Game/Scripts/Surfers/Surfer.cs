@@ -626,6 +626,8 @@ namespace SurfPool
                 case State.Riding:
                     SetPose(Pose.Ride);
                     Ride();
+                    // The board's wake: a foam trail that fades into lace behind the rider.
+                    if (this != null && state == State.Riding && water != null) water.PaintFoam(transform.position, 0.7f, 0.75f);
                     break;
                 case State.Wipeout:
                     SetPose(Pose.Wipeout);

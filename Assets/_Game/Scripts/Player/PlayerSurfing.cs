@@ -304,6 +304,7 @@ namespace SurfPool
             }
             if (state == State.Off || InputBlocker.Blocked)
             {
+                if (state == State.Off) Shader.SetGlobalFloat(LipSeeThrough, 0f);
                 if (wind.isPlaying) wind.volume = 0f;
                 return;
             }
@@ -321,11 +322,18 @@ namespace SurfPool
             switch (state)
             {
                 case State.Paddling: Paddle(keyboard); break;
-                case State.Riding: Ride(keyboard); break;
+                case State.Riding:
+                    Ride(keyboard);
+                    if (state == State.Riding) pool.Water.PaintFoam(transform.position, 0.8f, 0.85f); // your wake
+                    break;
                 case State.Wipeout: Wipeout(); break;
             }
             UpdateCamera();
+            // The chase cam sees through a barrel's lip near the camera (StylizedWater.shader).
+            Shader.SetGlobalFloat(LipSeeThrough, GameSettings.ChaseCam ? 1f : 0f);
         }
+
+        static readonly int LipSeeThrough = Shader.PropertyToID("_LipSeeThrough");
 
         /// <summary>Chase cam (see yourself surf) or first person. Remembered between games.</summary>
         public void ToggleView()

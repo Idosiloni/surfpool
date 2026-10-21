@@ -100,6 +100,8 @@ namespace SurfPool
             public float breakDistance; // how far the break point has peeled from where it started (m)
             public float closeoutAge;    // closeouts: seconds since they started breaking (-1 = not yet)
             public float seedA, seedB;   // closeouts: the two spots along the crest where they start to spill
+            public float steepen;        // 0 = just launched (a fat, soft swell) .. 1 = breaking (the face at its steepest)
+            public float born;           // seconds since it left the machine (for the boil at the wall)
         }
 
         readonly List<ActiveWave> waves = new();
@@ -338,6 +340,28 @@ namespace SurfPool
             if (recording) recorded.Add(spawned);
         }
 
+        /// <summary>
+        /// A board's wake: paints foam into the water around a world point; it then fades into lace like any foam left
+        /// behind (riders call this every frame). amount 0..1.
+        /// </summary>
+        public void PaintFoam(Vector3 worldPosition, float radius, float amount)
+        {
+            if (foamMemory == null || gridX < 2) return;
+            var local = transform.InverseTransformPoint(worldPosition);
+            float dx = length / (gridX - 1), dz = width / (gridZ - 1);
+            int cx = Mathf.RoundToInt(local.x / dx), cz = Mathf.RoundToInt((local.z + width * 0.5f) / dz);
+            int rx = Mathf.CeilToInt(radius / dx), rz = Mathf.CeilToInt(radius / dz);
+            for (int iz = Mathf.Max(0, cz - rz); iz <= Mathf.Min(gridZ - 1, cz + rz); iz++)
+            for (int ix = Mathf.Max(0, cx - rx); ix <= Mathf.Min(gridX - 1, cx + rx); ix++)
+            {
+                float ddx = ix * dx - local.x, ddz = iz * dz - width * 0.5f - local.z;
+                float k = 1f - (ddx * ddx + ddz * ddz) / (radius * radius);
+                if (k <= 0f) continue;
+                int i = iz * gridX + ix;
+                foamMemory[i] = Mathf.Max(foamMemory[i], amount * k);
+            }
+        }
+
         /// <summary>How much bigger than normal this wave is (1 = normal, 1.15 Big, 1.3 Giant).</summary>
         public float SizeOf(float waveId)
         {
@@ -513,6 +537,8 @@ namespace SurfPool
                     breaking = breaking,
                     breakDistance = breaking ? (t - breakTime) * type.peelSpeed : 0f,
                     closeoutAge = type.closeout && breaking ? t - breakTime : -1f,
+                    steepen = breaking ? 1f : Mathf.Clamp01((t - wave.start) / Mathf.Max(0.1f, breakTime - wave.start)),
+                    born = t - wave.start - headStart,
                     seedA = -HalfWidth * (0.5f + 0.3f * (Hash(wave.start) - 0.5f)),
                     seedB = HalfWidth * (0.5f + 0.3f * (Hash(wave.start + 17.3f) - 0.5f)),
                 });
@@ -628,7 +654,8 @@ namespace SurfPool
                 if (ahead > 0f) far = (1f - Mathf.Exp(-(ahead / 12f) * (ahead / 12f))) * Smooth(0f, 8f, state.breakDistance);
             }
             r.shoulder = 1f - 0.3f * far;
-            r.frontG = state.type.frontWidth * (1f + 0.5f * far);
+            // A wave leaves the machine as a fat, soft swell and its face sharpens until it breaks.
+            r.frontG = state.type.frontWidth * (1f + 0.5f * far) * Mathf.Lerp(1.8f, 1f, Mathf.SmoothStep(0f, 1f, state.steepen));
             r.mask = state.breaking && !state.type.closeout ? PocketMask(state, z) : 0f;
             if (state.type.barrel && state.breaking && state.beachBreak <= 0.5f)
             {
@@ -711,6 +738,13 @@ namespace SurfPool
             float bandShape = state.type.closeout ? c.spillShape : c.bandShape;
             float fresh = r.broken * Mathf.Max(r.ball * ballShape, Mathf.Max(r.frontFoam * bandShape, r.trailFoam * c.trailShape)) * strength;
             fresh = Mathf.Max(fresh, state.beachBreak * 0.6f * c.bandShape); // swash: it whitens as it washes up the beach
+            // Launch: the water boils white against the machine wall for a moment as the wave is pushed out.
+            if (state.born < 1.8f)
+            {
+                float boil = (1f - Smooth(0.6f, 1.8f, state.born)) * Mathf.Exp(-((x - 0.8f) / 1.6f) * ((x - 0.8f) / 1.6f));
+                fresh = Mathf.Max(fresh, boil * 0.9f);
+                height += boil * 0.22f * state.amplitude * edgeScale * (0.6f + 0.4f * Mathf.PerlinNoise(z * 0.6f, t * 3f));
+            }
             foam = Mathf.Max(fresh, r.mask * c.lip);
             // Height up the wave (vertex G, 0 = trough, 1 = crest): the shader colors the face by it, dark low down
             // (deep water seen through) to bright aqua at the thin top lit from behind (docs/research/wave-look-2.md).
@@ -840,8 +874,8 @@ namespace SurfPool
                     var under = p + new Vector3(-Mathf.Sin(theta), -Mathf.Cos(theta), 0f) * thick;
                     lipVertices.Add(p);
                     innerVerts.Add(under);
-                    lipShade.Add(new Vector2(0.15f * u, 0f));
-                    innerShade.Add(new Vector2(0.9f - 0.4f * u, 0f)); // the roof of the tube, in its own shadow
+                    lipShade.Add(new Vector2(0.15f * u, 1f)); // y = 1: lip (the shader can see through it near the chase cam)
+                    innerShade.Add(new Vector2(0.9f - 0.4f * u, 1f)); // the roof of the tube, in its own shadow
                     // Foam feathers off the thrown tip; the outer sheet is the thinnest, brightest water on the wave.
                     float foam = k == across ? 0.95f : k == across - 1 ? 0.45f * tau : 0.1f * tau;
                     lipColors.Add(new Color(foam, 0.92f + 0.08f * u, 0f, 1f));
@@ -934,12 +968,30 @@ namespace SurfPool
             int count = RandomCount(sprayRate * strength);
             for (int i = 0; i < count; i++) EmitBlob(state, bp - direction * Random.Range(0f, 2.5f), direction, strength);
 
+            // Feathering: just ahead of the break the crest is so steep that a little mist streams off its top.
+            int feather = RandomCount(sprayRate * 0.25f * strength);
+            for (int i = 0; i < feather; i++)
+            {
+                float z = bp + direction * Random.Range(0.8f, 5f);
+                if (Mathf.Abs(z) > HalfWidth - 0.5f) continue;
+                float x = state.center + 0.2f;
+                var local = new Vector3(x, LocalHeight(x, z, Now) + 0.1f, z);
+                var velocity = new Vector3(-Random.Range(0.5f, 1.5f), Random.Range(1.2f, 2.4f), direction * Random.Range(0f, 0.6f));
+                spray.Emit(new ParticleSystem.EmitParams
+                {
+                    position = transform.TransformPoint(local),
+                    velocity = transform.TransformDirection(velocity),
+                    startSize = Random.Range(0.14f, 0.3f),
+                    startLifetime = Random.Range(0.35f, 0.65f),
+                }, 1);
+            }
+
             if (state.type.barrel && state.breakDistance > 1.5f)
             {
                 // The lip lands: a white burst thrown up off the flat water out in front of the face.
                 LipShape(0.8f, out float landA, out _);
                 float landX = state.center + landA * state.amplitude * 0.75f;
-                int splash = RandomCount(sprayRate * 0.9f * strength);
+                int splash = RandomCount(sprayRate * 0.45f * strength);
                 for (int i = 0; i < splash; i++)
                 {
                     float z = bp + direction * Random.Range(-0.5f, 1.5f);
@@ -950,8 +1002,8 @@ namespace SurfPool
                     {
                         position = transform.TransformPoint(local),
                         velocity = transform.TransformDirection(velocity),
-                        startSize = Random.Range(0.35f, 0.85f) * strength,
-                        startLifetime = Random.Range(0.7f, 1.3f),
+                        startSize = Random.Range(0.25f, 0.6f) * strength,
+                        startLifetime = Random.Range(0.6f, 1.1f),
                     }, 1);
                 }
             }
