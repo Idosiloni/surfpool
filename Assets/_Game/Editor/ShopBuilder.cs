@@ -285,6 +285,8 @@ namespace SurfPool.EditorTools
             Station(root, gear, "wax", "WaxCrate", L(-0.9f, -0.2f, 0f), 15f, new Vector3(0f, 0.25f, 0f), new Vector3(0.65f, 0.5f, 0.5f));
             Station(root, gear, "sunscreen", "SunscreenStand", L(0.7f, -0.1f, 0f), 0f, new Vector3(0f, 0.75f, 0f), new Vector3(0.75f, 1.4f, 0.4f));
 
+            BoardStand(root, gear);
+
             Set(gear, "basketModel", AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Models/ShopBasket.fbx"));
             Set(gear, "bagModel", AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Models/ShopBag.fbx"));
             Set(gear, "itemMaterial", itemMat);
@@ -307,6 +309,54 @@ namespace SurfPool.EditorTools
             var clerk = Worker(root, gear, "Shop Clerk", L(2.3f, -0.4f, 0f), 180f, new Color(1f, 0.78f, 0.25f), skinMat, 10);
             root.gameObject.SetActive(false);
             return new BuiltShop { gameObject = root.gameObject, clerk = clerk };
+        }
+
+        /// <summary>
+        /// Boards for your own quiver (SurfQuiver), standing in a wooden rack out front like at a real surf shop: the
+        /// fish and the longboard, each with a price tag. E on a board buys it.
+        /// </summary>
+        static void BoardStand(Transform root, GearShop gear)
+        {
+            var wood = Mat("RackWood", new Color(0.62f, 0.43f, 0.26f));
+            Vector3 center = L(-2f, -3.05f, 0f);
+            var rail = Box("Board Stand Rail", root, root.TransformPoint(center + L(0f, 0.32f, 1.15f)), new Vector3(1.9f, 0.1f, 0.1f), wood);
+            rail.transform.rotation = root.rotation;
+            Object.DestroyImmediate(rail.GetComponent<Collider>());
+            var foot = Box("Board Stand Base", root, root.TransformPoint(center + L(0f, -0.2f, 0.06f)), new Vector3(1.9f, 0.12f, 1f), wood);
+            foot.transform.rotation = root.rotation;
+            Object.DestroyImmediate(foot.GetComponent<Collider>());
+            foreach (float x in new[] { -0.9f, 0.9f })
+            {
+                var post = Box("Board Stand Post", root, root.TransformPoint(center + L(x, 0.32f, 0.6f)), new Vector3(0.1f, 1.2f, 0.1f), wood);
+                post.transform.rotation = root.rotation;
+                Object.DestroyImmediate(post.GetComponent<Collider>());
+            }
+
+            var boards = new (BoardKind kind, string model, float x)[] { (BoardKind.Fish, "BoardFish", -0.45f), (BoardKind.Longboard, "BoardLong", 0.45f) };
+            foreach (var (kind, model, x) in boards)
+            {
+                var station = Station(root, gear, GearShop.BoardPrefix + kind, null, center + L(x, 0f, 0f), 0f,
+                    new Vector3(0f, 1.2f, 0f), new Vector3(0.75f, 2.4f, 0.8f));
+                var board = WorldArt.Model(model, station.transform, station.transform.position, 0f);
+                if (board != null)
+                {
+                    float length = board.GetComponentInChildren<MeshFilter>().sharedMesh.bounds.size.z;
+                    // Standing on its tail, leaning back against the rail, nose up (like the quiver rack's boards).
+                    board.transform.rotation = root.rotation * Quaternion.Euler(-72f, 0f, 0f);
+                    board.transform.position = station.transform.position + Vector3.up * (length * 0.47f + 0.1f);
+                    Set(station.GetComponent<ShopStation>(), "bumpTarget", board.transform);
+                }
+                var rotation = root.rotation; // readable from out front, like the tags inside
+                var tag = Box($"Price Tag ({kind})", root, root.TransformPoint(center + L(x, -0.66f, 0.3f)), new Vector3(0.82f, 0.22f, 0.02f), Mat("PropSun", new Color(1f, 0.8f, 0.3f), 0.35f));
+                tag.transform.rotation = rotation;
+                Object.DestroyImmediate(tag.GetComponent<Collider>());
+                string label = kind == BoardKind.Longboard ? "LONGBOARD" : "FISH";
+                var text = Signs.Text($"{label} {MoneyText.Format(SurfQuiver.Price(kind))}", root, tag.transform.position + rotation * new Vector3(0f, 0f, -0.015f), 0f, 0.07f,
+                    new Color(0.06f, 0.16f, 0.22f), 0.76f);
+                text.transform.rotation = rotation;
+            }
+            var sign = Signs.Text("FOR YOUR QUIVER", root, root.TransformPoint(center + L(0f, -0.71f, 0.07f)), 0f, 0.07f, Color.white, 1.8f);
+            sign.transform.rotation = root.rotation;
         }
 
         /// <summary>A little price tag on a gear display ("WAX $6"), facing into the shop.</summary>

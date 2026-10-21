@@ -10,33 +10,92 @@ namespace SurfPool
     /// Shortboard = the all-rounder, best in big hollow waves and for airs. Foamie = stable and forgiving, easy
     /// take-offs, never pearls, but no real tricks. Longboard = glides on small waves, walk to the nose for a hang
     /// ten, slow turns, no airs or snaps. Fish = fast and loose on small waves, pumps better, twitchy in big surf.
-    /// The choice is remembered with the save.
+    /// You start with the shortboard and a foamie; the fish and the longboard are sold at the Surf Gear Shop (the
+    /// boards standing out front). The choice and the boards you own are remembered with the save.
     /// </summary>
     public static class SurfQuiver
     {
         public static BoardKind Current { get; private set; } = BoardKind.Shortboard;
         public static event System.Action Changed;
 
+        static readonly System.Collections.Generic.HashSet<BoardKind> owned = new() { BoardKind.Shortboard, BoardKind.Foamie };
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics()
         {
             Current = BoardKind.Shortboard;
             Changed = null;
+            ResetOwned();
+        }
+
+        public static bool Owns(BoardKind kind) => owned.Contains(kind);
+
+        /// <summary>Every board is in your quiver.</summary>
+        public static bool OwnsAll => owned.Count == System.Enum.GetValues(typeof(BoardKind)).Length;
+
+        /// <summary>What a board costs at the Surf Gear Shop (0 = one you start with).</summary>
+        public static int Price(BoardKind kind) => kind switch
+        {
+            BoardKind.Fish => 900,
+            BoardKind.Longboard => 1400,
+            _ => 0,
+        };
+
+        /// <summary>A new board for your quiver (paid for by the shop); you pick it up right away.</summary>
+        public static void Add(BoardKind kind)
+        {
+            owned.Add(kind);
+            Choose(kind);
         }
 
         public static void Choose(BoardKind kind)
         {
+            if (!owned.Contains(kind)) return;
             Current = kind;
             Changed?.Invoke();
         }
 
-        public static void Load(string saved)
+        public static string[] SaveOwned()
         {
-            Current = System.Enum.TryParse(saved, out BoardKind kind) ? kind : BoardKind.Shortboard;
+            var list = new System.Collections.Generic.List<string>();
+            foreach (var kind in owned) list.Add(kind.ToString());
+            return list.ToArray();
+        }
+
+        /// <summary>Loads the board you use and the ones you own (null = an old save: keep the one in use).</summary>
+        public static void Load(string saved, string[] savedOwned)
+        {
+            ResetOwned();
+            var current = System.Enum.TryParse(saved, out BoardKind kind) ? kind : BoardKind.Shortboard;
+            if (savedOwned != null)
+                foreach (var name in savedOwned)
+                    if (System.Enum.TryParse(name, out BoardKind k)) owned.Add(k);
+            owned.Add(current);
+            Current = current;
             Changed?.Invoke();
         }
 
-        public static BoardKind Next => (BoardKind)(((int)Current + 1) % System.Enum.GetValues(typeof(BoardKind)).Length);
+        static void ResetOwned()
+        {
+            owned.Clear();
+            owned.Add(BoardKind.Shortboard);
+            owned.Add(BoardKind.Foamie);
+        }
+
+        /// <summary>The next board you own, after the one in use.</summary>
+        public static BoardKind Next
+        {
+            get
+            {
+                int count = System.Enum.GetValues(typeof(BoardKind)).Length;
+                for (int i = 1; i <= count; i++)
+                {
+                    var kind = (BoardKind)(((int)Current + i) % count);
+                    if (owned.Contains(kind)) return kind;
+                }
+                return Current;
+            }
+        }
 
         public static string Blurb(BoardKind kind) => kind switch
         {

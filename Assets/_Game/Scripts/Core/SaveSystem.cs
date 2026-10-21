@@ -42,6 +42,8 @@ namespace SurfPool
             public string parkName = "";
             public float bestJudgeScore;
             public string playerBoard = "";
+            public bool boardsSaved; // false in saves from before boards were sold
+            public string[] ownedBoards = new string[0];
         }
 
         [Serializable]
@@ -87,6 +89,8 @@ namespace SurfPool
                 parkName = ParkName.Saved,
                 bestJudgeScore = GameStats.BestJudgeScore,
                 playerBoard = SurfQuiver.Current.ToString(),
+                boardsSaved = true,
+                ownedBoards = SurfQuiver.SaveOwned(),
                 ticketPrice = pricing.Price,
                 rating = ParkReputation.Instance != null ? ParkReputation.Instance.Score : 0.6f,
                 missionIndex = MissionManager.Instance != null ? MissionManager.Instance.Index : 0,
@@ -171,7 +175,7 @@ namespace SurfPool
             GameStats.Wipeouts = data.wipeouts;
             GameStats.PlayerRides = data.playerRides;
             GameStats.BestJudgeScore = data.bestJudgeScore;
-            SurfQuiver.Load(data.playerBoard);
+            SurfQuiver.Load(data.playerBoard, data.boardsSaved ? data.ownedBoards : null);
             GameStats.TotalEarned = data.totalEarned;
             GameStats.SnacksSold = data.snacksSold;
             GameStats.ShopSales = data.shopSales;

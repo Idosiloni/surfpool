@@ -177,10 +177,45 @@ namespace SurfPool
             upsold.Remove(shopper);
         }
 
+        // ---- boards for your own quiver, standing out front ("board_Fish", "board_Longboard") ----
+
+        public const string BoardPrefix = "board_";
+
+        static bool BoardFor(string id, out BoardKind kind)
+        {
+            kind = BoardKind.Shortboard;
+            return id.StartsWith(BoardPrefix) && System.Enum.TryParse(id.Substring(BoardPrefix.Length), out kind);
+        }
+
+        static string BoardName(BoardKind kind) => kind == BoardKind.Longboard ? "longboard" : kind.ToString().ToLowerInvariant();
+
+        string BoardPrompt(BoardKind kind)
+        {
+            if (SurfQuiver.Owns(kind)) return $"The {BoardName(kind)} (it's in your quiver, switch at the rack by the surf peg)";
+            int price = SurfQuiver.Price(kind);
+            bool afford = Wallet.Instance != null && Wallet.Instance.Money >= price;
+            return $"Buy a {BoardName(kind)} for your quiver ({MoneyText.Format(price)})" + (afford ? "" : " - not enough money");
+        }
+
+        void BuyBoard(BoardKind kind)
+        {
+            if (SurfQuiver.Owns(kind)) return;
+            if (Wallet.Instance == null || !Wallet.Instance.Spend(SurfQuiver.Price(kind), "new board"))
+            {
+                Sfx.Play(Sound.Error);
+                Notifications.Post($"A {BoardName(kind)} costs {MoneyText.Format(SurfQuiver.Price(kind))}.", Notice.Bad);
+                return;
+            }
+            SurfQuiver.Add(kind);
+            Sfx.Play(Sound.CashBig, transform.position);
+            Notifications.Post($"New board! The {BoardName(kind)} is yours. " + SurfQuiver.Blurb(kind), Notice.Reward);
+        }
+
         // ---- racks and shelves ----
 
         public override string StationPrompt(string id)
         {
+            if (BoardFor(id, out var board)) return BoardPrompt(board);
             var item = Find(id);
             if (item == null) return null;
             if (basket.Contains(id)) return $"Put back {item.label.ToLowerInvariant()}";
@@ -192,6 +227,11 @@ namespace SurfPool
 
         public override void UseStation(string id)
         {
+            if (BoardFor(id, out var board))
+            {
+                BuyBoard(board);
+                return;
+            }
             var item = Find(id);
             if (item == null || scanning) return;
             if (basket.Contains(id))

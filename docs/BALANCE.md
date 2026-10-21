@@ -184,7 +184,8 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
   x0.25), spray blowing off the lips, ride quality x1.1, wipeouts x0.85, your flow builds x1.1 faster. Onshore:
   chop x3.5, ride quality x0.85, wipeouts x1.25, flow builds x0.85.
 
-## Your quiver (2026-10-21, proposals; all boards free at the rack for now)
+## Your quiver (2026-10-21, proposals; since 2026-10-22 you start with the shortboard + foamie, and buy the fish
+## $900 and longboard $1,400 at the boards standing in front of the Surf Gear Shop, L10)
 - Shortboard: speed x1 (x1.05 on Pro waves), all moves. Fish: x1.12 on small/green waves (x0.95 on Pro), pumping adds
   up to 0.5 flow (shortboard 0.35). Foamie: x0.75, only carves/bottom turns, never pearls, PERFECT take-off window x1.6.
   Longboard: x0.9 (x0.75 on Pro), no airs/snaps/tail slides, never pearls, take-off window x1.3, HANG FIVE 100 after
