@@ -505,6 +505,7 @@ namespace SurfPool
 
             SneakAround();
             BrokenBoardAftermath();
+            NoticeJunk();
 
             // A delayed hoot for someone else's wave, and letting go of whatever caught our eye.
             if (hootAt > 0f && Time.time >= hootAt)
@@ -1239,6 +1240,27 @@ namespace SurfPool
             }
         }
 
+        // ---- dirty pools (PoolDirt): junk floating by in the lineup ----
+        float nextJunkCheck;
+        static readonly string[] JunkLines = { "Ew! Something touched my leg!", "Is that... a cup?", "Gross, a leaf in my face.", "Who lost a flip-flop?" };
+
+        void NoticeJunk()
+        {
+            if (state != State.WaitingForWave || Time.time < nextJunkCheck) return;
+            nextJunkCheck = Time.time + Random.Range(4f, 7f);
+            var junk = PoolDebris.Near(pool, transform.position, 2.2f);
+            if (junk == null) return;
+            if (junk.IsDuck)
+            {
+                Shout("A rubber duck! Hi little guy!", 2.5f, Sound.VoiceOoh);
+                rig.ShowFace(SurfPool.Face.Stoked, 2f);
+                return;
+            }
+            Shout(JunkLines[Random.Range(0, JunkLines.Length)], 2.5f, Sound.VoiceHmm);
+            rig.ShowFace(SurfPool.Face.Grumpy, 2f);
+            RecordMood(0.4f);
+        }
+
         // ---- snapped boards (BoardBreak) ----
         bool boardBroken;
         float brokeShoutAt = -1f;
@@ -1328,7 +1350,9 @@ namespace SurfPool
             }
 
             SettleBrokenBoard();
-            float happiness = (moodSamples == 0 ? 1f : moodTotal / moodSamples) - Trash.MoodPenalty + Decoration.HappinessBonus;
+            float dirt = PoolDirt.MoodPenalty(pool);
+            visit.dirtyPool = dirt > 0.08f;
+            float happiness = (moodSamples == 0 ? 1f : moodTotal / moodSamples) - Trash.MoodPenalty - dirt + Decoration.HappinessBonus;
             int tip = happiness > 0.5f ? Mathf.RoundToInt((paidPrice * maxTipShare * happiness * (rodeFamous ? 1.5f : 1f) + tricksLanded * tipPerTrick) * ParkPerks.TipMultiplier) : 0;
             if (tip > 0) Wallet.Instance.Add(tip, "tip");
             if (Skill == WaveLevel.Beginner && ParkEffects.LessonFee > 0) Wallet.Instance.Add(SurfCoach.TeachLesson(), "surf lessons");

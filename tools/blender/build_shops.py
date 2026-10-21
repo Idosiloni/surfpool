@@ -838,6 +838,90 @@ def rescue_post(name="RescuePost"):
     return join(name, parts)
 
 
+# ================================================================ dirty pools: floating debris, skimmer, pool robot
+
+def debris_leaf(name="DebrisLeaf"):
+    """A palm leaflet floating flat, 0.35 m long (pointing +Y), with a midrib."""
+    verts = [(0, 0.18, 0), (0.05, 0.08, 0), (0.06, -0.04, 0), (0.03, -0.15, 0), (0, -0.18, 0),
+             (-0.03, -0.15, 0), (-0.06, -0.04, 0), (-0.05, 0.08, 0)]
+    leaf = mesh_object("Leaf", verts, [tuple(range(8))], "Leaf", double_sided=True)
+    rib = box("Rib", (0.008, 0.34, 0.012), (0, 0, 0.004), "LeafDark")
+    return join(name, [leaf, rib])
+
+
+def debris_cup(name="DebrisCup"):
+    """A tipped-over paper cup (lying on its side along X), 0.12 m long."""
+    cup = cylinder("Cup", 0.035, 0.12, (0, 0, 0.035), "White", vertices=10, rotation=(0, math.radians(90), 0), radius_top=0.045)
+    band = cylinder("Band", 0.043, 0.03, (0.02, 0, 0.035), "Coral", vertices=10, rotation=(0, math.radians(90), 0))
+    return join(name, [cup, band])
+
+
+def debris_flipflop(name="DebrisFlipFlop"):
+    """A lost flip-flop floating sole-down, 0.26 m long (+Y = toe)."""
+    sole = cylinder("Sole", 0.05, 0.025, (0, 0, 0.012), "Teal", vertices=12)
+    sole.scale = (1.0, 2.6, 1.0)
+    strap_l = box("Strap", (0.012, 0.09, 0.012), (0.03, 0.03, 0.04), "Yellow", rotation=(0, math.radians(-30), math.radians(-25)))
+    strap_r = box("Strap", (0.012, 0.09, 0.012), (-0.03, 0.03, 0.04), "Yellow", rotation=(0, math.radians(30), math.radians(25)))
+    return join(name, [sole, strap_l, strap_r])
+
+
+def debris_bottle(name="DebrisBottle"):
+    """A sunscreen bottle floating on its side, 0.16 m long."""
+    body = cylinder("Body", 0.03, 0.13, (0, 0, 0.03), "Yellow", vertices=10, rotation=(0, math.radians(90), 0))
+    cap = cylinder("Cap", 0.018, 0.04, (0.08, 0, 0.03), "Coral", vertices=8, rotation=(0, math.radians(90), 0))
+    return join(name, [body, cap])
+
+
+def rubber_duck(name="RubberDuck"):
+    """The classic yellow rubber duck, 0.16 m tall, facing -Y."""
+    body = ico("Body", 0.07, (0, 0.01, 0.055), "Yellow", subdivisions=2)
+    body.scale = (1.0, 1.3, 0.8)
+    head = ico("Head", 0.045, (0, -0.045, 0.12), "Yellow", subdivisions=2)
+    beak = cylinder("Beak", 0.022, 0.04, (0, -0.09, 0.115), "Orange", vertices=8, rotation=(math.radians(90), 0, 0), radius_top=0.01)
+    eyes = [ico("Eye", 0.009, (x, -0.075, 0.135), "Charcoal") for x in (-0.022, 0.022)]
+    tail = cylinder("Tail", 0.03, 0.04, (0, 0.1, 0.08), "Yellow", vertices=6, rotation=(math.radians(-60), 0, 0), radius_top=0.005)
+    return join(name, [body, head, beak, tail] + eyes)
+
+
+def skimmer_net(name="SkimmerNet"):
+    """Pool skimmer: 3.2 m pole along +Y (handle end at y = 0) with a net hoop at the far end. Pivot at the grip."""
+    parts = [
+        cylinder("Pole", 0.018, 3.0, (0, 1.5, 0), "Steel", vertices=6, rotation=(math.radians(90), 0, 0)),
+        cylinder("Grip", 0.024, 0.3, (0, 0.15, 0), "Charcoal", vertices=6, rotation=(math.radians(90), 0, 0)),
+        torus("Hoop", 0.2, 0.015, (0, 3.2, 0), "Teal", major_segments=14, minor_segments=4),
+        cylinder("Net", 0.19, 0.12, (0, 3.2, -0.06), "White", vertices=12, radius_top=0.08),
+    ]
+    return join(name, parts)
+
+
+def skimmer_rack(name="SkimmerRack"):
+    """Two short posts with hooks; the net lies across them at z = 1.0 along X (handle at x = -1.5)."""
+    parts = [
+        box("Post", (0.1, 0.1, 1.05), (-0.9, 0, 0.525), "Wood"),
+        box("Post", (0.1, 0.1, 1.05), (0.9, 0, 0.525), "Wood"),
+        box("Hook", (0.1, 0.16, 0.04), (-0.9, -0.05, 0.98), "Steel"),
+        box("Hook", (0.1, 0.16, 0.04), (0.9, -0.05, 0.98), "Steel"),
+        box("Sign", (0.6, 0.03, 0.18), (0, 0.04, 0.75), "Teal"),
+    ]
+    return join(name, parts)
+
+
+def pool_robot(name="PoolRobot"):
+    """A cheerful floating cleaning robot: a round white float (0.9 m) with a teal top, two big eyes facing -Y, a little
+    scoop at the front and an antenna with a light."""
+    parts = [
+        cylinder("Float", 0.45, 0.22, (0, 0, 0.05), "White", vertices=16, radius_top=0.4),
+        cylinder("Top", 0.32, 0.18, (0, 0.02, 0.24), "Teal", vertices=16, radius_top=0.24),
+        box("Scoop", (0.5, 0.18, 0.08), (0, -0.48, 0.02), "Charcoal"),
+        cylinder("Antenna", 0.012, 0.3, (0.1, 0.12, 0.45), "Steel", vertices=6),
+        ico("Light", 0.035, (0.1, 0.12, 0.61), "Coral"),
+    ]
+    for x in (-0.1, 0.1):
+        parts.append(ico("Eye", 0.06, (x, -0.24, 0.3), "White", subdivisions=2))
+        parts.append(ico("Pupil", 0.028, (x, -0.29, 0.31), "Charcoal"))
+    return join(name, parts)
+
+
 # ================================================================ build + export
 
 MODELS = (
@@ -855,6 +939,7 @@ MODELS = (
     control_cabin, air_tank, timer_clock, famous_board, reef_switch, status_lamp,
     photo_tower, camera_tripod, photo_kiosk, photo_wall,
     rescue_ring, rescue_post,
+    debris_leaf, debris_cup, debris_flipflop, debris_bottle, rubber_duck, skimmer_net, skimmer_rack, pool_robot,
 )
 
 

@@ -16,6 +16,8 @@ namespace SurfPool
         [SerializeField] float aimAssist = 0.4f;
         [Tooltip("How far away you can whistle at a sneak-in or throw a rescue ring.")]
         [SerializeField] float whistleRange = 30f;
+        [Tooltip("How far the skimmer net reaches over the water.")]
+        [SerializeField] float skimmerReach = 7.5f;
 
         readonly RaycastHit[] hits = new RaycastHit[24];
 
@@ -57,7 +59,7 @@ namespace SurfPool
             }
 
             // Aiming right at a sneak-in or a surfer in trouble (far away, in the water) beats the aim assist below.
-            var far = FarSurfer();
+            var far = FarSurfer() ?? FarDebris();
             if (far != null) return far;
 
             // Then anything usable close to the crosshair, nearest to the aim line wins.
@@ -102,6 +104,25 @@ namespace SurfPool
                 if (off >= bestOff) continue;
                 if (!CanSee(point, surfer)) continue;
                 best = surfer;
+                bestOff = off;
+            }
+            return best;
+        }
+
+        /// <summary>With the skimmer net: floating junk near the crosshair, up to the net's reach.</summary>
+        IInteractable FarDebris()
+        {
+            if (!SkimmerRack.Holding) return null;
+            PoolDebris best = null;
+            float bestOff = 0.08f;
+            var cam = playerCamera;
+            foreach (var debris in PoolDebris.All)
+            {
+                Vector3 v = cam.WorldToViewportPoint(debris.transform.position);
+                if (v.z <= 0f || v.z > skimmerReach) continue;
+                float off = new Vector2(v.x - 0.5f, (v.y - 0.5f) * 0.6f).magnitude;
+                if (off >= bestOff) continue;
+                best = debris;
                 bestOff = off;
             }
             return best;

@@ -135,3 +135,8 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
 - Chance per wipeout: whitewater 0, Intermediate 4%, Pro 10%, +12% if it came off an air. Legends never snap.
 - An NPC with their own board buys a new one at your gear shop if it's open: $60 / $110 / $180 by skill.
   A snapped rental costs the park $30. Your own board: a spare for $40, and you keep surfing.
+
+## Dirty pools (2026-10-21, proposals)
+- Each open pool gets 0.5 pieces a minute plus 0.3 per surfer in it (litter events and perks scale it), up to 14.
+  Each piece lowers that pool's surfers' happiness: up to -0.25 at 12+ pieces. 4% of pieces are rubber ducks (+10 XP).
+- Pool Robot upgrade: $1,200, level 5. One robot per open pool, 0.7 m/s: keeps up on quiet days, not in a rush.

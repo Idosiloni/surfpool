@@ -93,6 +93,8 @@ namespace SurfPool
                 description = "Burritos and loaded fries join the fish tacos and smoothies. Every snack sells for $8 more (and acai shakes a little more too)." },
             new Upgrade { id = "photo_tower", category = UpgradeCategory.Park, title = "Surf Photographer", cost = 4000, level = 9,
                 description = "A photo tower on the main pool's north deck. Aim the long lens, zoom, and catch surfers at their best moment: shots are graded C to S. Surfers buy prints of good ones, and S shots go on the Wall of Fame." },
+            new Upgrade { id = "pool_robot", category = UpgradeCategory.Park, title = "Pool Robot", cost = 1200, level = 5,
+                description = "A cheerful floating robot for every pool. It cruises around and gobbles up leaves, cups and lost flip-flops, so you don't have to skim them out by hand." },
             new Upgrade { id = "acai_bar", category = UpgradeCategory.Park, title = "Acai & Shake Shack", cost = 1500, level = 6,
                 description = "A purple fruit shack by the west deck. Customers order acai bowls and shakes: grab a bowl or cup, add their toppings, blend, serve. Fast service = tips!" },
             new Upgrade { id = "surf_shop", category = UpgradeCategory.Park, title = "Surf Gear Shop", cost = 3500, level = 10,
@@ -327,6 +329,9 @@ namespace SurfPool
                     break;
                 case "snack_bar":
                     if (snackBar != null) snackBar.SetActive(true);
+                    break;
+                case "pool_robot":
+                    if (PoolDirt.Instance != null) PoolDirt.Instance.EnableRobots();
                     break;
                 case "photo_tower":
                     if (photoSpot != null) photoSpot.SetActive(true);

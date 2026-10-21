@@ -151,6 +151,36 @@ namespace SurfPool.EditorTools
         /// The surf photographer (upgrade photo_tower): a photo tower on the main pool's north-east deck with a camera
         /// you look through, and the photo kiosk with the Wall of Fame by the exit. Hidden until bought.
         /// </summary>
+        /// <summary>
+        /// Dirty pools: the PoolDirt manager (debris, duck and robot models) and the skimmer net's rack on the main
+        /// pool's south deck, east of the rescue posts.
+        /// </summary>
+        static void BuildPoolDirt()
+        {
+            var root = new GameObject("Pool Dirt");
+            var dirt = root.AddComponent<PoolDirt>();
+            GameObject Fbx(string name) => AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/_Game/Models/{name}.fbx");
+            var so = new SerializedObject(dirt);
+            var models = so.FindProperty("debrisModels");
+            string[] kinds = { "DebrisLeaf", "DebrisLeaf", "DebrisCup", "DebrisFlipFlop", "DebrisBottle" }; // leaves blow in most
+            models.arraySize = kinds.Length;
+            for (int i = 0; i < kinds.Length; i++) models.GetArrayElementAtIndex(i).objectReferenceValue = Fbx(kinds[i]);
+            so.FindProperty("duckModel").objectReferenceValue = Fbx("RubberDuck");
+            so.FindProperty("robotModel").objectReferenceValue = Fbx("PoolRobot");
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var at = new Vector3(36f, 0f, -13.4f);
+            var rack = WorldArt.Model("SkimmerRack", root.transform, at, 0f);
+            rack.name = "Skimmer Rack";
+            var net = WorldArt.Model("SkimmerNet", rack.transform, at + new Vector3(-1.6f, 1.02f, -0.05f), 90f);
+            net.name = "Net";
+            var box = rack.AddComponent<BoxCollider>();
+            box.center = new Vector3(0f, 0.7f, 0f);
+            box.size = new Vector3(2.2f, 1.4f, 0.6f);
+            var usable = rack.AddComponent<SkimmerRack>();
+            Set(usable, "netOnRack", net);
+        }
+
         /// <summary>Two red posts with ring buoys on the main pool's south deck, for rescuing tired beginners.</summary>
         static void BuildRescuePosts()
         {

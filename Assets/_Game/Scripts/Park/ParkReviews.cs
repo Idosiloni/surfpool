@@ -12,7 +12,7 @@ namespace SurfPool
         public bool famous;
         public float arrivedAt, paidAt = -1f;
         public int barrels, tricks, wipeouts, spent, tip, photoGrade = -1;
-        public bool droppedInOn, droppedIn, rescued, brokeBoard;
+        public bool droppedInOn, droppedIn, rescued, brokeBoard, dirtyPool;
         public string rodeWith;      // a legend they shared the water with
         public string angry;         // why they left angry (null if they didn't)
         public float happiness;
@@ -158,6 +158,13 @@ namespace SurfPool
                 r.interest = 2;
                 r.text = Pick("I STOOD UP! I'm basically a pro now.", "First time surfing. Already looking at boards online.",
                     "Stood up for like 3 whole seconds. Legend.", "The waves were nice to me. Thank you, waves.");
+            }
+            else if (v.dirtyPool)
+            {
+                r.interest = 2;
+                r.text = Pick("Swam through a salad of leaves and cups. Clean your pool!", "Something slimy touched my leg. Twice.",
+                    "Great waves, dirty water.");
+                r.stars = Mathf.Min(r.stars, 3);
             }
             else if (v.trash)
             {

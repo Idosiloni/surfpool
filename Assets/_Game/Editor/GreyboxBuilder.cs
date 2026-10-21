@@ -479,6 +479,7 @@ namespace SurfPool.EditorTools
             BuildParkSign();
             Set(shop, "photoSpot", BuildPhotoSpot());
             BuildRescuePosts();
+            BuildPoolDirt();
             var legends = game.AddComponent<FamousVisits>();
             Set(legends, "spawner", spawner);
             Set(legends, "surferPrefab", AssetDatabase.LoadAssetAtPath<Surfer>("Assets/_Game/Prefabs/Surfer.prefab"));
