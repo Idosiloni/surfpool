@@ -14,6 +14,15 @@ namespace SurfPool
 
         readonly Dictionary<ShopCounter, float> nextArrival = new();
 
+        /// <summary>Sends a shoplifter to this shop (RuleBreakers).</summary>
+        public Shopper SendShoplifter(ShopCounter shop)
+        {
+            var shopper = Instantiate(shopperPrefab);
+            shopper.Begin(shop, spawner.Entrance);
+            shopper.MakeShoplifter();
+            return shopper;
+        }
+
         void Update()
         {
             if (!DayCycle.Open) return;

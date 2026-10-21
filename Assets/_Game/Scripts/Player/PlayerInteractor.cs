@@ -106,7 +106,20 @@ namespace SurfPool
                 best = surfer;
                 bestOff = off;
             }
-            return best;
+            if (best != null) return best;
+            // Shoplifters running off with gear.
+            Shopper thief = null;
+            foreach (var shopper in Shopper.All)
+            {
+                if (!shopper.IsStealing) continue;
+                Vector3 v = cam.WorldToViewportPoint(shopper.transform.position + Vector3.up * 1.1f);
+                if (v.z <= 0f || v.z > whistleRange) continue;
+                float off = new Vector2(v.x - 0.5f, (v.y - 0.5f) * 0.6f).magnitude;
+                if (off >= bestOff) continue;
+                thief = shopper;
+                bestOff = off;
+            }
+            return thief;
         }
 
         /// <summary>With the skimmer net: floating junk near the crosshair, up to the net's reach.</summary>

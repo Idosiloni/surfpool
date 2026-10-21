@@ -5,7 +5,8 @@ namespace SurfPool
     /// <summary>
     /// Bad customers. Sneak-ins (from day 2): now and then a surfer skips the ticket desk and walks straight into the
     /// water, whistling innocently and glancing back at the desk. From day 3 also wave hogs (drop in on everyone,
-    /// "Out of my way!") and litterbugs ("*tosses cup*"), who pay like anyone else. Look at them (from up to 30 m, even in the water) and
+    /// "Out of my way!") and litterbugs ("*tosses cup*"), who pay like anyone else, and shoplifters at the gear shop
+    /// (grab a bag and sprint for the exit). Look at them (from up to 30 m, even in the water) and
     /// press E to throw them out for a little XP. If nobody catches them, they surf for free and brag about it.
     /// One at a time.
     /// </summary>
@@ -39,6 +40,9 @@ namespace SurfPool
             next = Time.time + Random.Range(gap.x, gap.y);
             // From day 3 the troublemakers get more varied: wave hogs and litterbugs (they pay, then misbehave).
             float roll = Random.value;
+            GearShop gear = null;
+            foreach (var shop in ShopCounter.All) if (shop is GearShop g) gear = g;
+            if (day.Day >= 3 && gear != null && roll > 0.8f && SendShoplifter(gear) != null) return;
             if (day.Day >= 3 && roll < 0.3f) SendRude(Surfer.Rudeness.WaveHog);
             else if (day.Day >= 3 && roll < 0.55f) SendRude(Surfer.Rudeness.Litterbug);
             else SneakIn();
@@ -51,6 +55,32 @@ namespace SurfPool
             current.Init(spawner, false);
             current.MakeRude(kind);
             return current;
+        }
+
+        /// <summary>Sends a shoplifter to the gear shop right now (also for testing). Null if there's no gear shop.</summary>
+        public Shopper SendShoplifter(GearShop gear = null)
+        {
+            if (gear == null) foreach (var shop in ShopCounter.All) if (shop is GearShop g) gear = g;
+            var customers = FindAnyObjectByType<ShopCustomers>();
+            return gear != null && customers != null ? customers.SendShoplifter(gear) : null;
+        }
+
+        /// <summary>What a shoplifter's bag of gear costs you if they get away.</summary>
+        public const int StolenValue = 35;
+
+        public static void CaughtThief(Shopper thief)
+        {
+            int xp = instance != null ? instance.xpForCatch : 20;
+            ParkLevel.Add(xp);
+            ParkReviews.SneaksCaught++;
+            Notifications.Post($"You stopped the shoplifter and got the gear back! +{xp} XP", Notice.Good);
+        }
+
+        public static void ThiefEscaped(Shopper thief)
+        {
+            ParkReviews.SneaksEscaped++;
+            Wallet.Instance.Charge(StolenValue, "stolen gear");
+            Notifications.Post($"The shoplifter got away with a bag of gear! -{MoneyText.Format(StolenValue)}", Notice.Bad);
         }
 
         /// <summary>Sends a sneak-in right now (also for testing).</summary>

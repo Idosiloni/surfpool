@@ -9,7 +9,7 @@ namespace SurfPool
     /// If nobody serves them in time they give up and leave.
     /// </summary>
     [RequireComponent(typeof(CharacterRig))]
-    public class Shopper : MonoBehaviour
+    public class Shopper : MonoBehaviour, IInteractable
     {
         public static readonly List<Shopper> All = new();
 
@@ -39,6 +39,46 @@ namespace SurfPool
         public bool ShowOrder => (phase == Phase.InLine && AtCounter) || phase == Phase.Waiting;
         public bool ShowPatience => phase == Phase.InLine || phase == Phase.Waiting;
         public string Status => Time.time < statusUntil ? status : null;
+
+        // ---- shoplifters (RuleBreakers): browse a moment, grab something and run for the exit ----
+        bool thief, thiefCaught;
+        float stealAt = -1f;
+
+        /// <summary>Running off with stolen gear: look at them and press E (even from far away) to stop them.</summary>
+        public bool IsStealing => thief && !thiefCaught && phase == Phase.Leaving && heldItem != null;
+
+        public string Prompt => IsStealing ? "Stop the shoplifter!" : null;
+
+        public void Interact()
+        {
+            if (!IsStealing) return;
+            thiefCaught = true;
+            Destroy(heldItem);
+            heldItem = null;
+            walkSpeed /= 2.4f;
+            Say(Random.value < 0.5f ? "Okay, okay! Here, take it!" : "I was gonna pay! Later!", 3f);
+            if (rig != null) rig.ShowFace(Face.Scared, 2.5f);
+            Sfx.Play(Sound.Whistle, transform.position);
+            RuleBreakers.CaughtThief(this);
+        }
+
+        /// <summary>This customer will steal instead of waiting their turn.</summary>
+        public void MakeShoplifter() => thief = true;
+
+        void Steal()
+        {
+            var gear = shop as GearShop;
+            var loot = gear != null && gear.BagModel != null ? Instantiate(gear.BagModel) : null;
+            if (loot == null) return;
+            stealAt = -1f;
+            Hold(loot, CarryStyle.Hand);
+            Say(Random.value < 0.5f ? "*grabs it and RUNS*" : "Five-finger discount!", 2.5f);
+            if (rig != null) rig.ShowFace(Face.Stoked, 3f);
+            walkSpeed *= 2.4f;
+            if (shop != null && shop.InLine(this)) shop.Leave(this);
+            GoHome();
+            Notifications.Post("Shoplifter at the gear shop! Stop them before they get away!", Notice.Bad);
+        }
 
         void OnEnable() => All.Add(this);
         void OnDisable()
@@ -79,6 +119,13 @@ namespace SurfPool
                     break;
                 case Phase.InLine:
                     StandInLine();
+                    if (thief)
+                    {
+                        // Browsing, glancing around... then grab and go.
+                        if (stealAt < 0f) stealAt = Time.time + Random.Range(3f, 6f);
+                        else if (Time.time >= stealAt) Steal();
+                        break;
+                    }
                     TickPatience();
                     break;
                 case Phase.Waiting:
@@ -87,7 +134,11 @@ namespace SurfPool
                     break;
                 case Phase.Leaving:
                     Pose(false);
-                    if (WalkRoute()) Destroy(gameObject);
+                    if (WalkRoute())
+                    {
+                        if (IsStealing) RuleBreakers.ThiefEscaped(this);
+                        Destroy(gameObject);
+                    }
                     break;
             }
         }

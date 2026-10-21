@@ -21,6 +21,9 @@ namespace SurfPool
         [SerializeField] int basketSize = 4;
         [SerializeField] GameObject basketModel;
         [SerializeField] GameObject bagModel;
+
+        /// <summary>A shopping bag (what a shoplifter runs off with).</summary>
+        public GameObject BagModel => bagModel;
         [Tooltip("Plain material for the little folded items in the basket (tinted per item).")]
         [SerializeField] Material itemMaterial;
 

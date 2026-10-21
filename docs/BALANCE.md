@@ -117,6 +117,7 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
 - From day 2, one troublemaker every 2.5-5 minutes while the park is open (one at a time). Kicking one out: +20 XP.
   From day 3: 30% wave hogs (pay, want 6 waves, drop in on everyone: each victim's mood takes a 0.2 hit),
   25% litterbugs (pay, drop trash on the deck or junk in the pool every 6-11 s), the rest sneak-ins.
+  With the gear shop open, 20% are shoplifters instead: stop one for +20 XP, or lose $35 if they get away.
   Missing one costs nothing directly: they take waves and a lineup spot from paying surfers, then brag.
 
 ## Kook rescue (2026-10-21, proposal)
