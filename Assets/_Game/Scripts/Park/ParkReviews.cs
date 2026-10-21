@@ -39,6 +39,7 @@ namespace SurfPool
         static readonly List<Review> today = new();
         static Visit longestWait, bestCustomer, mostWipeouts;
         static int barrelsToday;
+        static readonly List<string> extraFacts = new();
 
         public static IReadOnlyList<Review> Today => today;
 
@@ -48,7 +49,11 @@ namespace SurfPool
             today.Clear();
             longestWait = bestCustomer = mostWipeouts = null;
             barrelsToday = 0;
+            extraFacts.Clear();
         }
+
+        /// <summary>A line for today's fun facts from somewhere else (a rush, an event...).</summary>
+        public static void AddFact(string fact) => extraFacts.Add(fact);
 
         /// <summary>A surfer is done (happy or angry): write their review and update the facts.</summary>
         public static Review Record(Visit visit)
@@ -197,6 +202,7 @@ namespace SurfPool
             }
             if (mostWipeouts != null) facts.Add($"Most wipeouts: {mostWipeouts.name} ({mostWipeouts.wipeouts})");
             if (barrelsToday > 0) facts.Add($"Barrels today: {barrelsToday}");
+            facts.AddRange(extraFacts);
             return facts;
         }
     }

@@ -3133,3 +3133,28 @@
 .name-ok {
     margin: 0;
 }
+
+/* ---------- Rush hour (SurfRush): campers served and time left, above the goal strip ---------- */
+
+.rush-pill {
+    position: absolute;
+    bottom: 116px;
+    left: 50%;
+    width: 360px;
+    margin-left: -180px;
+    -unity-text-align: middle-center;
+    font-size: 22px;
+    color: white;
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    background-color: var(--coral);
+    border-radius: 20px;
+    border-width: 3px;
+    border-bottom-width: 6px;
+    border-color: var(--ink);
+    padding: 4px 16px 6px 16px;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.rush-pill--late {
+    background-color: var(--muted);
+}

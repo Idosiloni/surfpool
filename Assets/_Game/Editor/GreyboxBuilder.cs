@@ -481,6 +481,9 @@ namespace SurfPool.EditorTools
             var legends = game.AddComponent<FamousVisits>();
             Set(legends, "spawner", spawner);
             Set(legends, "surferPrefab", AssetDatabase.LoadAssetAtPath<Surfer>("Assets/_Game/Prefabs/Surfer.prefab"));
+            var rush = game.AddComponent<SurfRush>();
+            Set(rush, "spawner", spawner);
+            Set(rush, "surferPrefab", AssetDatabase.LoadAssetAtPath<Surfer>("Assets/_Game/Prefabs/Surfer.prefab"));
             Set(hud, "interactor", interactor);
             Set(hud, "player", fps);
             Set(hud, "pricing", pricing);

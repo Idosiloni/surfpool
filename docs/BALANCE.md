@@ -107,3 +107,8 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
 
 ## Park name (2026-10-21, proposal)
 - The first name is free (after Uncle Kai's letter, or once for older saves). Repainting the gate sign later costs $100.
+
+## Rush hour (2026-10-21, proposal)
+- From day 3, 45% of days get one surf-camp bus between 25% and 60% of the open day: 6-9 beginner campers at once.
+- Camp leader tips $12 per camper who got a session, doubled if all were paid in within 150 s and nobody gave up
+  (8 campers perfect = $192, plus their session prices).

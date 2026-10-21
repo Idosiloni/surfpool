@@ -167,6 +167,7 @@
             <ui:Label name="celebrationSubtitle" class="celebration-ribbon" picking-mode="Ignore" />
         </ui:VisualElement>
 
+        <ui:Label name="rushPill" class="rush-pill hidden" picking-mode="Ignore" />
         <ui:VisualElement name="goalStrip" class="goal-strip card hidden" picking-mode="Ignore">
             <ui:VisualElement class="goal-header" picking-mode="Ignore">
                 <ui:VisualElement class="goal-tile" picking-mode="Ignore">

@@ -284,6 +284,35 @@ namespace SurfPool
             MaxPrice = spawner.Pricing.FairFor(WaveLevel.Pro, pool) * 4f; // they'll pay what you ask
         }
 
+        /// <summary>Paid for a session (they're in, whatever happens next).</summary>
+        public bool HasPaid => paidPrice > 0;
+
+        /// <summary>Gave up and stormed off.</summary>
+        public bool LeftAngry => angry;
+
+        /// <summary>
+        /// Turns this new arrival into a surf-camp kid (<see cref="SurfRush"/>): a beginner for the main pool, in the
+        /// camp's matching rash guard. The camp pays a fair price without fuss.
+        /// </summary>
+        public void MakeCamper(Color campColor)
+        {
+            Skill = WaveLevel.Beginner;
+            visit.skill = Skill;
+            pool = spawner.MainPool;
+            water = pool.Water;
+            archetype = SurferPersonalities.Roll(Skill);
+            visit.type = archetype;
+            UseBoardFor(Skill);
+            rig.Style = 0f;
+            var look = CharacterLooks.For(archetype);
+            look.outfit = Outfit.RashGuard;
+            look.top = campColor;
+            look.topPattern = Pattern.None;
+            look.hat = -1;
+            rig.Wear(look);
+            MaxPrice = spawner.Pricing.FairFor(Skill, pool) * Random.Range(1f, 1.4f); // the camp pays
+        }
+
         /// <summary>Called by the register when the player sells this surfer a session.</summary>
         public void Pay(int price)
         {
