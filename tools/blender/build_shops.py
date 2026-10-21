@@ -166,9 +166,11 @@ def topping(name, kind):
             r = 0.01 + (i % 3) * 0.014
             parts.append(box("Flake", (0.02, 0.008, 0.003), (math.cos(a) * r, math.sin(a) * r, 0.006), "CoconutFlake", rotation=(0.3, 0, a)))
     elif kind == "honey":
-        for i in range(5):
-            parts.append(cylinder("Drizzle", 0.006, 0.09, (-0.04 + i * 0.02, 0, 0.006), "Honey", vertices=5,
-                                  rotation=(math.radians(90), 0, math.radians(30 * (1 if i % 2 else -1)))))
+        # A glossy puddle with a couple of drips on top.
+        parts.append(cylinder("Puddle", 0.045, 0.008, (0, 0, 0.004), "Honey", vertices=10))
+        for i in range(3):
+            a = i * 2.1
+            parts.append(ico("Drop", 0.012, (math.cos(a) * 0.025, math.sin(a) * 0.025, 0.012), "Honey"))
     elif kind == "mango":
         for i in range(5):
             a = i * 1.3

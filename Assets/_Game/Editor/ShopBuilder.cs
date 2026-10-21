@@ -270,7 +270,7 @@ namespace SurfPool.EditorTools
             WorldArt.Model("Counter", root, root.TransformPoint(L(2.3f, -2.0f, 0f)), ShaperYaw);
             RegisterBox(root, shaper, L(2.3f, -2.0f, 0.56f), new Vector3(3.0f, 1.12f, 0.9f));
             WorldArt.Model("CashRegister", root, root.TransformPoint(L(3.1f, -2.0f, 1.15f)), ShaperYaw + 180f);
-            WorldArt.Model("WishBoard", root, root.TransformPoint(L(-0.5f, -3.9f, 0f)), ShaperYaw);
+            WorldArt.Model("WishBoard", root, root.TransformPoint(L(-4.6f, -3.3f, 0f)), ShaperYaw);
 
             // Shaping stand in the middle; a pile of foam blanks against the back wall; templates on the back wall.
             var stand = Station(root, shaper, BoardShaper.Stand, "ShapingStand", L(-0.3f, 0.3f, 0f), 0f,

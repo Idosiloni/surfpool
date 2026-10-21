@@ -95,7 +95,7 @@ namespace SurfPool
             {
                 if (scanning) return null;
                 var customer = Front;
-                if (customer == null) return basket.Count > 0 ? "Register (no one waiting)" : $"{shopName} register (no one waiting)";
+                if (customer == null) return basket.Count > 0 ? "Put the basket back (no one waiting)" : $"{shopName} register (no one waiting)";
                 if (basket.Count == 0) return "Grab what they want from the racks";
                 return $"Ring up {basket.Count} item{(basket.Count == 1 ? "" : "s")}";
             }
@@ -104,7 +104,13 @@ namespace SurfPool
         public override void Interact()
         {
             var customer = Front;
-            if (customer == null || basket.Count == 0 || scanning) return;
+            if (basket.Count == 0 || scanning) return;
+            if (customer == null)
+            {
+                foreach (var id in basket.ToArray()) RemoveFromBasket(id); // everything back on the shelves
+                Sfx.Play(Sound.Click);
+                return;
+            }
             StartCoroutine(RingUp(customer));
         }
 

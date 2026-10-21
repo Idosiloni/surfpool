@@ -27,6 +27,7 @@ namespace SurfPool
         string status;
         float statusUntil;
         bool sitting;
+        float startedAt;
         readonly List<Vector3> route = new();
 
         public ShopCounter Shop => shop;
@@ -54,6 +55,7 @@ namespace SurfPool
             rig.Paint(skin, Random.ColorHSV(0f, 1f, 0.4f, 0.9f, 0.7f, 1f), Random.ColorHSV(0f, 1f, 0.5f, 0.9f, 0.5f, 0.9f), hair, Random.Range(0, rig.HairStyles));
             shop = target;
             exit = entrance;
+            startedAt = Time.time;
             Order = shop.NewOrder();
             Order.RollMood();
             patienceTotal = patienceLeft = shop.Patience * Order.patienceScale;
@@ -75,6 +77,7 @@ namespace SurfPool
                 case Phase.WalkingIn:
                     Pose(false);
                     if (WalkRoute()) phase = Phase.InLine;
+                    else if (Time.time - startedAt > 90f) GiveUp(null); // never stand around stuck on the way in
                     break;
                 case Phase.InLine:
                     StandInLine();
