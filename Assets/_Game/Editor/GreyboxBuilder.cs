@@ -1500,9 +1500,34 @@ namespace SurfPool.EditorTools
             var shirt = Part("CharTorso", torso);
             var head = Joint("Head", torso, new Vector3(0, 0.55f, 0));
             var headSkin = Part("CharHead", head);
-            var hair = new[] { "CharHairShort", "CharHairLong", "CharHairBun", "CharHairCurly", "CharCap", "CharHairBuzz" };
+            // Hair styles, hats and glasses (CharacterLooks indexes them in this order), facial hair.
+            var hair = new[] { "CharHairShort", "CharHairLong", "CharHairBun", "CharHairCurly", "CharHairBuzz", "CharHairMohawk",
+                "CharHairDreads", "CharHairPonytail", "CharHairMullet", "CharHairMop", "CharHairSpiky" };
             var hairRenderers = new Renderer[hair.Length];
             for (int i = 0; i < hair.Length; i++) hairRenderers[i] = Part(hair[i], head);
+            var hats = new[] { "CharHatCap", "CharHatBucket", "CharHatVisor", "CharHatBand" };
+            var hatRenderers = new Renderer[hats.Length];
+            for (int i = 0; i < hats.Length; i++) hatRenderers[i] = Part(hats[i], head);
+            var glasses = new[] { "CharGlassesSunnies", "CharGlassesShield", "CharGlassesRound" };
+            var glassesRenderers = new Renderer[glasses.Length];
+            for (int i = 0; i < glasses.Length; i++) glassesRenderers[i] = Part(glasses[i], head);
+            var beard = Part("CharBeard", head);
+            var mustache = Part("CharMustache", head);
+            // Face parts on their own joints so the rig can blink and change expressions.
+            Transform FacePart(string model, string name, Vector3 at)
+            {
+                var joint = Joint(name, head, at);
+                Part(model, joint);
+                return joint;
+            }
+            var eyeL = FacePart("CharEye", "Eye L", new Vector3(-0.078f, 0.235f, 0.19f));
+            var eyeR = FacePart("CharEye", "Eye R", new Vector3(0.078f, 0.235f, 0.19f));
+            var browL = FacePart("CharBrow", "Brow L", new Vector3(-0.08f, 0.305f, 0.186f));
+            var browR = FacePart("CharBrow", "Brow R", new Vector3(0.08f, 0.305f, 0.186f));
+            var mouthNames = new[] { "CharMouthSmile", "CharMouthGrin", "CharMouthO", "CharMouthFlat" };
+            var mouthObjects = new Object[mouthNames.Length];
+            for (int i = 0; i < mouthNames.Length; i++)
+                mouthObjects[i] = FacePart(mouthNames[i], mouthNames[i].Replace("Char", ""), new Vector3(0f, 0.125f, 0.172f)).gameObject;
             var shoulderL = Joint("Shoulder L", torso, new Vector3(-0.27f, 0.5f, 0));
             var shoulderR = Joint("Shoulder R", torso, new Vector3(0.27f, 0.5f, 0));
             var upperArmL = Part("CharUpperArm", shoulderL);
@@ -1537,7 +1562,26 @@ namespace SurfPool.EditorTools
             Set(rig, "shirtRenderer", shirt);
             Set(rig, "shortsRenderer", shorts);
             SetArray(rig, "hairRenderers", hairRenderers);
+            SetArray(rig, "hatRenderers", hatRenderers);
+            SetArray(rig, "glassesRenderers", glassesRenderers);
+            Set(rig, "beardRenderer", beard);
+            Set(rig, "mustacheRenderer", mustache);
+            Set(rig, "eyeL", eyeL);
+            Set(rig, "eyeR", eyeR);
+            Set(rig, "browL", browL);
+            Set(rig, "browR", browR);
+            SetArray(rig, "mouths", mouthObjects);
+            SetArray(rig, "patterns", PatternTextures());
             return rig;
+        }
+
+        static Object[] PatternTextures()
+        {
+            string[] names = { "stripes", "hibiscus", "checker", "palms", "dots" };
+            var textures = new Object[names.Length];
+            for (int i = 0; i < names.Length; i++)
+                textures[i] = AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/_Game/Textures/Patterns/pattern_{names[i]}.png");
+            return textures;
         }
 
         static void Staff(GameObject go, string title, int wage)

@@ -228,9 +228,7 @@ namespace SurfPool
             archetype = SurferPersonalities.Roll(Skill);
             rig.Goofy = Random.value < 0.35f;
             rig.Style = Skill switch { WaveLevel.Beginner => 0f, WaveLevel.Intermediate => 0.55f, _ => 1f };
-            var skin = Color.Lerp(new Color(0.42f, 0.27f, 0.17f), new Color(1f, 0.84f, 0.7f), Random.value);
-            var hair = Random.value < 0.25f ? new Color(0.95f, 0.82f, 0.45f) : Color.Lerp(new Color(0.08f, 0.06f, 0.05f), new Color(0.45f, 0.28f, 0.15f), Random.value);
-            rig.Paint(skin, Random.ColorHSV(0f, 1f, 0.5f, 0.9f, 0.6f, 1f), Random.ColorHSV(0f, 1f, 0.4f, 0.8f, 0.3f, 0.8f), hair, Random.Range(0, rig.HairStyles));
+            rig.Wear(CharacterLooks.For(archetype));
             Paint(board, Random.ColorHSV(0f, 1f, 0.6f, 1f, 0.8f, 1f));
             isRenter = renter;
             lane = Random.Range(-0.6f, 0.6f);
@@ -739,6 +737,7 @@ namespace SurfPool
                 {
                     // Drop-in drama: the surfer already on it yells, the kook apologizes, the lifeguard whistles.
                     dropInVictim.Shout(SurferPersonalities.Line(dropInVictim.archetype, Moment.DropInVictim), 2.5f);
+                    dropInVictim.rig.ShowFace(SurfPool.Face.Grumpy, 3f);
                     Shout(SurferPersonalities.Line(archetype, Moment.DropInSorry), 2.5f);
                     Lifeguard.Whistle();
                 }
@@ -982,6 +981,7 @@ namespace SurfPool
             wantsSnack = !hasRentalBoard && pool == spawner.MainPool && SnackBar.Instance != null && SnackBar.Instance.WantsSnack(happiness);
             GameStats.SurfersServed++;
             string line = SurferPersonalities.Line(archetype, happiness > 0.75f ? Moment.GoodEnd : happiness > 0.5f ? Moment.OkEnd : Moment.BadEnd);
+            rig.ShowFace(happiness > 0.75f ? SurfPool.Face.Stoked : happiness > 0.5f ? SurfPool.Face.Happy : SurfPool.Face.Grumpy, 3.5f);
             Shout(line + (tip > 0 ? $"  (tipped ${tip})" : ""), 5f);
             state = State.SwimmingToBeach;
         }
@@ -1043,7 +1043,8 @@ namespace SurfPool
                 case Pose.Walk: // walking or standing, board carried on its edge under the right arm
                     rig.CurrentMode = CharacterRig.Mode.Locomotion;
                     rig.CarryingBoard = board.gameObject.activeSelf;
-                    Place(board, new Vector3(0.5f + 0.07f * board.localScale.x, 0.9f, 0.15f), new Vector3(-8f, 0f, 90f));
+                    float size = rig.Look != null ? rig.Look.height : 1f; // groms carry it lower
+                    Place(board, new Vector3((0.56f + 0.07f * board.localScale.x) * size, 0.9f * size, 0.15f), new Vector3(-8f, 0f, 90f));
                     break;
                 case Pose.Paddle: // lying on the board, paddling
                     rig.CurrentMode = CharacterRig.Mode.Paddle;

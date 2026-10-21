@@ -31,6 +31,16 @@ namespace SurfPool
         [SerializeField] Renderer shortsRenderer;
         [SerializeField] Renderer[] hairRenderers;
 
+        [Header("Look: hats, glasses, facial hair, face parts (tools/blender/build_characters.py)")]
+        [SerializeField] Renderer[] hatRenderers;
+        [SerializeField] Renderer[] glassesRenderers;
+        [SerializeField] Renderer beardRenderer, mustacheRenderer;
+        [SerializeField] Transform eyeL, eyeR, browL, browR;
+        [Tooltip("Smile, Grin, O, Flat.")]
+        [SerializeField] GameObject[] mouths;
+        [Tooltip("Fabric prints, in Pattern order without None (Stripes, Hibiscus, Checker, Palms, Dots).")]
+        [SerializeField] Texture2D[] patterns;
+
         [Header("Colors used when not painted by code (staff)")]
         [SerializeField] bool paintOnStart;
         [SerializeField] Color defaultSkin = new(0.85f, 0.65f, 0.5f);
@@ -161,6 +171,7 @@ namespace SurfPool
 
         /// <summary>Number of hair styles this person can wear (index for Paint).</summary>
         public int HairStyles => hairRenderers.Length;
+        public int Hats => hatRenderers != null ? hatRenderers.Length : 0;
 
         float phase;
         float sprint;
@@ -183,37 +194,193 @@ namespace SurfPool
             if (paintOnStart) Paint(defaultSkin, defaultShirt, defaultShorts, defaultHair, defaultHairStyle);
         }
 
+        /// <summary>The old way to color someone (skin, shirt, shorts, hair): a tee and shorts.</summary>
+        public void Paint(Color skin, Color shirt, Color shorts, Color hair, int hairStyle) =>
+            Wear(CharacterLooks.Simple(skin, shirt, shorts, hair, hairStyle));
+
+        public CharacterLook Look { get; private set; }
+
         /// <summary>
-        /// Colors the character. Every part is painted by material name: Skin, Shirt (also sleeves and caps),
-        /// Shorts (also the legs of the shorts on the thighs) and Hair; eyes, brows and mouth keep their colors.
-        /// Only the chosen hair style is shown.
+        /// Dresses the character: body size, which hair / hat / glasses / facial hair show, and every material band
+        /// painted for the outfit (see <see cref="CharacterLook"/>), with fabric prints where the look has them.
         /// </summary>
-        public void Paint(Color skin, Color shirt, Color shorts, Color hair, int hairStyle)
+        public void Wear(CharacterLook look)
         {
+            Look = look;
+            ShowOne(hairRenderers, look.hairStyle);
+            ShowOne(hatRenderers, look.hat);
+            ShowOne(glassesRenderers, look.glasses);
+            if (beardRenderer != null) beardRenderer.gameObject.SetActive(look.beard);
+            if (mustacheRenderer != null) mustacheRenderer.gameObject.SetActive(look.mustache);
+            if (model != null) model.localScale = Vector3.one * look.height;
+            if (head != null) head.localScale = Vector3.one * look.head;
+            if (shirtRenderer != null) shirtRenderer.transform.localScale = new Vector3(look.width, 1f, look.width);
+            if (shortsRenderer != null) shortsRenderer.transform.localScale = new Vector3(look.width, 1f, look.width);
+            Mood = look.mood;
+
             var block = new MaterialPropertyBlock();
-            hairStyle = Mathf.Clamp(hairStyle, 0, hairRenderers.Length - 1);
-            for (int i = 0; i < hairRenderers.Length; i++) hairRenderers[i].gameObject.SetActive(i == hairStyle);
-            foreach (var r in skinRenderers) PaintRenderer(r, skin, shirt, shorts, hair, block);
-            PaintRenderer(shirtRenderer, skin, shirt, shorts, hair, block);
-            PaintRenderer(shortsRenderer, skin, shirt, shorts, hair, block);
-            foreach (var r in hairRenderers) PaintRenderer(r, skin, shirt, shorts, hair, block);
+            var root = model != null ? model : transform;
+            foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = renderer.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    if (mats[i] == null) continue;
+                    var color = SlotColor(mats[i].name, look, out var pattern);
+                    if (color == null) continue;
+                    block.Clear();
+                    block.SetColor(BaseColor, color.Value);
+                    var texture = pattern != Pattern.None && patterns != null && (int)pattern - 1 < patterns.Length ? patterns[(int)pattern - 1] : null;
+                    block.SetTexture(BaseMap, texture != null ? texture : Texture2D.whiteTexture);
+                    renderer.SetPropertyBlock(block, i);
+                }
+            }
         }
 
-        static void PaintRenderer(Renderer renderer, Color skin, Color shirt, Color shorts, Color hair, MaterialPropertyBlock block)
+        static readonly int BaseMap = Shader.PropertyToID("_BaseMap");
+
+        static void ShowOne(Renderer[] options, int index)
         {
-            if (renderer == null) return;
-            var mats = renderer.sharedMaterials;
-            for (int i = 0; i < mats.Length; i++)
+            if (options == null) return;
+            for (int i = 0; i < options.Length; i++)
+                if (options[i] != null) options[i].gameObject.SetActive(i == index);
+        }
+
+        /// <summary>The color of a material band for this look (null = leave it alone: eyes, teeth...).</summary>
+        static Color? SlotColor(string slot, CharacterLook look, out Pattern pattern)
+        {
+            pattern = Pattern.None;
+            var o = look.outfit;
+            bool suit = o == Outfit.Springsuit || o == Outfit.Fullsuit;
+            bool shirt = o == Outfit.Tee || o == Outfit.Tank || o == Outfit.RashGuard;
+            bool onePiece = o == Outfit.OnePiece;
+
+            // Upper body bands: covered by the top (with its print if it's a shirt), or bare skin.
+            bool? topCovers = null;
+            if (slot.StartsWith("Top")) topCovers = o != Outfit.Shirtless;
+            else if (slot.StartsWith("Mid") || slot.StartsWith("Waist")) topCovers = shirt || suit || onePiece;
+            else if (slot.StartsWith("SleeveShort")) topCovers = o == Outfit.Tee || o == Outfit.RashGuard || suit;
+            else if (slot.StartsWith("SleeveLong") || slot.StartsWith("Cuff")) topCovers = o == Outfit.RashGuard || o == Outfit.Fullsuit;
+            if (topCovers.HasValue)
             {
-                if (mats[i] == null) continue;
-                string name = mats[i].name;
-                Color? color = name.StartsWith("Skin") ? skin : name.StartsWith("Shirt") ? shirt
-                    : name.StartsWith("Shorts") ? shorts : name.StartsWith("Hair") ? hair : null;
-                if (color == null) continue;
-                block.Clear();
-                block.SetColor(BaseColor, color.Value);
-                renderer.SetPropertyBlock(block, i);
+                if (!topCovers.Value) return look.skin;
+                if (suit && slot.StartsWith("Top")) return look.accent; // wetsuit chest panel
+                if (shirt) pattern = look.topPattern;
+                return look.top;
             }
+
+            // Lower body bands: swimwear (with its print), or skin for the legs of bikinis and one-pieces.
+            bool? bottomCovers = null;
+            if (slot.StartsWith("Bottom")) bottomCovers = true;
+            else if (slot.StartsWith("ShortsLeg")) bottomCovers = o != Outfit.Bikini && !onePiece;
+            if (bottomCovers.HasValue)
+            {
+                if (!bottomCovers.Value) return look.skin;
+                if (suit || onePiece) return look.top;
+                pattern = look.bottomPattern;
+                return look.bottom;
+            }
+
+            if (slot.StartsWith("Skin")) return look.skin;
+            if (slot.StartsWith("Leg")) return o == Outfit.Fullsuit ? look.top : look.skin;
+            if (slot.StartsWith("Hair")) return look.hair;
+            if (slot.StartsWith("Brow")) return Color.Lerp(look.hair, Color.black, 0.35f);
+            if (slot.StartsWith("Nose")) return look.zinc.a > 0f ? look.zinc : look.skin;
+            if (slot.StartsWith("Blush")) return Color.Lerp(look.skin, new Color(1f, 0.45f, 0.45f), 0.3f);
+            if (slot.StartsWith("HatMain")) return look.hatColor;
+            if (slot.StartsWith("HatAccent")) return Color.Lerp(look.hatColor, Color.white, 0.85f);
+            if (slot.StartsWith("Lens")) return look.lens;
+            if (slot.StartsWith("Shirt")) return look.top;      // older parts
+            if (slot.StartsWith("Shorts")) return look.bottom;
+            return null;
+        }
+
+        // ---- faces: expression and blinking ----
+
+        /// <summary>The resting face (from the look); actions override it (wipeouts, celebrations, riding).</summary>
+        public Face Mood { get; set; } = Face.Happy;
+
+        Face? faceOverride;
+        float faceUntil, nextBlink, blinkStart = -10f;
+        Vector3 browLBase, browRBase, eyeScale = Vector3.one;
+        bool faceReady;
+        float browY, browAngle, eyeOpen = 1f;
+
+        /// <summary>Shows a face for a moment (an annoyed customer, a scared kook).</summary>
+        public void ShowFace(Face face, float seconds)
+        {
+            faceOverride = face;
+            faceUntil = Time.time + seconds;
+        }
+
+        Face CurrentFace()
+        {
+            if (faceOverride.HasValue && Time.time < faceUntil) return faceOverride.Value;
+            if (CurrentMode == Mode.Flail) return Face.Scared;
+            if (Gesturing)
+                return gesture switch
+                {
+                    Gesture.Stretch => Face.Sleepy,
+                    Gesture.ScratchHead => Face.Grumpy,
+                    Gesture.Splash => Mood,
+                    _ => Face.Stoked,
+                };
+            if (CurrentMode == Mode.Ride) return Air > 0.3f || Style > 0.9f && Crouch < 0.2f && Mood == Face.Stoked ? Face.Stoked : Face.Focused;
+            if (CurrentMode == Mode.Paddle && Sprint) return Face.Focused;
+            if (CurrentMode == Mode.Lie) return Face.Sleepy;
+            return Mood;
+        }
+
+        void UpdateFace(float dt)
+        {
+            if (eyeL == null || eyeR == null) return;
+            if (!faceReady)
+            {
+                faceReady = true;
+                if (browL != null) browLBase = browL.localPosition;
+                if (browR != null) browRBase = browR.localPosition;
+                eyeScale = eyeL.localScale;
+                nextBlink = Time.time + Random.Range(1f, 4f);
+            }
+            var face = CurrentFace();
+            // (brow lift m, inner-end-down degrees, eye opening, mouth: 0 smile, 1 grin, 2 O, 3 flat)
+            var (lift, angle, open, mouth) = face switch
+            {
+                Face.Stoked => (0.018f, -10f, 1.08f, 1),
+                Face.Focused => (-0.012f, 14f, 0.72f, 3),
+                Face.Scared => (0.03f, -22f, 1.25f, 2),
+                Face.Grumpy => (-0.01f, 20f, 0.8f, 3),
+                Face.Sleepy => (-0.008f, 0f, 0.3f, 3),
+                _ => (0.006f, -6f, 1f, 0),
+            };
+            float k = 1f - Mathf.Exp(-dt * 14f);
+            browY = Mathf.Lerp(browY, lift, k);
+            browAngle = Mathf.Lerp(browAngle, angle, k);
+            eyeOpen = Mathf.Lerp(eyeOpen, open, k);
+            if (browL != null)
+            {
+                browL.localPosition = browLBase + Vector3.up * browY;
+                browL.localRotation = Quaternion.Euler(0f, 0f, -browAngle);
+            }
+            if (browR != null)
+            {
+                browR.localPosition = browRBase + Vector3.up * browY;
+                browR.localRotation = Quaternion.Euler(0f, 0f, browAngle);
+            }
+            if (mouths != null)
+                for (int i = 0; i < mouths.Length; i++)
+                    if (mouths[i] != null && mouths[i].activeSelf != (i == mouth)) mouths[i].SetActive(i == mouth);
+
+            // Blink every few seconds (a quick squash of both eyes).
+            if (Time.time >= nextBlink)
+            {
+                blinkStart = Time.time;
+                nextBlink = Time.time + Random.Range(2f, 5f);
+            }
+            float blink = Time.time - blinkStart < 0.12f ? 0.1f : 1f;
+            var scale = new Vector3(eyeScale.x, eyeScale.y * Mathf.Min(eyeOpen, 1.3f) * blink, eyeScale.z);
+            eyeL.localScale = scale;
+            eyeR.localScale = scale;
         }
 
         void LateUpdate()
@@ -263,6 +430,7 @@ namespace SurfPool
             shown = WithGesture(shown);
             ApplyLook(ref shown, dt);
             Apply(shown);
+            UpdateFace(dt);
         }
 
         /// <summary>Layers the active gesture over the pose (arms, torso, head), fading in and out.</summary>

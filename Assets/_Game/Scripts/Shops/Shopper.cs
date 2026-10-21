@@ -50,9 +50,7 @@ namespace SurfPool
         public void Begin(ShopCounter target, Vector3 entrance)
         {
             rig = GetComponent<CharacterRig>();
-            var skin = Color.Lerp(new Color(0.42f, 0.27f, 0.17f), new Color(1f, 0.84f, 0.7f), Random.value);
-            var hair = Random.value < 0.3f ? new Color(0.95f, 0.82f, 0.45f) : Color.Lerp(new Color(0.08f, 0.06f, 0.05f), new Color(0.45f, 0.28f, 0.15f), Random.value);
-            rig.Paint(skin, Random.ColorHSV(0f, 1f, 0.4f, 0.9f, 0.7f, 1f), Random.ColorHSV(0f, 1f, 0.5f, 0.9f, 0.5f, 0.9f), hair, Random.Range(0, rig.HairStyles));
+            rig.Wear(CharacterLooks.Beachgoer());
             shop = target;
             exit = entrance;
             startedAt = Time.time;
@@ -170,7 +168,11 @@ namespace SurfPool
             GoHome();
             if (shop != null) shop.Leave(this);
             if (!string.IsNullOrEmpty(line)) Say(line, 3f);
-            if (rig != null) rig.PlayGesture(CharacterRig.Gesture.ScratchHead, 1.2f);
+            if (rig != null)
+            {
+                rig.PlayGesture(CharacterRig.Gesture.ScratchHead, 1.2f);
+                rig.ShowFace(Face.Grumpy, 4f);
+            }
         }
 
         void GoHome()
@@ -185,18 +187,19 @@ namespace SurfPool
         public void Hold(GameObject item, CarryStyle style)
         {
             item.transform.SetParent(transform, false);
+            float size = rig != null && rig.Look != null ? rig.Look.height : 1f;
             switch (style)
             {
                 case CarryStyle.Hand: // a bag hanging from the right hand
-                    item.transform.localPosition = new Vector3(0.42f, 0.82f, 0.05f);
+                    item.transform.localPosition = new Vector3(0.42f, 0.82f, 0.05f) * size;
                     item.transform.localRotation = Quaternion.identity;
                     break;
                 case CarryStyle.Front: // a bowl or cup carried in the right hand
-                    item.transform.localPosition = new Vector3(0.42f, 0.8f, 0.12f);
+                    item.transform.localPosition = new Vector3(0.42f, 0.8f, 0.12f) * size;
                     item.transform.localRotation = Quaternion.identity;
                     break;
                 case CarryStyle.UnderArm: // a board on its edge under the right arm, like surfers carry them
-                    item.transform.localPosition = new Vector3(0.55f, 0.9f, 0.15f);
+                    item.transform.localPosition = new Vector3(0.55f, 0.9f, 0.15f) * size;
                     item.transform.localEulerAngles = new Vector3(-8f, 0f, 90f);
                     break;
             }
