@@ -111,6 +111,7 @@
                 </ui:VisualElement>
                 <ui:Label name="waveStatus" text="Ready" class="small-text" picking-mode="Ignore" />
                 <ui:Label name="waveAuto" text="Auto: off" class="small-text" picking-mode="Ignore" />
+                <ui:Label name="waveWater" text="Water: glassy" class="small-text water-line" picking-mode="Ignore" />
             </ui:VisualElement>
             <ui:VisualElement class="card hud-panel park-panel" picking-mode="Ignore">
                 <ui:VisualElement class="title-row card-strip" picking-mode="Ignore">
@@ -168,6 +169,11 @@
         </ui:VisualElement>
 
         <ui:Label name="rushPill" class="rush-pill hidden" picking-mode="Ignore" />
+        <ui:VisualElement name="setCall" class="set-call set-call--out hidden" picking-mode="Ignore">
+            <ui:Label name="setTitle" text="SET INCOMING" class="set-title" picking-mode="Ignore" />
+            <ui:VisualElement name="setPips" class="set-pips" picking-mode="Ignore" />
+            <ui:Label name="setNote" class="set-note" picking-mode="Ignore" />
+        </ui:VisualElement>
         <ui:VisualElement name="goalStrip" class="goal-strip card hidden" picking-mode="Ignore">
             <ui:VisualElement class="goal-header" picking-mode="Ignore">
                 <ui:VisualElement class="goal-tile" picking-mode="Ignore">

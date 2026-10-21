@@ -172,6 +172,13 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
   quality x1.15; everyone else wipes out x1.5. Power cost is the same for every shape (could charge more for hollow).
 - Alternate L/R sends lefts and rights in turn. Set size can be chosen from 1 up to what Wave Sets allows.
 
+## Sets and lulls (2026-10-22, proposals)
+- A press charges 1.4 s ("SET INCOMING", the lineup calls "Outside!" and looks out, +10% patience), then the waves
+  leave 4 s apart (was 2.5 s; real PerfectSwell sets: 5 s apart, ~30 s lull). Recharge = cooldown + 1.4 s + spacing.
+- Leftover chop: every wave that hits the beach adds 0.22 chop (max 1), which halves every 8 s. Ride quality and your
+  flow build x(1 - 0.2 x chop): back-to-back sets on a choppy pool score up to 20% less. A set of 3 leaves ~0.6 chop,
+  glassy again (< 0.15) after ~16 s of lull. Ripples grow up to x3.5 when fully choppy.
+
 ## Wind (2026-10-21, proposal)
 - From day 2: 50% calm, 25% offshore, 25% onshore (independent of the day's event). Offshore: glassy water (ripples
   x0.25), spray blowing off the lips, ride quality x1.1, wipeouts x0.85, your flow builds x1.1 faster. Onshore:

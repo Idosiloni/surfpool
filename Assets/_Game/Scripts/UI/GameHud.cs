@@ -33,9 +33,10 @@ namespace SurfPool
 
         VisualElement hudRootElement;
         VisualElement root, bubbleLayer, popupStack, toasts, crosshair, prompt, waveBarFill, rentalRow, wagesRow, billsRow;
-        Label money, ratingLabel, waveType, waveStatus, waveAuto, ticketValue, rentalValue, servedValue, lostValue,
+        Label money, ratingLabel, waveType, waveStatus, waveAuto, waveWater, ticketValue, rentalValue, servedValue, lostValue,
             wagesValue, billsValue, promptLabel, clickToPlay, hint, dayLabel;
         StarRating stars;
+        SetCallHud setCall;
         VisualElement missionCard, missionObjectives, missionMarker;
         Label missionChapter, missionTitle, missionStory, missionHint, markerDistance, missionBanner;
         Mission shownMission;
@@ -80,6 +81,7 @@ namespace SurfPool
             waveType = root.Q<Label>("waveType");
             waveStatus = root.Q<Label>("waveStatus");
             waveAuto = root.Q<Label>("waveAuto");
+            waveWater = root.Q<Label>("waveWater");
             ticketValue = root.Q<Label>("ticketValue");
             rentalValue = root.Q<Label>("rentalValue");
             servedValue = root.Q<Label>("servedValue");
@@ -123,6 +125,7 @@ namespace SurfPool
 
             stars = new StarRating();
             root.Q("ratingStarsSlot").Add(stars);
+            setCall = new SetCallHud(root);
 
             Notifications.Posted += ShowToast;
             Celebration.Shown += ShowCelebration;
@@ -169,6 +172,7 @@ namespace SurfPool
             UpdateGoal();
             UpdateChallenges();
             UpdateWavePanel();
+            setCall?.Update(ShownMachine);
             UpdateStats();
             UpdatePrompt();
             UpdateBubbles();
@@ -374,6 +378,9 @@ namespace SurfPool
             return best;
         }
 
+        /// <summary>The machine whose panel is on screen (the pool you're at), or null when the panel is hidden.</summary>
+        public WaveMachine ShownMachine { get; private set; }
+
         void UpdateWavePanel()
         {
             var machine = NearestMachine();
@@ -381,6 +388,7 @@ namespace SurfPool
             bool near = machine != null && player != null && machine.Pool != null &&
                         (DistanceToPool(machine.Pool) < 18f || (PlayerSurfing.Instance != null && PlayerSurfing.Instance.IsSurfing));
             wavePanel.EnableInClassList("hidden", !near);
+            ShownMachine = near ? machine : null;
             if (!near) return;
             var selected = machine.Selected;
             string direction = selected == WaveLevel.Beginner ? "Whitewater"
@@ -406,6 +414,12 @@ namespace SurfPool
                 : $"Auto: every {machine.AutoInterval:0}s" + (machine.SmartAuto ? " (smart)" : "");
             if (machine.WavesPerSet > 1) auto += $"  ·  sets of {machine.WavesPerSet}";
             SetText(waveAuto, auto);
+
+            // Leftover chop: waves bouncing off the beach. Give it a lull and the water goes glassy again.
+            float chop = machine.Pool.Water != null ? machine.Pool.Water.Chop : 0f;
+            SetText(waveWater, chop < 0.15f ? "Water: glassy" : chop < 0.45f ? "Water: settling..." : "Water: choppy - give it a lull");
+            waveWater.EnableInClassList("water-line--glassy", chop < 0.15f);
+            waveWater.EnableInClassList("water-line--choppy", chop >= 0.45f);
         }
 
         void UpdateStats()

@@ -762,6 +762,29 @@ namespace SurfPool
             }
         }
 
+        static readonly string[] SetCalls = { "OUTSIDE!", "SET! SET!", "Here it comes!", "Outside, outside!", "SET WAVE!" };
+
+        /// <summary>
+        /// A set is charging in this pool: the lineup sees it coming like on a real reef. One surfer calls it out,
+        /// everyone waiting turns to look at the machine (and gets a bit of patience back: waves are coming).
+        /// </summary>
+        public static void SeeSet(PoolArea inPool, Vector3 machine, int waves)
+        {
+            Surfer caller = null;
+            int seen = 0;
+            foreach (var other in All)
+            {
+                if (other.pool != inPool || other.state != State.WaitingForWave) continue;
+                other.lookUntil = Time.time + 2.5f;
+                other.rig.LookTarget = new Vector3(machine.x, other.transform.position.y + 1f, other.transform.position.z);
+                other.patience = Mathf.Min(1f, other.patience + 0.1f);
+                if (Random.Range(0, ++seen) == 0) caller = other; // a random one of them
+            }
+            if (caller == null) return;
+            caller.Shout(waves > 1 ? SetCalls[Random.Range(0, SetCalls.Length)] : "Wave!", 1.8f, Sound.VoiceYew);
+            caller.rig.PlayGesture(CharacterRig.Gesture.Hoot, 1f);
+        }
+
         /// <summary>The player dropped in on this surfer's wave: they're not happy about it.</summary>
         public void DroppedInByPlayer()
         {
@@ -1073,7 +1096,8 @@ namespace SurfPool
                 float wipeoutChance = whitewash ? (diff == 1 ? 0.22f : 0.35f) : diff > 0 ? 0.6f : Skill switch { WaveLevel.Beginner => 0.2f, WaveLevel.Intermediate => 0.1f, _ => 0.05f };
                 if (Skill == WaveLevel.Beginner) wipeoutChance *= ParkEffects.BeginnerWipeoutMultiplier;
                 // Today's wind: offshore grooms the waves, onshore makes them mushy.
-                rideQuality = Mathf.Min(1f, rideQuality * DailyEvents.WindRideQuality);
+                // Leftover chop from the last waves (sent too soon after a set, before the lull settled it).
+                rideQuality = Mathf.Min(1f, rideQuality * DailyEvents.WindRideQuality * water.ChopRideQuality);
                 wipeoutChance *= DailyEvents.WindWipeouts;
                 // The wave's shape (an operator setting): mellow waves forgive, hollow ones punish all but the pros.
                 var shape = whitewash ? WaveShape.Standard : water.ShapeOf(wave);

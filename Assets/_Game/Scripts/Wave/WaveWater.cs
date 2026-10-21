@@ -53,6 +53,12 @@ namespace SurfPool
 
         [Header("Calm water")]
         [SerializeField] float rippleHeight = 0.04f;
+        [Tooltip("Leftover chop each wave leaves when it hits the beach and bounces back (0 to 1).")]
+        [SerializeField] float chopPerWave = 0.22f;
+        [Tooltip("Seconds for the leftover chop to settle to half (the lull between sets).")]
+        [SerializeField] float chopHalfLife = 8f;
+        [Tooltip("Ripples are this many times bigger in fully choppy water.")]
+        [SerializeField] float chopRipples = 2.5f;
 
         [Header("Look")]
         [Tooltip("Seconds foam lingers on the water after the wave has passed (fading into lacy trails).")]
@@ -155,6 +161,17 @@ namespace SurfPool
         }
 
         public int ActiveWaves => waves.Count;
+
+        /// <summary>
+        /// Leftover chop from waves that hit the beach and bounced back: 0 = glassy, 1 = a washing machine. It settles
+        /// during the lull between sets, so real pools wait before the next set; rides on choppy water score less.
+        /// </summary>
+        public float Chop { get; private set; }
+
+        /// <summary>Ride quality on the leftover chop (1 on glassy water, 0.8 when fully choppy).</summary>
+        public float ChopRideQuality => 1f - 0.2f * Chop;
+
+        float Ripple => rippleHeight * DailyEvents.WindChop * (1f + chopRipples * Chop);
         public float Length => length;
         public float Width => width;
         float HalfWidth => width * 0.5f;
@@ -323,7 +340,11 @@ namespace SurfPool
         void Update()
         {
             float t = Now;
-            if (!replaying) waves.RemoveAll(wave => WaveCenter(wave, t) > length + wave.type.backWidth * 3f);
+            if (!replaying)
+            {
+                int ended = waves.RemoveAll(wave => WaveCenter(wave, t) > length + wave.type.backWidth * 3f);
+                Chop = Mathf.Clamp01(Chop * Mathf.Pow(0.5f, Time.deltaTime / Mathf.Max(0.1f, chopHalfLife)) + ended * chopPerWave);
+            }
             UpdateStates(t);
 
             // Foam stays where it was made and fades over foamLinger seconds, leaving lacy trails behind the
@@ -390,7 +411,7 @@ namespace SurfPool
             for (int ix = 0; ix < nx; ix++)
             {
                 float x = baseVertices[ix].x;
-                colSin[ix] = rippleHeight * DailyEvents.WindChop * Mathf.Sin(x * 0.7f + t * 1.3f);
+                colSin[ix] = Ripple * Mathf.Sin(x * 0.7f + t * 1.3f);
                 colShallow[ix] = Smooth(0.55f, 1f, x / length);
                 int n = 0;
                 for (int s = 0; s < count; s++)
@@ -540,7 +561,7 @@ namespace SurfPool
 
         float LocalHeight(float x, float z, float t)
         {
-            float h = rippleHeight * DailyEvents.WindChop * Mathf.Sin(x * 0.7f + t * 1.3f) * Mathf.Sin(z * 0.9f + t * 1.1f);
+            float h = Ripple * Mathf.Sin(x * 0.7f + t * 1.3f) * Mathf.Sin(z * 0.9f + t * 1.1f);
             float edge = z / HalfWidth;
             float edgeScale = 1f - edgeDrop * edge * edge;
 

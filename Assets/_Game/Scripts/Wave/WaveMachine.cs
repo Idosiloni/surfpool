@@ -17,8 +17,10 @@ namespace SurfPool
         [SerializeField] float autoInterval;
         [Tooltip("Waves sent per button press (a 'set').")]
         [SerializeField] int wavesPerSet = 1;
-        [Tooltip("Seconds between waves in a set.")]
-        [SerializeField] float setSpacing = 2.5f;
+        [Tooltip("Seconds between waves in a set (real pools: about 5).")]
+        [SerializeField] float setSpacing = 4f;
+        [Tooltip("Seconds the machine charges after a press before the first wave leaves (\"SET INCOMING\").")]
+        [SerializeField] float setLead = 1.4f;
         [Tooltip("Auto waves pick the type most waiting surfers want, instead of the selected one.")]
         [SerializeField] bool smartAuto;
 
@@ -37,6 +39,21 @@ namespace SurfPool
 
         /// <summary>Fires when a press is accepted (a set starts charging). Arg = waves in the set.</summary>
         public event Action<int> SetStarted;
+
+        /// <summary>Waves in the set being sent now (or the last one).</summary>
+        public int SetCount { get; private set; }
+
+        /// <summary>Waves of that set that have left the machine so far.</summary>
+        public int SetFired { get; private set; }
+
+        /// <summary>A set is on its way: charging, or some of its waves are still to come.</summary>
+        public bool SetRunning => pending.Count > 0;
+
+        /// <summary>When the last wave left the machine (the lull starts then).</summary>
+        public float LastWaveAt { get; private set; } = -100f;
+
+        /// <summary>Seconds until the timer sends the next set, or -1 if the timer is off.</summary>
+        public float NextAutoIn => autoInterval > 0f ? Mathf.Max(0f, nextAutoWave - Time.time) : -1f;
 
         /// <summary>The pool this machine belongs to.</summary>
         public PoolArea Pool
@@ -168,6 +185,8 @@ namespace SurfPool
                 water.SpawnWave(pending[i].level, pending[i].direction, pending[i].preset, pending[i].shape);
                 WaveFired?.Invoke(pending[i].level, pending[i].direction);
                 pending.RemoveAt(i);
+                SetFired++;
+                LastWaveAt = Time.time;
             }
 
             if (autoInterval <= 0f || Time.time < nextAutoWave) return;
@@ -202,15 +221,19 @@ namespace SurfPool
                     dir = nextAlternateRight ? WaveDirection.Right : WaveDirection.Left;
                     nextAlternateRight = !nextAlternateRight;
                 }
-                pending.Add((Time.time + i * setSpacing, level, dir, preset, preset != null ? WaveShape.Standard : SelectedShape));
+                pending.Add((Time.time + setLead + i * setSpacing, level, dir, preset, preset != null ? WaveShape.Standard : SelectedShape));
             }
             GameStats.WavesSent += count;
             if (OperatingCosts.Instance != null) OperatingCosts.Instance.MeterWaves(level, Pool, count);
             Sfx.Play(Sound.WaveMachine, transform.position);
             if (Service != null) Service.AddWear(level, count);
-            chargeDuration = cooldown + (count - 1) * setSpacing;
+            chargeDuration = cooldown + setLead + (count - 1) * setSpacing;
             readyAt = Time.time + chargeDuration;
+            SetCount = count;
+            SetFired = 0;
             SetStarted?.Invoke(count);
+            // The lineup sees it coming: someone calls "Outside!", everyone looks out to the machine.
+            if (Pool != null) Surfer.SeeSet(Pool, transform.position, count);
             return true;
         }
 

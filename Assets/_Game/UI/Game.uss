@@ -3188,3 +3188,93 @@
 .hud-root--surfing .park-panel {
     display: none;
 }
+
+/* ---------- Sets and lulls (WaveMachine sets, WaveWater.Chop): "SET INCOMING", one pip per wave, then the lull ---------- */
+
+.set-call {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 13%;
+    align-items: center;
+    transition-property: opacity, translate, scale;
+    transition-duration: 0.3s, 0.3s, 0.3s;
+    transition-timing-function: ease-out-back, ease-out-back, ease-out-back;
+}
+
+.set-call--out {
+    opacity: 0;
+    translate: 0 -24px;
+    scale: 0.85 0.85;
+}
+
+.set-title {
+    font-size: 38px;
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Lilita%20SDF.asset");
+    color: white;
+    background-color: var(--wave-intermediate);
+    border-radius: 22px;
+    border-width: 3px;
+    border-bottom-width: 7px;
+    border-color: var(--ink);
+    padding: 2px 26px 6px 26px;
+    letter-spacing: 2px;
+    text-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+    transition-property: background-color, scale;
+    transition-duration: 0.25s, 0.18s;
+    transition-timing-function: ease-out, ease-out-back;
+}
+
+.set-title--lull {
+    font-size: 26px;
+    background-color: var(--teal-dark);
+    letter-spacing: 1px;
+}
+
+.set-title--pulse {
+    scale: 1.08 1.08;
+}
+
+.set-pips {
+    flex-direction: row;
+    margin-top: -4px;
+}
+
+.set-pip {
+    width: 26px;
+    height: 16px;
+    margin: 0 4px;
+    border-radius: 8px;
+    border-width: 3px;
+    border-color: var(--ink);
+    background-color: var(--cream);
+    transition-property: background-color, scale, translate;
+    transition-duration: 0.25s, 0.25s, 0.25s;
+    transition-timing-function: ease-out-back, ease-out-back, ease-out-back;
+}
+
+.set-pip--fired {
+    background-color: var(--sun);
+    scale: 1.2 1.2;
+    translate: 0 3px;
+}
+
+.set-note {
+    margin-top: 6px;
+    font-size: 18px;
+    color: var(--cream);
+    -unity-font-style: bold;
+    background-color: rgba(11, 46, 58, 0.88);
+    border-radius: 12px;
+    padding: 2px 14px 4px 14px;
+}
+
+.water-line--glassy {
+    color: var(--teal-dark);
+    -unity-font-style: bold;
+}
+
+.water-line--choppy {
+    color: var(--coral);
+    -unity-font-style: bold;
+}
