@@ -755,6 +755,34 @@ def air_blast():
     save("air_blast", fade(x, 0.002, 0.3))
 
 
+def footstep(name, seed, kind):
+    # One step: sand = soft crunchy hiss, deck = short heel tap + scuff, wood = hollow knock.
+    r = rng(seed)
+    if kind == "sand":
+        length = 0.22
+        t = secs(length)
+        crunch = bandpass(white(len(t), seed), 900 + r.uniform(-150, 150), 5000) * np.exp(-t / 0.06)
+        grains = np.zeros(len(t))
+        for _ in range(14):
+            place(grains, highpass(white(int(SR * 0.004), seed + _ + 1), 3000), r.uniform(0.0, 0.12), r.uniform(0.1, 0.3))
+        x = crunch / np.std(crunch) * 0.4 + grains
+    elif kind == "deck":
+        length = 0.16
+        t = secs(length)
+        tap = lowpass(white(len(t), seed), 2200) * np.exp(-t / 0.018)
+        thud = tone(110 + r.uniform(-10, 10), length, decay=0.03)
+        scuff = bandpass(white(len(t), seed + 7), 1500, 6000) * np.exp(-np.maximum(t - 0.03, 0) / 0.03) * (t > 0.03)
+        x = tap / np.std(tap) * 0.5 + thud * 0.6 + scuff / (np.std(scuff) + 1e-9) * 0.12
+    else:
+        length = 0.25
+        t = secs(length)
+        knock = tone(np.array([180 + r.uniform(-15, 15)]) * np.ones(len(t)), length, ((1, 1), (2.3, 0.5), (3.9, 0.25)), decay=0.07)
+        click = lowpass(white(int(SR * 0.01), seed), 3000)
+        x = knock * 0.8
+        place(x, click, 0, 0.4)
+    save(name, fade(x, 0.001, 0.03), peak_db=-8)
+
+
 def main():
     surf_loop()
     crowd_loop()
@@ -808,6 +836,10 @@ def main():
     planer()
     spray_hiss()
     air_blast()
+    for i in range(3):
+        footstep(f"step_sand_{i + 1}", 900 + i, "sand")
+        footstep(f"step_deck_{i + 1}", 910 + i, "deck")
+        footstep(f"step_wood_{i + 1}", 920 + i, "wood")
     for name, length, ch in written:
         print(f"{name:20s} {length:6.2f}s  {'stereo' if ch == 2 else 'mono'}")
 

@@ -55,6 +55,9 @@ namespace SurfPool.EditorTools
                 World(Sound.Planer, 0.5f, 3f, 25f, 0.9f, "planer"),
                 World(Sound.SprayHiss, 0.45f, 3f, 20f, 0.5f, "spray_hiss"),
                 World(Sound.AirBlast, 0.8f, 8f, 70f, 0.05f, "air_blast"),
+                Ui(Sound.StepSand, 0.22f, "step_sand_1", "step_sand_2", "step_sand_3"),
+                Ui(Sound.StepDeck, 0.2f, "step_deck_1", "step_deck_2", "step_deck_3"),
+                Ui(Sound.StepWood, 0.25f, "step_wood_1", "step_wood_2", "step_wood_3"),
             };
             bank.surfLoop = Clip("amb_surf_loop");
             bank.crowdLoop = Clip("amb_crowd_loop");

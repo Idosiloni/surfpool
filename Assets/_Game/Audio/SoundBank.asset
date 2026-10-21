@@ -287,6 +287,39 @@ MonoBehaviour:
     maxDistance: 70
     pitchJitter: 0.06
     minGap: 0.05
+  - id: 29
+    clips:
+    - {fileID: 8300000, guid: c55eddbc32d3846569c66a5ef71d8bf4, type: 3}
+    - {fileID: 8300000, guid: e0ebb36033ee846eaa3a5a8252f6520b, type: 3}
+    - {fileID: 8300000, guid: 6c0911471a23b4ca6a3c28adfc7cff43, type: 3}
+    volume: 0.22
+    spatial: 0
+    minDistance: 5
+    maxDistance: 60
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 30
+    clips:
+    - {fileID: 8300000, guid: eb33cf7bcfc6a4879a0296bd9a6b45d0, type: 3}
+    - {fileID: 8300000, guid: f357b4e134bcb4841bffce17a0fc99a4, type: 3}
+    - {fileID: 8300000, guid: a0a9cb24b6a8a48a2b27c962501d7724, type: 3}
+    volume: 0.2
+    spatial: 0
+    minDistance: 5
+    maxDistance: 60
+    pitchJitter: 0.06
+    minGap: 0.08
+  - id: 31
+    clips:
+    - {fileID: 8300000, guid: 1db0617777e12407e9990be4b44b44aa, type: 3}
+    - {fileID: 8300000, guid: 68e2d9022bf324d558440d745663f635, type: 3}
+    - {fileID: 8300000, guid: f74d5be8e28c448378766062b2873666, type: 3}
+    volume: 0.25
+    spatial: 0
+    minDistance: 5
+    maxDistance: 60
+    pitchJitter: 0.06
+    minGap: 0.08
   surfLoop: {fileID: 8300000, guid: e5c8464ac255e4245b322d510a71562a, type: 3}
   crowdLoop: {fileID: 8300000, guid: fab8e188244f540feba0dc6d1916069e, type: 3}
   crowdBigLoop: {fileID: 8300000, guid: bb43706cd213f408394c671ed198a63c, type: 3}

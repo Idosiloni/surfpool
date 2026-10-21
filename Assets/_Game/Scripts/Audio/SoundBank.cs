@@ -11,6 +11,7 @@ namespace SurfPool
         Splash, SplashBig, Cheer, Whistle, Seagull,
         PaChime, PaVoice, FanfareLevel, FanfarePool, FireworkLaunch, FireworkBang,
         Plop, Blender, ShopBell, ScanBeep, Planer, SprayHiss, AirBlast,
+        StepSand, StepDeck, StepWood,
     }
 
     /// <summary>

@@ -74,6 +74,35 @@ namespace SurfPool
             move.y = verticalVelocity;
 
             controller.Move(move * Time.deltaTime);
+            Footsteps(input.sqrMagnitude > 0.01f ? speed * input.magnitude : 0f, speed > walkSpeed);
+        }
+
+        float stepDistance;
+
+        /// <summary>A footstep every stride while walking on the ground; the sound follows the surface (sand, deck, wood).</summary>
+        void Footsteps(float speed, bool sprinting)
+        {
+            if (!controller.isGrounded || speed <= 0f)
+            {
+                stepDistance = Mathf.Min(stepDistance, 0.4f); // the first step comes quickly when you start walking
+                return;
+            }
+            stepDistance += speed * Time.deltaTime;
+            float stride = sprinting ? 2.3f : 1.7f;
+            if (stepDistance < stride) return;
+            stepDistance = 0f;
+            Sfx.Play(SurfaceSound(), null, sprinting ? 1.2f : 1f);
+        }
+
+        Sound SurfaceSound()
+        {
+            if (!Physics.Raycast(transform.position + Vector3.up * 0.3f, Vector3.down, out var hit, 1f, ~0, QueryTriggerInteraction.Ignore))
+                return Sound.StepSand;
+            var renderer = hit.collider.GetComponent<Renderer>();
+            string material = renderer != null && renderer.sharedMaterial != null ? renderer.sharedMaterial.name : hit.collider.name;
+            if (material.Contains("Sand")) return Sound.StepSand;
+            if (material.Contains("Wood") || material.Contains("Plank") || hit.collider.name.Contains("Pier")) return Sound.StepWood;
+            return Sound.StepDeck;
         }
 
         public static void LockCursor(bool locked)
