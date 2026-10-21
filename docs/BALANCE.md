@@ -112,3 +112,7 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
 - From day 3, 45% of days get one surf-camp bus between 25% and 60% of the open day: 6-9 beginner campers at once.
 - Camp leader tips $12 per camper who got a session, doubled if all were paid in within 150 s and nobody gave up
   (8 campers perfect = $192, plus their session prices).
+
+## Sneak-ins (2026-10-21, proposal)
+- From day 2, one sneak-in every 2.5-5 minutes while the park is open (one at a time). Catching one: +20 XP.
+  Missing one costs nothing directly: they take waves and a lineup spot from paying surfers, then brag.

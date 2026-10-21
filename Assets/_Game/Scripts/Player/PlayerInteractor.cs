@@ -14,6 +14,8 @@ namespace SurfPool
         [SerializeField] float reach = 3.5f;
         [Tooltip("How far off the crosshair (meters) something can be and still be picked.")]
         [SerializeField] float aimAssist = 0.4f;
+        [Tooltip("How far away you can whistle at a sneak-in to kick them out.")]
+        [SerializeField] float whistleRange = 30f;
 
         readonly RaycastHit[] hits = new RaycastHit[24];
 
@@ -25,7 +27,7 @@ namespace SurfPool
             if (InputBlocker.Blocked) return;
             if (PlayerSurfing.Instance != null && PlayerSurfing.Instance.IsSurfing) return;
             if (BuildMode.Active) return;
-            Target = FindTarget();
+            Target = FindTarget() ?? FarSneaker();
 
             if (Target == null) return;
             var keyboard = Keyboard.current;
@@ -77,10 +79,52 @@ namespace SurfPool
             return best;
         }
 
-        bool RaycastIgnoringPlayer(Ray ray, out RaycastHit nearest)
+        /// <summary>
+        /// A sneak-in near the crosshair, up to <see cref="whistleRange"/> away (you can't reach people in the water,
+        /// so you point and whistle). Something solid in between blocks it.
+        /// </summary>
+        IInteractable FarSneaker()
+        {
+            Surfer best = null;
+            float bestOff = 0.07f;
+            var cam = playerCamera;
+            foreach (var surfer in Surfer.All)
+            {
+                if (!surfer.IsSneaking) continue;
+                Vector3 point = surfer.transform.position + Vector3.up * 1.2f;
+                Vector3 v = cam.WorldToViewportPoint(point);
+                if (v.z <= 0f || v.z > whistleRange) continue;
+                float off = new Vector2(v.x - 0.5f, (v.y - 0.5f) * 0.6f).magnitude;
+                if (off >= bestOff) continue;
+                if (!CanSee(point, surfer)) continue;
+                best = surfer;
+                bestOff = off;
+            }
+            return best;
+        }
+
+        /// <summary>
+        /// Nothing tall (a kiosk, a wall, the machine) in the way. The ground, the deck and the pool rim don't count:
+        /// from the deck a surfer down in the pool is hidden by the edge, but their speech bubble isn't.
+        /// </summary>
+        bool CanSee(Vector3 point, Surfer surfer)
+        {
+            Vector3 from = playerCamera.transform.position, to = point - from;
+            int count = Physics.RaycastNonAlloc(new Ray(from, to.normalized), hits, to.magnitude - 0.8f, ~0, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < count; i++)
+            {
+                var collider = hits[i].collider;
+                if (collider.GetComponentInParent<FirstPersonController>() != null || collider.transform.IsChildOf(surfer.transform)) continue;
+                if (hits[i].point.y < 0.4f) continue;
+                return false;
+            }
+            return true;
+        }
+
+        bool RaycastIgnoringPlayer(Ray ray, out RaycastHit nearest, float distance = -1f)
         {
             nearest = default;
-            int count = Physics.RaycastNonAlloc(ray, hits, reach, ~0, QueryTriggerInteraction.Ignore);
+            int count = Physics.RaycastNonAlloc(ray, hits, distance > 0f ? distance : reach, ~0, QueryTriggerInteraction.Ignore);
             float best = float.MaxValue;
             for (int i = 0; i < count; i++)
             {

@@ -41,6 +41,9 @@ namespace SurfPool
         static int barrelsToday;
         static readonly List<string> extraFacts = new();
 
+        /// <summary>Sneak-ins today (<see cref="RuleBreakers"/>).</summary>
+        public static int SneaksCaught, SneaksEscaped;
+
         public static IReadOnlyList<Review> Today => today;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -50,6 +53,7 @@ namespace SurfPool
             longestWait = bestCustomer = mostWipeouts = null;
             barrelsToday = 0;
             extraFacts.Clear();
+            SneaksCaught = SneaksEscaped = 0;
         }
 
         /// <summary>A line for today's fun facts from somewhere else (a rush, an event...).</summary>
@@ -203,6 +207,8 @@ namespace SurfPool
             if (mostWipeouts != null) facts.Add($"Most wipeouts: {mostWipeouts.name} ({mostWipeouts.wipeouts})");
             if (barrelsToday > 0) facts.Add($"Barrels today: {barrelsToday}");
             facts.AddRange(extraFacts);
+            if (SneaksCaught + SneaksEscaped > 0)
+                facts.Add($"Sneak-ins: {SneaksCaught} caught" + (SneaksEscaped > 0 ? $", {SneaksEscaped} got away" : ""));
             return facts;
         }
     }

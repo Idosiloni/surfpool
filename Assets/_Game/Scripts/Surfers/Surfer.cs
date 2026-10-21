@@ -191,6 +191,7 @@ namespace SurfPool
         {
             get
             {
+                if (IsSneaking) return "Kick out the sneak-in!";
                 if (!WaitingForBoard) return null;
                 var carry = PlayerCarry.Instance;
                 return carry != null && carry.HasBoard
@@ -201,6 +202,11 @@ namespace SurfPool
 
         public void Interact()
         {
+            if (IsSneaking)
+            {
+                ThrowOut();
+                return;
+            }
             var carry = PlayerCarry.Instance;
             if (!WaitingForBoard || carry == null || !carry.HandOverBoard()) return;
             GiveBoard();
@@ -313,6 +319,63 @@ namespace SurfPool
             MaxPrice = spawner.Pricing.FairFor(Skill, pool) * Random.Range(1f, 1.4f); // the camp pays
         }
 
+        // ---- rule-breakers (RuleBreakers): sneak-ins who skip the desk ----
+        bool sneaking, caught;
+        float nextSneakLine;
+
+        static readonly string[] InnocentLines =
+        {
+            "*whistles innocently*", "Nothing to see here...", "Just passing through...", "Wristband? It's... somewhere.",
+            "Act natural. Act natural.", "I'm with them. Yeah.",
+        };
+        static readonly string[] CaughtLines =
+        {
+            "Worth a shot!", "I was just looking!", "My wristband's in my other shorts!", "Okay okay, I'm going!",
+            "You didn't see me. Bye!", "Aw, man!",
+        };
+
+        /// <summary>Snuck in without paying and not caught yet: look at them and press E (even from far away).</summary>
+        public bool IsSneaking => sneaking && !caught && state is not (State.WalkingOut or State.SwimmingToBeach);
+
+        /// <summary>This new arrival skips the desk and walks straight to the water, whistling innocently.</summary>
+        public void MakeSneaker()
+        {
+            sneaking = true;
+            isRenter = false;
+            board.gameObject.SetActive(true);
+            lineupTarget = FreeLineupSpot();
+            Walk(State.WalkingToPool, spawner.PathToPool(pool), State.Paddling);
+            nextSneakLine = Time.time + 2.5f;
+        }
+
+        /// <summary>Caught! Out they go, with an excuse.</summary>
+        public void ThrowOut()
+        {
+            if (!IsSneaking) return;
+            caught = true;
+            Shout(CaughtLines[Random.Range(0, CaughtLines.Length)], 3f, Sound.VoiceAah);
+            rig.ShowFace(SurfPool.Face.Scared, 2.5f);
+            rig.LookTarget = null;
+            Sfx.Play(Sound.Whistle, transform.position);
+            RuleBreakers.Caught(this);
+            if (state is State.WalkingIn or State.WalkingToPool)
+                Walk(State.WalkingOut, new[] { spawner.Entrance }, State.WalkingOut);
+            else if (state is State.Riding or State.Wipeout) wavesPerSession = ridesDone + 1; // FinishRide sends them in
+            else state = State.SwimmingToBeach;
+        }
+
+        void SneakAround()
+        {
+            if (!sneaking || caught || Time.time < nextSneakLine) return;
+            if (state is not (State.WalkingToPool or State.Paddling or State.WaitingForWave)) return;
+            nextSneakLine = Time.time + Random.Range(5f, 9f);
+            Shout(InnocentLines[Random.Range(0, InnocentLines.Length)], 2.2f);
+            rig.ShowFace(SurfPool.Face.Focused, 2.2f);
+            // A shifty glance back at the desk.
+            rig.LookTarget = spawner.PathIn[spawner.PathIn.Length - 1] + Vector3.up * 1.5f;
+            lookUntil = Time.time + 1.2f;
+        }
+
         /// <summary>Called by the register when the player sells this surfer a session.</summary>
         public void Pay(int price)
         {
@@ -349,6 +412,8 @@ namespace SurfPool
                     Voices.Mumble(transform, Voice);
                 nextMumble = Time.time + Random.Range(9f, 22f);
             }
+
+            SneakAround();
 
             // A delayed hoot for someone else's wave, and letting go of whatever caught our eye.
             if (hootAt > 0f && Time.time >= hootAt)
@@ -1062,6 +1127,22 @@ namespace SurfPool
                 kickOutTime = celebrate ? 1.4f : 0.7f;
             }
             ridesDone++;
+            if (sneaking)
+            {
+                // Free waves: no money, no review. Out they go after their waves (or right away if caught).
+                if (!caught && ridesDone < wavesPerSession)
+                {
+                    state = State.PaddlingBack;
+                    return;
+                }
+                if (!caught)
+                {
+                    RuleBreakers.GotAway(this);
+                    Shout("Free waves, baby!", 3f, Sound.VoiceWoo);
+                }
+                state = State.SwimmingToBeach;
+                return;
+            }
             if (ridesDone < wavesPerSession)
             {
                 if (!wipedOut) Shout("One more!", 2f);
@@ -1135,6 +1216,11 @@ namespace SurfPool
         {
             if (angry) return;
             angry = true;
+            if (sneaking)
+            {
+                state = State.SwimmingToBeach; // bored sneak-ins just leave; they never paid anyway
+                return;
+            }
             visit.angry = message;
             ParkReviews.Record(visit);
             Shout(message, 5f);
