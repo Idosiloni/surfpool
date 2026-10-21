@@ -69,11 +69,14 @@ Surfers arrive → buy a session at the desk → wait their turn → ride waves 
     - Name your park, surfer names + written reviews in the day report, rush hour (surf camp bus), bad customers (sneak-ins, wave hogs, litterbugs, shoplifters; whistle from far), kook rescue (ring buoys, lifeguard)
     - Surfing 2.0: chase cam (V, default), moves follow real surfing by wave size (whitewater = ride it in; green = carves, top turns/snaps, cutbacks, floaters, tail slides, pumping; Pro = airs with spins and grabs), variety scoring, pearling, party waves/drop-ins, judges' 0-10 score per ride, NPC pumping/tail slides/air reverses, surf daily challenges
     - Boards snap, pools get dirty (skimmer net, Pool Robot), daily wind (offshore/onshore), wave shape (Mellow/Standard/Hollow) + Alternate L/R + set size, your quiver (shortboard / foamie / longboard with hang ten / fish)
+  - [x] 2026-10-22 (all pushed): sets and lulls (SET INCOMING call with a pip per wave, the lineup shouts "Outside!", leftover chop settles in the lull, choppy water = worse rides); boards sold at the gear shop (fish $900, longboard $1,400); the Cove (pier of wave paddles, rights on one side and lefts on the other, L22 $150k) and the Surf Ranch (foil on a rail, one 24 s wave down a 200 m strip, L25 $300k), pools can now face any way; UI polish from `docs/research/game-ui-craft.md` (toast queue, readable text, focus/hover, stamp slam, window close animation, day report reveal, wax-sticker trick call-outs)
   - [ ] Steam build
 
 ## Ideas parking lot
-- Waiting for Ido: a new kind of pool (Cove-style with the machine in the middle, or a Surf-Ranch lane); sell the longboard/fish at the gear shop instead of free; balance calls listed in `docs/BALANCE.md`
-- Surf contest day (judges' score exists now), session schedule ("beginner hour"), SET INCOMING HUD with lulls, tide
+- Waiting for Ido: balance calls listed in `docs/BALANCE.md` (Cove/Ranch prices and levels, long-ride scores, board prices)
+- Ranch follow-ups: a return lane or jet-ski tow back after a ride, lefts on the way back (the foil goes both ways), sections (barrel / wall / air ramp)
+- UI next (`docs/research/game-ui-craft.md` #4, #8-#11, #13-#15): UI sound family, surf-wave screen wipe, contextual HUD + clean-screen key, accessibility settings, prompt v2, tooltips, mailbox, wallet tide
+- Surf contest day (judges' score exists now), session schedule ("beginner hour"), tide
 - Per-item prices, soft restock, visible shop upgrades (ranked in `docs/research/polish-and-next.md`)
 - Surfer wipeouts (funny ragdolls)
 - Wave designer: size, speed, left/right breaks
