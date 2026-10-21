@@ -87,7 +87,8 @@ namespace SurfPool
         {
             get
             {
-                float hours = 8f + time / dayLength * 12f; // keeps going after 8 PM while people leave
+                // Keeps going after 8 PM while people leave, but stops at 11:50 PM (it never rolls into "2 PM").
+                float hours = Mathf.Min(8f + time / dayLength * 12f, 23f + 50f / 60f);
                 int h = Mathf.FloorToInt(hours);
                 int m = Mathf.FloorToInt((hours - h) * 60f / 10f) * 10;
                 int h12 = h % 12 == 0 ? 12 : h % 12;
