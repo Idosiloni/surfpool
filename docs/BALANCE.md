@@ -143,3 +143,7 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
 - Each open pool gets 0.5 pieces a minute plus 0.3 per surfer in it (litter events and perks scale it), up to 14.
   Each piece lowers that pool's surfers' happiness: up to -0.25 at 12+ pieces. 4% of pieces are rubber ducks (+10 XP).
 - Pool Robot upgrade: $1,200, level 5. One robot per open pool, 0.7 m/s: keeps up on quiet days, not in a rush.
+
+## Main pool wave speed (2026-10-21, proposal)
+- Main pool waves travel at 75% speed (travel 0.75): a green-wave ride went from about 3.5 s to 5.3 s in the
+  40 m starter pool, enough to link two or three moves. Reef (0.7) and Lagoon (0.65) were already slower.

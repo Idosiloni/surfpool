@@ -72,6 +72,7 @@ namespace SurfPool.EditorTools
             {
                 name = "Main Pool", display = "Main Pool", z = 0, open = true, depth = PoolDepth, waterLevel = WaterLevel,
                 size = 1f, peel = 1f, mainDeck = true,
+                travel = 0.75f, // a bit slower than full speed: longer rides to link moves in a short pool
                 // Starts small; Pool Expansion I and II grow it (bigger waves need a bigger pool).
                 stages = new[] { new Vector2(40, 14), new Vector2(50, 19), new Vector2(PoolLength, PoolWidth) },
                 stageNames = new[] { "Starter Pool", "Expanded Pool", "Full-Size Pool" },
