@@ -472,6 +472,9 @@ namespace SurfPool.EditorTools
             hudGo.AddComponent<SurfHud>();
             hudGo.AddComponent<PerkPicker>();
             BuildShops(shop, spawner, game, hudGo, skinMat);
+            var legends = game.AddComponent<FamousVisits>();
+            Set(legends, "spawner", spawner);
+            Set(legends, "surferPrefab", AssetDatabase.LoadAssetAtPath<Surfer>("Assets/_Game/Prefabs/Surfer.prefab"));
             Set(hud, "interactor", interactor);
             Set(hud, "player", fps);
             Set(hud, "pricing", pricing);

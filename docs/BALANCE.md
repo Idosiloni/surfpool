@@ -89,3 +89,10 @@ but you only earn it if you raise your base price. The price buttons now say wha
 Rough income if you work a shop yourself: acai ~ $40-60/min, gear ~ $80-150/min, shaper ~ $500-700/min (about 1 board a minute and a half).
 Shops scale with arrivals (ads, events, perks) at the square root, so they stay a side hustle next to sessions. Smoothie Bar is now "Bigger Snack Menu" (same id and +$8).
 Open questions for Ido: should the gear shop keep the passive $15 merch bonus on top of selling? Are shaper prices too high for level 13 (about 1 board = a few minutes of session income)?
+
+## Legends (famous surfers, 2026-10-21, proposals)
+- From park level 15 with Pro waves owned, one legend walks in every 4-7 minutes (faster on busy event days), one at a time.
+  Each has a level: Leilani + Jett 15, June 16, Skip 17, Rio 18, Bruno 19, Ingrid 20.
+- They ride the best open pool as pros and will pay up to 4x the fair Pro price (so a high price works on them).
+- Leaving happy: appearance bonus = 8x what they paid (times happiness), +150 XP, and 3 perfect reviews for the rating.
+  Leaving unhappy: nothing extra and a "left unimpressed" toast.

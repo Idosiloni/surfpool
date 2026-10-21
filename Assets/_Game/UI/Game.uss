@@ -2723,3 +2723,15 @@
 .order-mood--good {
     background-color: var(--money);
 }
+
+/* A visiting legend: gold bubble and star badge. */
+.bubble--famous .bubble-box {
+    border-color: var(--sun-dark);
+    border-width: 3px;
+    background-color: #FFF4D6;
+}
+
+.bubble--famous .skill-badge {
+    background-color: var(--sun-dark);
+    color: white;
+}

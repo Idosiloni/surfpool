@@ -23,6 +23,7 @@ namespace SurfPool
 
         class Bubble
         {
+            public bool famous;
             public VisualElement root;
             public Label badge;
             public Label text;
@@ -474,8 +475,14 @@ namespace SurfPool
                     bubbles.Add(surfer, bubble);
                 }
 
-                string status = surfer.Status;
+                string status = surfer.Status ?? surfer.NameTag;
                 bool hasText = !string.IsNullOrEmpty(status);
+                if (surfer.Famous != null && !bubble.famous)
+                {
+                    bubble.famous = true;
+                    bubble.root.AddToClassList("bubble--famous");
+                    bubble.badge.text = "★";
+                }
                 Vector3 world = surfer.transform.position + Vector3.up * 2.15f;
                 Vector3 view = cam != null ? cam.WorldToViewportPoint(world) : Vector3.back;
                 bool visible = !menuOpen && cam != null && view.z > 0f && view.z < bubbleDistance

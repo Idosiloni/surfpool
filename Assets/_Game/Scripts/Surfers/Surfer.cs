@@ -236,6 +236,32 @@ namespace SurfPool
             Walk(State.WalkingIn, owner.PathIn, State.InDeskLine);
         }
 
+        /// <summary>A visiting legend (null for everyone else): their own look, board, lines and signature trick.</summary>
+        public FamousSurfer Famous { get; private set; }
+
+        /// <summary>Gold name tag over a legend's head.</summary>
+        public string NameTag => Famous != null ? Famous.FullName : null;
+
+        /// <summary>Turns this new arrival into a legend: pro skill, the best open pool, their signature look and board.</summary>
+        public void MakeFamous(FamousSurfer legend)
+        {
+            Famous = legend;
+            Skill = WaveLevel.Pro;
+            archetype = legend.type;
+            PoolArea best = pool;
+            foreach (var area in PoolRegistry.All)
+                if (area.IsOpen && area.PriceMultiplier > best.PriceMultiplier) best = area;
+            pool = best;
+            water = pool.Water;
+            UseBoardFor(WaveLevel.Pro);
+            rig.Style = 1f;
+            rig.Wear(legend.look());
+            Paint(board, legend.board);
+            board.gameObject.SetActive(true);
+            isRenter = false;
+            MaxPrice = spawner.Pricing.FairFor(WaveLevel.Pro, pool) * 4f; // they'll pay what you ask
+        }
+
         /// <summary>Called by the register when the player sells this surfer a session.</summary>
         public void Pay(int price)
         {
@@ -743,7 +769,8 @@ namespace SurfPool
                 landSquash = 0f;
                 wasAirborne = false;
                 Shout(whitewash ? "Riding the whitewater!" : diff < 0 ? "Kinda small..." : diff > 0 ? "Whoa, big one!"
-                    : backside ? "Going backside!" : SurferPersonalities.Line(archetype, Moment.Catch), 2f,
+                    : backside ? "Going backside!" : Famous != null ? Famous.catchLines[Random.Range(0, Famous.catchLines.Length)]
+                    : SurferPersonalities.Line(archetype, Moment.Catch), 2f,
                     archetype is Archetype.Grom or Archetype.Charger or Archetype.Local || Random.value < 0.4f ? Sound.VoiceYew : null);
                 if (dropInVictim != null)
                 {
@@ -910,6 +937,8 @@ namespace SurfPool
                 _ => IntermediateTricks,
             };
             string trick = tricks[Random.Range(0, tricks.Length)];
+            bool signature = Famous != null && Random.value < 0.45f;
+            if (signature) trick = Famous.signature;
             if (inBarrel)
             {
                 trick = Random.value < 0.6f ? "Tube ride!" : "Getting barreled!";
@@ -918,9 +947,9 @@ namespace SurfPool
             GameStats.TricksLanded++;
             if (inBarrel || Skill == WaveLevel.Pro || Random.value < 0.3f) Sfx.Play(Sound.Cheer, transform.position, inBarrel ? 1f : 0.7f);
             // Tube rides and pro airs are the moments people come to see.
-            if (inBarrel) Highlights.Moment(transform.position, 1f);
+            if (inBarrel || signature) Highlights.Moment(transform.position, 1f);
             else if (trick == "AIR!" && Skill == WaveLevel.Pro) Highlights.Moment(transform.position, 0.8f);
-            if (trick == "AIR!")
+            if (trick == "AIR!" || signature && Famous.signature.Contains("AIR") || signature && Famous.signature.Contains("540"))
             {
                 airStart = Time.time;
                 airSpin = Random.value < 0.5f;
@@ -993,6 +1022,7 @@ namespace SurfPool
             wantsSnack = !hasRentalBoard && pool == spawner.MainPool && SnackBar.Instance != null && SnackBar.Instance.WantsSnack(happiness);
             GameStats.SurfersServed++;
             string line = SurferPersonalities.Line(archetype, happiness > 0.75f ? Moment.GoodEnd : happiness > 0.5f ? Moment.OkEnd : Moment.BadEnd);
+            if (Famous != null) line = FamousVisits.LegendLeaves(this, happiness, paidPrice);
             rig.ShowFace(happiness > 0.75f ? SurfPool.Face.Stoked : happiness > 0.5f ? SurfPool.Face.Happy : SurfPool.Face.Grumpy, 3.5f);
             Shout(line + (tip > 0 ? $"  (tipped ${tip})" : ""), 5f);
             state = State.SwimmingToBeach;
