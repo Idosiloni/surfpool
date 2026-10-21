@@ -19,6 +19,18 @@
                 <ui:Label name="directionHint" class="screen-subtitle" />
             </ui:VisualElement>
 
+            <ui:VisualElement name="shapeSection">
+                <ui:Label text="SHAPE" class="section-title section-gap" />
+                <ui:VisualElement name="shapeRow" class="segment-row" />
+                <ui:Label name="shapeHint" class="screen-subtitle" />
+            </ui:VisualElement>
+
+            <ui:VisualElement name="setSection">
+                <ui:Label text="SET" class="section-title section-gap" />
+                <ui:VisualElement name="setRow" class="segment-row" />
+                <ui:Label name="setHint" class="screen-subtitle" />
+            </ui:VisualElement>
+
             <ui:VisualElement name="famousSection">
                 <ui:Label text="FAMOUS WAVES" class="section-title section-gap" />
                 <ui:VisualElement name="famousRow" class="segment-row" />

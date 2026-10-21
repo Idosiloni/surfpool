@@ -24,7 +24,8 @@ namespace SurfPool
 
         readonly HashSet<WaveLevel> unlocked = new() { WaveLevel.Beginner };
         bool directionsUnlocked;
-        readonly List<(float time, WaveLevel level, WaveDirection direction, FamousWave preset)> pending = new();
+        readonly List<(float time, WaveLevel level, WaveDirection direction, FamousWave preset, WaveShape shape)> pending = new();
+        bool nextAlternateRight;
         float readyAt;
         float chargeDuration;
         float nextAutoWave;
@@ -57,7 +58,7 @@ namespace SurfPool
         public bool Broken => Service != null && Service.Broken;
 
         /// <summary>Power cost of one press with the selected wave (a whole set if upgraded).</summary>
-        public int PressCost => OperatingCosts.Instance != null ? OperatingCosts.Instance.PowerCost(Selected, Pool) * wavesPerSet : 0;
+        public int PressCost => OperatingCosts.Instance != null ? OperatingCosts.Instance.PowerCost(Selected, Pool) * SetSize : 0;
 
         public WaveLevel Selected { get; private set; } = WaveLevel.Beginner;
         public WaveDirection SelectedDirection { get; private set; } = WaveDirection.Peak;
@@ -102,9 +103,39 @@ namespace SurfPool
         {
             if (!IsUnlocked(direction)) return false;
             SelectedDirection = direction;
+            Alternate = false;
             Preset = null;
             return true;
         }
+
+        /// <summary>The wave's shape (Mellow / Standard / Hollow). Hollow needs the Reef Shaper, like lefts and rights.</summary>
+        public WaveShape SelectedShape { get; private set; } = WaveShape.Standard;
+
+        public bool IsUnlocked(WaveShape shape) => shape != WaveShape.Hollow || directionsUnlocked;
+
+        public bool Select(WaveShape shape)
+        {
+            if (!IsUnlocked(shape)) return false;
+            SelectedShape = shape;
+            return true;
+        }
+
+        /// <summary>Lefts and rights in turn, one wave each (like PerfectSwell pools run their sessions).</summary>
+        public bool Alternate { get; private set; }
+
+        public void SetAlternate(bool on)
+        {
+            if (on && !directionsUnlocked) return;
+            Alternate = on;
+            if (on) Preset = null;
+        }
+
+        /// <summary>Waves per press chosen on the console (1 up to what the upgrades allow; 0 = the most).</summary>
+        int chosenSetSize;
+
+        public int SetSize => chosenSetSize > 0 ? Mathf.Min(chosenSetSize, wavesPerSet) : wavesPerSet;
+
+        public void ChooseSetSize(int size) => chosenSetSize = Mathf.Clamp(size, 1, wavesPerSet);
 
         /// <summary>The famous wave picked on the console (null = a plain wave).</summary>
         public FamousWave Preset { get; private set; }
@@ -115,6 +146,8 @@ namespace SurfPool
             if (wave == null || !FamousWaves.Available(wave, this)) return false;
             Selected = wave.level;
             SelectedDirection = wave.direction;
+            Alternate = false;
+            SelectedShape = WaveShape.Standard;
             Preset = wave;
             return true;
         }
@@ -132,7 +165,7 @@ namespace SurfPool
             for (int i = pending.Count - 1; i >= 0; i--)
             {
                 if (Time.time < pending[i].time) continue;
-                water.SpawnWave(pending[i].level, pending[i].direction, pending[i].preset);
+                water.SpawnWave(pending[i].level, pending[i].direction, pending[i].preset, pending[i].shape);
                 WaveFired?.Invoke(pending[i].level, pending[i].direction);
                 pending.RemoveAt(i);
             }
@@ -160,15 +193,24 @@ namespace SurfPool
         bool TrySendSet(WaveLevel level, WaveDirection direction, FamousWave preset = null)
         {
             if (!Ready || Broken || !IsUnlocked(level) || !IsUnlocked(direction)) return false;
-            for (int i = 0; i < wavesPerSet; i++)
-                pending.Add((Time.time + i * setSpacing, level, direction, preset));
-            GameStats.WavesSent += wavesPerSet;
-            if (OperatingCosts.Instance != null) OperatingCosts.Instance.MeterWaves(level, Pool, wavesPerSet);
+            int count = SetSize;
+            for (int i = 0; i < count; i++)
+            {
+                var dir = direction;
+                if (Alternate && level != WaveLevel.Beginner && preset == null)
+                {
+                    dir = nextAlternateRight ? WaveDirection.Right : WaveDirection.Left;
+                    nextAlternateRight = !nextAlternateRight;
+                }
+                pending.Add((Time.time + i * setSpacing, level, dir, preset, preset != null ? WaveShape.Standard : SelectedShape));
+            }
+            GameStats.WavesSent += count;
+            if (OperatingCosts.Instance != null) OperatingCosts.Instance.MeterWaves(level, Pool, count);
             Sfx.Play(Sound.WaveMachine, transform.position);
-            if (Service != null) Service.AddWear(level, wavesPerSet);
-            chargeDuration = cooldown + (wavesPerSet - 1) * setSpacing;
+            if (Service != null) Service.AddWear(level, count);
+            chargeDuration = cooldown + (count - 1) * setSpacing;
             readyAt = Time.time + chargeDuration;
-            SetStarted?.Invoke(wavesPerSet);
+            SetStarted?.Invoke(count);
             return true;
         }
 

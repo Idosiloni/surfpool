@@ -1072,6 +1072,20 @@ namespace SurfPool
                 // Too-big waves often end in a wipeout; everyone wipes out sometimes.
                 float wipeoutChance = whitewash ? (diff == 1 ? 0.22f : 0.35f) : diff > 0 ? 0.6f : Skill switch { WaveLevel.Beginner => 0.2f, WaveLevel.Intermediate => 0.1f, _ => 0.05f };
                 if (Skill == WaveLevel.Beginner) wipeoutChance *= ParkEffects.BeginnerWipeoutMultiplier;
+                // The wave's shape (an operator setting): mellow waves forgive, hollow ones punish all but the pros.
+                var shape = whitewash ? WaveShape.Standard : water.ShapeOf(wave);
+                string shapeLine = null;
+                if (shape == WaveShape.Mellow)
+                {
+                    wipeoutChance *= 0.6f;
+                    if (Skill != WaveLevel.Pro) rideQuality = Mathf.Min(1f, rideQuality * 1.1f);
+                    else { rideQuality *= 0.9f; shapeLine = "Bit soft today..."; }
+                }
+                else if (shape == WaveShape.Hollow)
+                {
+                    if (Skill == WaveLevel.Pro) { rideQuality = Mathf.Min(1f, rideQuality * 1.15f); shapeLine = "It's HOLLOW! Yew!"; }
+                    else { wipeoutChance *= 1.5f; shapeLine = "Uh oh, that's steep..."; }
+                }
                 wipeoutAt = Random.value < wipeoutChance ? Time.time + Random.Range(0.8f, 2.5f) : -1f;
 
                 state = State.Riding;
@@ -1080,6 +1094,7 @@ namespace SurfPool
                 landSquash = 0f;
                 wasAirborne = false;
                 Shout(whitewash ? "Riding the whitewater!" : diff < 0 ? "Kinda small..." : diff > 0 ? "Whoa, big one!"
+                    : shapeLine != null && Famous == null ? shapeLine
                     : backside ? "Going backside!" : Famous != null ? Famous.catchLines[Random.Range(0, Famous.catchLines.Length)]
                     : SurferPersonalities.Line(archetype, Moment.Catch), 2f,
                     archetype is Archetype.Grom or Archetype.Charger or Archetype.Local || Random.value < 0.4f ? Sound.VoiceYew : null);

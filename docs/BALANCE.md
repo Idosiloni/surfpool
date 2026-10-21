@@ -165,3 +165,9 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
   with a nudge. Rides with 20+ m sideways on green waves get DOWN THE LINE: 6 points per meter (41 m = +245).
 - Reef Pool is now 75x72 (travel 0.5, peel 2.0: ~13 s rides, ~69 m sideways) and the Big Wave Lagoon 75x90
   (travel 0.5, peel 2.25: ~11 s, ~84 m sideways; its pocket moves ~7 m/s, so you need speed to stay in it).
+
+## Wave shape and sets (2026-10-21, proposals)
+- Mellow: height x0.85, face x1.35 wider, peel x0.85, never barrels. NPC wipeouts x0.6; learners' ride quality x1.1,
+  pros x0.9 ("bit soft"). Hollow (needs Reef Shaper): height x1.12, face x0.75, barrels on green waves too. Pros' ride
+  quality x1.15; everyone else wipes out x1.5. Power cost is the same for every shape (could charge more for hollow).
+- Alternate L/R sends lefts and rights in turn. Set size can be chosen from 1 up to what Wave Sets allows.

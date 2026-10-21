@@ -75,6 +75,7 @@ namespace SurfPool
             public WaveType type;
             public WaveDirection direction;
             public string famous; // name of the famous wave it imitates, or null
+            public WaveShape shape;
         }
 
         /// <summary>Everything about a wave that's the same for every vertex this frame.</summary>
@@ -227,6 +228,14 @@ namespace SurfPool
             return WaveLevel.Beginner;
         }
 
+        /// <summary>The shape a wave was sent with (Standard if it's gone).</summary>
+        public WaveShape ShapeOf(float waveId)
+        {
+            foreach (var wave in waves)
+                if (wave.start == waveId) return wave.shape;
+            return WaveShape.Standard;
+        }
+
         public WaveDirection DirectionOf(float waveId)
         {
             foreach (var wave in waves)
@@ -256,7 +265,8 @@ namespace SurfPool
             BuildMesh();
         }
 
-        public void SpawnWave(WaveLevel level, WaveDirection direction = WaveDirection.Peak, FamousWave preset = null)
+        public void SpawnWave(WaveLevel level, WaveDirection direction = WaveDirection.Peak, FamousWave preset = null,
+            WaveShape shape = WaveShape.Standard)
         {
             var type = Scaled(TypeOf(level));
             if (preset != null)
@@ -264,7 +274,25 @@ namespace SurfPool
                 type.height *= preset.size;
                 type.peelSpeed *= preset.peel;
             }
-            var spawned = new ActiveWave { start = Now, type = type, direction = direction, famous = preset?.name };
+            if (level != WaveLevel.Beginner) // whitewater is whitewater
+            {
+                if (shape == WaveShape.Mellow)
+                {
+                    // A soft, spilling wave: lower, with a long gentle face, peeling a bit slower; never barrels.
+                    type.height *= 0.85f;
+                    type.frontWidth *= 1.35f;
+                    type.peelSpeed *= 0.85f;
+                    type.barrel = false;
+                }
+                else if (shape == WaveShape.Hollow)
+                {
+                    // Steep and throwing: taller with a short, steep face, and the lip pitches into a barrel.
+                    type.height *= 1.12f;
+                    type.frontWidth *= 0.75f;
+                    type.barrel = true;
+                }
+            }
+            var spawned = new ActiveWave { start = Now, type = type, direction = direction, famous = preset?.name, shape = shape };
             waves.Add(spawned);
             if (recording) recorded.Add(spawned);
         }

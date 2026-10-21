@@ -12,6 +12,12 @@ namespace SurfPool
     /// </summary>
     public enum WaveDirection { Left, Peak, Right }
 
+    /// <summary>
+    /// How the wave breaks (an operator setting, like real wave pools sell): Mellow = gentle and forgiving (spilling),
+    /// Standard, Hollow = steep and throwing (barrels on green waves too; pros love it, others wipe out more).
+    /// </summary>
+    public enum WaveShape { Mellow, Standard, Hollow }
+
     /// <summary>The shape and breaking behavior of one kind of wave.</summary>
     [Serializable]
     public class WaveType

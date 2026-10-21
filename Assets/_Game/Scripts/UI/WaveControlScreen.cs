@@ -29,8 +29,8 @@ namespace SurfPool
             "Buy the Pro Wave Program on the upgrade computer.",
         };
 
-        VisualElement root, cards, directionSection, directionRow, famousRow;
-        Label directionHint, famousHint;
+        VisualElement root, cards, directionSection, directionRow, famousRow, shapeSection, shapeRow, setSection, setRow;
+        Label directionHint, famousHint, shapeHint, setHint;
         Button send;
         bool shown;
         float nextRefresh;
@@ -48,6 +48,12 @@ namespace SurfPool
             directionRow = doc.Q("directionRow");
             directionHint = doc.Q<Label>("directionHint");
             famousRow = doc.Q("famousRow");
+            shapeSection = doc.Q("shapeSection");
+            shapeRow = doc.Q("shapeRow");
+            shapeHint = doc.Q<Label>("shapeHint");
+            setSection = doc.Q("setSection");
+            setRow = doc.Q("setRow");
+            setHint = doc.Q<Label>("setHint");
             famousHint = doc.Q<Label>("famousHint");
             send = doc.Q<Button>("sendButton");
             send.clicked += () => panel?.Send();
@@ -75,6 +81,8 @@ namespace SurfPool
             var machine = Machine;
             BuildWaveCards(machine);
             BuildDirections(machine);
+            BuildShapes(machine);
+            BuildSets(machine);
             BuildFamous(machine);
 
             bool ready = machine.Ready;
@@ -143,13 +151,62 @@ namespace SurfPool
                 }
                 var button = new Button(() => { machine.Select(direction); Refresh(); }) { text = label };
                 button.AddToClassList("segment");
-                button.EnableInClassList("segment--selected", machine.SelectedDirection == direction);
+                button.EnableInClassList("segment--selected", !machine.Alternate && machine.SelectedDirection == direction);
                 button.SetEnabled(machine.IsUnlocked(direction));
                 directionRow.Add(button);
             }
+            // Lefts and rights in turn: everyone gets their favorite every other wave.
+            var alternate = new Button(() => { machine.SetAlternate(true); Refresh(); }) { text = "Alternate L / R" };
+            alternate.AddToClassList("segment");
+            alternate.EnableInClassList("segment--selected", machine.Alternate);
+            alternate.SetEnabled(machine.IsUnlocked(WaveDirection.Left));
+            directionRow.Add(alternate);
             directionHint.text = machine.IsUnlocked(WaveDirection.Left)
                 ? "Regular-foot surfers love rights, goofy-foot surfers love lefts. A peak goes both ways but rides are shorter."
                 : "Lefts and Rights are locked. Buy Reef Shaper on the upgrade computer.";
+        }
+
+        static readonly string[] ShapeText =
+        {
+            "Mellow: soft and forgiving, fewer wipeouts. Learners love it, pros find it boring.",
+            "Standard: the classic wave.",
+            "Hollow: steep and throwing, barrels even on green waves. Pros love it; everyone else wipes out more.",
+        };
+
+        void BuildShapes(WaveMachine machine)
+        {
+            bool whitewater = machine.Selected == WaveLevel.Beginner || machine.Preset != null;
+            shapeSection.EnableInClassList("hidden", whitewater);
+            if (whitewater) return;
+            shapeRow.Clear();
+            foreach (WaveShape shape in Enum.GetValues(typeof(WaveShape)))
+            {
+                var button = new Button(() => { machine.Select(shape); Refresh(); }) { text = shape.ToString() };
+                button.AddToClassList("segment");
+                button.EnableInClassList("segment--selected", machine.SelectedShape == shape);
+                button.SetEnabled(machine.IsUnlocked(shape));
+                shapeRow.Add(button);
+            }
+            shapeHint.text = machine.IsUnlocked(WaveShape.Hollow)
+                ? ShapeText[(int)machine.SelectedShape]
+                : ShapeText[(int)machine.SelectedShape] + " (Hollow needs Reef Shaper.)";
+        }
+
+        void BuildSets(WaveMachine machine)
+        {
+            int max = machine.WavesPerSet;
+            setSection.EnableInClassList("hidden", max <= 1);
+            if (max <= 1) return;
+            setRow.Clear();
+            for (int n = 1; n <= max; n++)
+            {
+                int size = n;
+                var button = new Button(() => { machine.ChooseSetSize(size); Refresh(); }) { text = size == 1 ? "Single wave" : $"Set of {size}" };
+                button.AddToClassList("segment");
+                button.EnableInClassList("segment--selected", machine.SetSize == size);
+                setRow.Add(button);
+            }
+            setHint.text = $"Each wave costs power. A set feeds more surfers at once (one press = {machine.SetSize} wave{(machine.SetSize == 1 ? "" : "s")}, {MoneyText.Format(machine.PressCost)}).";
         }
 
         void BuildFamous(WaveMachine machine)
