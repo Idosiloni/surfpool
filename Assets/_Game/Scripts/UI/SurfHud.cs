@@ -95,13 +95,44 @@ namespace SurfPool
             }
         }
 
+        static readonly string[] StickerSizes = { "surf-call--small", "surf-call--mid", "surf-call--big" };
+
+        /// <summary>
+        /// Tricks and rewards become wax stickers slapped on at a random tilt, sized by what they're worth (a carve
+        /// is a small sticker, a big air or a barrel a big one); hints and bad news stay plain text.
+        /// </summary>
         void OnCall(string text, Notice mood)
         {
             call.text = text;
             foreach (var c in MoodClasses) call.RemoveFromClassList(c);
+            foreach (var c in StickerSizes) call.RemoveFromClassList(c);
             call.AddToClassList(MoodClasses[Mathf.Clamp((int)mood, 0, MoodClasses.Length - 1)]);
+            bool sticker = mood is Notice.Good or Notice.Reward;
+            call.EnableInClassList("surf-call--sticker", sticker);
+            if (sticker)
+            {
+                int points = PointsIn(text);
+                int size = points >= 300 || text.Contains("BARREL") ? 2 : points >= 150 || mood == Notice.Reward ? 1 : 0;
+                call.AddToClassList(StickerSizes[size]);
+                call.style.rotate = new Rotate(Random.Range(-6f, 6f));
+            }
+            else call.style.rotate = StyleKeyword.Null;
             callStart = Time.unscaledTime;
-            callUntil = callStart + CallSeconds;
+            callUntil = callStart + CallSeconds + (sticker ? 0.2f : 0f);
+        }
+
+        /// <summary>The number after the last '+' in a call-out ("CUTBACK +180" = 180), or 0.</summary>
+        static int PointsIn(string text)
+        {
+            int plus = text.LastIndexOf('+');
+            if (plus < 0) return 0;
+            int value = 0, i = plus + 1;
+            while (i < text.Length && (char.IsDigit(text[i]) || text[i] == ','))
+            {
+                if (text[i] != ',') value = value * 10 + (text[i] - '0');
+                i++;
+            }
+            return value;
         }
 
         void OnSplash(int count)

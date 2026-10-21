@@ -2515,6 +2515,44 @@
     color: var(--cream);
 }
 
+/* Tricks: a wax sticker (cream paper, ink edge, chunky bottom) centered on screen, tilted per call (SurfHud). */
+.surf-call--sticker {
+    left: 50%;
+    right: auto;
+    translate: -50% 0;
+    background-color: var(--paper);
+    border-radius: 22px;
+    border-width: 3px;
+    border-bottom-width: 7px;
+    border-color: var(--ink);
+    padding: 2px 26px 8px 26px;
+    -unity-text-outline-width: 0;
+    text-shadow: 0 0 0 rgba(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+.surf-call--sticker.surf-call--good {
+    color: var(--teal-dark);
+}
+
+.surf-call--sticker.surf-call--reward {
+    color: var(--coral-dark);
+    background-color: var(--sun);
+}
+
+.surf-call--small {
+    font-size: 34px;
+}
+
+.surf-call--mid {
+    font-size: 46px;
+}
+
+.surf-call--big {
+    font-size: 62px;
+    border-bottom-width: 9px;
+}
+
 .surf-call--good {
     color: var(--lagoon);
 }
