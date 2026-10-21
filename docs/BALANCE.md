@@ -155,3 +155,9 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
   variety 1.5 (5 different moves = full), combos 1.5 (x3 = full), commitment 2 (tube time, spins, perfect take-off).
 - Ceiling by wave: whitewater 4.5 (+1.5 for riding it in), Intermediate 8, Pro 10. Best score is saved and shown
   in the pause menu stats.
+
+## Wide main pool (2026-10-21)
+- Main pool stages are now 40x30, 50x40, 60x50 m (was 40x14, 50x19, 60x24). Waves travel at 0.6x and peel at 1.9x
+  (green: ~4.2 m/s toward the beach, ~4.9 m/s sideways) from 3 m off a side wall. Full size: an 11 s ride, 41 m
+  sideways (measured). The daily water bill is unchanged at full size (it scales by the share of the full area).
+- Replaces the earlier "main pool waves travel 0.75" note.

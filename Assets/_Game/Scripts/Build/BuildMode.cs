@@ -274,7 +274,18 @@ namespace SurfPool
             foreach (var placed in list)
             {
                 var item = catalog.Get(placed.id);
-                if (item != null) Spawn(item, new Vector3(placed.x, placed.y, placed.z), placed.yaw);
+                if (item == null) continue;
+                // A pool may have grown since this was placed (pools got wider): refund it instead of floating it.
+                bool inPool = false;
+                foreach (var pool in PoolRegistry.All)
+                    if (pool.FullFootprint(0.5f).Contains(new Vector2(placed.x, placed.z))) inPool = true;
+                if (inPool)
+                {
+                    Wallet.Instance.Add(item.cost, "decoration refunds");
+                    Notifications.Post($"The pool grew over your {item.title}: refunded {MoneyText.Format(item.cost)}.", Notice.Info);
+                    continue;
+                }
+                Spawn(item, new Vector3(placed.x, placed.y, placed.z), placed.yaw);
             }
         }
     }

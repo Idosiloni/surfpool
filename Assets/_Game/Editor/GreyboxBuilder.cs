@@ -19,8 +19,10 @@ namespace SurfPool.EditorTools
         // Main pool interior at full size: x 0..PoolLength (machine -> beach), z MainSouth..MainNorth, deck top at
         // y = 0. The south wall never moves (the desk and shops live south of it); the pool grows north.
         // Water sits low so the biggest waves crest just below the deck instead of spilling over it.
-        const float PoolLength = 60f, PoolWidth = 24f, PoolDepth = 5f, WaterLevel = -3f;
-        internal const float MainSouth = -12f, MainNorth = MainSouth + PoolWidth, MainZ = MainSouth + PoolWidth / 2f, MainNorthDeck = 28f;
+        // Wide, like real long-ride pools: the wave travels 60 m to the beach but peels 50 m sideways, so rides go
+        // left or right down the line (docs/research/wave-pools-and-ocean-waves.md).
+        const float PoolLength = 60f, PoolWidth = 50f, PoolDepth = 5f, WaterLevel = -3f;
+        internal const float MainSouth = -12f, MainNorth = MainSouth + PoolWidth, MainZ = MainSouth + PoolWidth / 2f, MainNorthDeck = 20f;
 
         // Pools stack north along z: main | reef (36 wide, 12 m deck south, 16 north) | lagoon (48 wide).
         const float ReefZ = MainNorth + MainNorthDeck + 12f + 18f, LagoonZ = ReefZ + 18f + 16f + 12f + 24f;
@@ -72,10 +74,11 @@ namespace SurfPool.EditorTools
             var main = BuildPool(new PoolSpec
             {
                 name = "Main Pool", display = "Main Pool", z = MainZ, open = true, depth = PoolDepth, waterLevel = WaterLevel,
-                size = 1f, peel = 1f, mainDeck = true,
-                travel = 0.75f, // a bit slower than full speed: longer rides to link moves in a short pool
+                size = 1f, mainDeck = true,
+                // Slower waves that peel fast from near a side wall: ~9 s rides, mostly sideways, at full size.
+                travel = 0.6f, peel = 1.9f, peakFromWall = 3f,
                 // Starts small; Pool Expansion I and II grow it (bigger waves need a bigger pool).
-                stages = new[] { new Vector2(40, 14), new Vector2(50, 19), new Vector2(PoolLength, PoolWidth) },
+                stages = new[] { new Vector2(40, 30), new Vector2(50, 40), new Vector2(PoolLength, PoolWidth) },
                 stageNames = new[] { "Starter Pool", "Expanded Pool", "Full-Size Pool" },
                 pathToPool = new[] { new Vector3(24, 0, -14), new Vector3(14, 0, MainSouth - 0.6f) },
                 pathOut = new[] { new Vector3(PoolLength + 3, 0, MainSouth + 6f), new Vector3(PoolLength + 6, 0, -30), new Vector3(45, 0, -40) },
@@ -619,6 +622,8 @@ namespace SurfPool.EditorTools
             // Pool size (0 = the standard PoolLength x PoolWidth). Long, wide pools with slower waves (travel) and a
             // break that starts near the wall (peakOffset) give long rides; see docs/research/long-rides.md.
             public float length, width, travel = 1f, peakOffset = 4f;
+            // > 0: peeling waves start this far from a side wall (whatever the pool's current width), using it all.
+            public float peakFromWall;
             public float Length => length > 0f ? length : PoolLength;
             public float Width => width > 0f ? width : PoolWidth;
             public Vector2[] stages; // (length, width) from smallest to full size; null = always full size
@@ -684,6 +689,7 @@ namespace SurfPool.EditorTools
             SetFloat(water, "peelSpeedMultiplier", spec.peel);
             SetFloat(water, "travelSpeedMultiplier", spec.travel);
             SetFloat(water, "peakOffset", spec.peakOffset);
+            SetFloat(water, "peakFromWall", spec.peakFromWall);
             if (spec.stages == null)
             {
                 SetFloat(water, "length", poolLength);

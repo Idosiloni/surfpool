@@ -185,12 +185,13 @@ namespace SurfPool.EditorTools
         static void BuildRescuePosts()
         {
             var root = new GameObject("Rescue Posts").transform;
-            foreach (float x in new[] { 9f, 31f })
+            // Two on the south deck (ring facing the walkway), two on the north deck (the pool is 50 m wide).
+            foreach (var (x, z, yaw) in new[] { (9f, MainSouth - 1.2f, 0f), (31f, MainSouth - 1.2f, 0f), (15f, MainNorth + 1.2f, 180f), (45f, MainNorth + 1.2f, 180f) })
             {
-                var at = new Vector3(x, 0f, -13.2f);
-                var post = WorldArt.Model("RescuePost", root, at, 0f);
+                var at = new Vector3(x, 0f, z);
+                var post = WorldArt.Model("RescuePost", root, at, yaw);
                 post.name = "Rescue Post";
-                var ring = WorldArt.Model("RescueRing", post.transform, at + new Vector3(0f, 1.2f, -0.16f), 0f);
+                var ring = WorldArt.Model("RescueRing", post.transform, at + Quaternion.Euler(0f, yaw, 0f) * new Vector3(0f, 1.2f, -0.16f), yaw);
                 ring.name = "Ring";
                 var box = post.AddComponent<BoxCollider>();
                 box.center = new Vector3(0f, 0.95f, -0.1f);

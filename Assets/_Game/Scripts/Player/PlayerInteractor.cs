@@ -15,7 +15,7 @@ namespace SurfPool
         [Tooltip("How far off the crosshair (meters) something can be and still be picked.")]
         [SerializeField] float aimAssist = 0.4f;
         [Tooltip("How far away you can whistle at a sneak-in or throw a rescue ring.")]
-        [SerializeField] float whistleRange = 30f;
+        [SerializeField] float whistleRange = 45f;
         [Tooltip("How far the skimmer net reaches over the water.")]
         [SerializeField] float skimmerReach = 7.5f;
 

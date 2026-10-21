@@ -123,6 +123,9 @@ namespace SurfPool
             water.transform.position = waterPosition;
             water.Resize(size.length, size.width);
 
+            // The lineup sits in the middle of the new water (surfers spread out from it across the width).
+            if (lineup != null) lineup.position = new Vector3(lineup.position.x, lineup.position.y, waterPosition.z);
+
             // Surfers land on the new beach and walk out past its end.
             var landing = beachLanding.position;
             beachLanding.position = new Vector3(size.length * 0.95f, landing.y, waterPosition.z);

@@ -42,7 +42,7 @@ namespace SurfPool.EditorTools
                     look = t => Part(t, PrimitiveType.Sphere, Vector3.zero, Vector3.one * 0.35f, white) },
                 new() { position = new(30, -0.1f, -94), title = "a coconut with a smiley face", note = "Someone was bored.",
                     look = t => { Part(t, PrimitiveType.Sphere, Vector3.zero, Vector3.one * 0.4f, brown); Part(t, PrimitiveType.Cube, new Vector3(0, 0.02f, -0.2f), new Vector3(0.2f, 0.04f, 0.02f), white); } },
-                new() { position = new(40, -0.1f, 198), title = "Uncle Kai's surf trophy", note = "1st place, 1984 Pro Tour.",
+                new() { position = new(40, -0.1f, 214), title = "Uncle Kai's surf trophy", note = "1st place, 1984 Pro Tour.",
                     look = t => { Part(t, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.25f, 0.06f, 0.25f), wood); Part(t, PrimitiveType.Cylinder, new Vector3(0, 0.25f, 0), new Vector3(0.08f, 0.2f, 0.08f), gold); Part(t, PrimitiveType.Sphere, new Vector3(0, 0.5f, 0), Vector3.one * 0.22f, gold); } },
                 new() { position = new(-40, -0.1f, -70), title = "a scrap of treasure map", note = "There are more out there...",
                     look = t => Part(t, PrimitiveType.Cube, Vector3.zero, new Vector3(0.45f, 0.02f, 0.35f), paper) },

@@ -38,6 +38,10 @@ namespace SurfPool
         [SerializeField] float travelSpeedMultiplier = 1f;
         [Tooltip("Where a peeling wave starts breaking, measured from the middle of the pool (m).")]
         [SerializeField] float peakOffset = 4f;
+        [Tooltip("If above 0: peeling waves start this far from a side wall instead (follows the pool's width as it grows).")]
+        [SerializeField] float peakFromWall;
+
+        float PeakOffset => peakFromWall > 0f ? Mathf.Max(0f, HalfWidth - peakFromWall) : peakOffset;
         [Tooltip("How much smaller the wave is at the pool walls than in the middle (0 to 1).")]
         [Range(0f, 1f)] [SerializeField] float edgeDrop = 0.2f;
 
@@ -297,20 +301,7 @@ namespace SurfPool
             // Foam stays where it was made and fades over foamLinger seconds, leaving lacy trails behind the
             // wave. Vertex color: R = foam, G = face brightness, B = shallowness (beach end), A = foam freshness
             // (1 = just made, toward 0 = old foam the shader breaks into lace).
-            float fade = Dt / Mathf.Max(0.1f, foamLinger);
-            for (int i = 0; i < vertices.Length; i++)
-            {
-                Vector3 v = baseVertices[i];
-                v.y = LocalHeight(v.x, v.z, t);
-                vertices[i] = v;
-                var c = Foam(v.x, v.z);
-                float fresh = c.r;
-                float memory = foamMemory[i] = Mathf.Max(fresh, foamMemory[i] - fade);
-                c.r = memory;
-                c.b = Smooth(0.55f, 1f, v.x / length);
-                c.a = memory > 0.001f ? fresh / memory : 1f;
-                colors[i] = c;
-            }
+            UpdateSurface(t, Dt / Mathf.Max(0.1f, foamLinger));
             mesh.vertices = vertices;
             mesh.colors = colors;
             mesh.RecalculateNormals();
@@ -318,6 +309,119 @@ namespace SurfPool
 
             BuildLip(t);
             EmitSpray();
+        }
+
+        // ---- the per-frame surface, fast: the same math as LocalHeight + Foam, but what only depends on the row (z)
+        // or the column (x) is worked out once, and waves too far from a column are skipped. ----
+        int gridX, gridZ;
+        WaveState[] stateArray = new WaveState[0];
+        float[] rowBroken = new float[0], rowPocket = new float[0], rowEdge = new float[0], rowSin = new float[0];
+        float[] colSin = new float[0], colShallow = new float[0];
+        int[] colStates = new int[0], colCount = new int[0];
+        // Per column and wave: the terms that only depend on the distance to the crest (behind it, mostly).
+        float[] colD = new float[0], colBack = new float[0], colTrail = new float[0], colLip = new float[0], colFace = new float[0];
+
+        void UpdateSurface(float t, float fade)
+        {
+            int nx = gridX, nz = gridZ, count = states.Count;
+            if (stateArray.Length < count) stateArray = new WaveState[count * 2];
+            states.CopyTo(stateArray);
+            if (rowEdge.Length != nz) { rowEdge = new float[nz]; rowSin = new float[nz]; }
+            if (colSin.Length != nx) { colSin = new float[nx]; colShallow = new float[nx]; colCount = new int[nx]; }
+            if (rowBroken.Length < count * nz) { rowBroken = new float[count * nz * 2]; rowPocket = new float[count * nz * 2]; }
+            if (colStates.Length < count * nx)
+            {
+                colStates = new int[count * nx * 2];
+                colD = new float[count * nx * 2];
+                colBack = new float[count * nx * 2];
+                colTrail = new float[count * nx * 2];
+                colLip = new float[count * nx * 2];
+                colFace = new float[count * nx * 2];
+            }
+
+            for (int iz = 0; iz < nz; iz++)
+            {
+                float z = baseVertices[iz * nx].z, edge = z / HalfWidth;
+                rowEdge[iz] = 1f - edgeDrop * edge * edge;
+                rowSin[iz] = Mathf.Sin(z * 0.9f + t * 1.1f);
+                for (int s = 0; s < count; s++)
+                {
+                    ref readonly var st = ref stateArray[s];
+                    rowBroken[s * nz + iz] = Broken(st, z);
+                    rowPocket[s * nz + iz] = st.breaking && !st.type.closeout ? PocketMask(st, z) : 0f;
+                }
+            }
+            for (int ix = 0; ix < nx; ix++)
+            {
+                float x = baseVertices[ix].x;
+                colSin[ix] = rippleHeight * Mathf.Sin(x * 0.7f + t * 1.3f);
+                colShallow[ix] = Smooth(0.55f, 1f, x / length);
+                int n = 0;
+                for (int s = 0; s < count; s++)
+                {
+                    ref readonly var st = ref stateArray[s];
+                    float d = x - st.center;
+                    // Past these distances every term (shape, trough, foam crest and trail, lip spray) is ~0.
+                    if (d < -Mathf.Max(3f * st.back, 32f) || d > 8f * st.type.frontWidth + 2f) continue;
+                    int c = ix * count + n++;
+                    colStates[c] = s;
+                    colD[c] = d;
+                    colBack[c] = d <= 0f ? Mathf.Exp(-(d / st.back) * (d / st.back)) : 0f;
+                    colTrail[c] = d < 0f ? Mathf.Exp(d / 7f) * 0.75f : 0f;
+                    colLip[c] = Mathf.Exp(-(d / 1.2f) * (d / 1.2f)) * 0.7f;
+                    float fd = (d - 0.9f) / 1.2f;
+                    colFace[c] = Mathf.Exp(-fd * fd) * 0.35f;
+                }
+                colCount[ix] = n;
+            }
+
+            for (int iz = 0; iz < nz; iz++)
+            {
+                float edgeScale = rowEdge[iz], zSin = rowSin[iz];
+                for (int ix = 0; ix < nx; ix++)
+                {
+                    int i = iz * nx + ix;
+                    Vector3 v = baseVertices[i];
+                    float x = v.x, h = colSin[ix] * zSin, foam = 0f, face = 0f;
+                    for (int k = 0; k < colCount[ix]; k++)
+                    {
+                        int c = ix * count + k, s = colStates[c];
+                        ref readonly var st = ref stateArray[s];
+                        float broken = rowBroken[s * nz + iz], mask = rowPocket[s * nz + iz];
+                        float d = colD[c];
+
+                        // Height (as LocalHeight).
+                        float front = st.type.frontWidth * (1f + 0.8f * broken);
+                        float shape = d <= 0f ? colBack[c] : Mathf.Exp(-(d / front) * (d / front));
+                        float pocket = mask * (1f - broken) * 0.15f;
+                        float amplitude = st.amplitude * Mathf.Lerp(1f, st.type.whitewashHeight, broken) * (1f + pocket);
+                        h += amplitude * edgeScale * shape;
+                        if (troughDepth > 0f && d > 0f)
+                        {
+                            float ahead = (d - 1.6f * front) / front;
+                            h -= troughDepth * amplitude * (1f - broken) * edgeScale * Mathf.Exp(-ahead * ahead);
+                        }
+                        if (broken > 0.01f && shape > 0.01f)
+                            h += broken * shape * st.amplitude * 0.12f * (Mathf.PerlinNoise(x * 0.9f - t * 2f, v.z * 0.9f) - 0.5f);
+
+                        // Foam and face brightness (as Foam). The crest band is only a few meters wide.
+                        float strength = Mathf.Clamp01(st.amplitude / 1.5f) + (st.type.closeout ? 0.7f : 0.3f);
+                        float crest = 0f;
+                        if (d > -8f && d < 8f)
+                        {
+                            float cd = (d - 0.4f) / (1.1f + 1.4f * broken);
+                            crest = Mathf.Exp(-cd * cd);
+                        }
+                        foam = Mathf.Max(foam, Mathf.Max(broken * Mathf.Max(crest, colTrail[c]) * strength, mask * colLip[c]));
+                        face = Mathf.Max(face, (1f - broken) * colFace[c]);
+                    }
+                    v.y = h;
+                    vertices[i] = v;
+                    float fresh = Mathf.Clamp01(foam);
+                    float memory = foamMemory[i] = Mathf.Max(fresh, foamMemory[i] - fade);
+                    colors[i] = new Color(memory, face, colShallow[ix], memory > 0.001f ? fresh / memory : 1f);
+                }
+            }
         }
 
         void UpdateStates(float t)
@@ -368,8 +472,8 @@ namespace SurfPool
         {
             float startZ = state.direction switch
             {
-                WaveDirection.Right => peakOffset,
-                WaveDirection.Left => -peakOffset,
+                WaveDirection.Right => PeakOffset,
+                WaveDirection.Left => -PeakOffset,
                 _ => 0f,
             };
             return startZ + direction * state.breakDistance;
@@ -654,6 +758,8 @@ namespace SurfPool
             int nx = Mathf.Max(2, Mathf.CeilToInt(length * verticesPerMeter) + 1);
             int nz = Mathf.Max(2, Mathf.CeilToInt(width * verticesPerMeter) + 1);
 
+            gridX = nx;
+            gridZ = nz;
             baseVertices = new Vector3[nx * nz];
             colors = new Color[nx * nz];
             foamMemory = new float[nx * nz];

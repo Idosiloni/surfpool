@@ -17,7 +17,7 @@ namespace SurfPool
         [SerializeField] Camera lens;
         [SerializeField] PhotoWall wall;
         [SerializeField] float minFov = 10f, maxFov = 48f;
-        [SerializeField] Vector2 yawLimit = new(-75f, 75f), pitchLimit = new(-35f, 12f);
+        [SerializeField] Vector2 yawLimit = new(-100f, 100f), pitchLimit = new(-35f, 12f);
         [SerializeField] float sensitivity = 0.08f;
 
         public static readonly string[] Grades = { "C", "B", "A", "S" };

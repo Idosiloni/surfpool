@@ -44,13 +44,13 @@ namespace SurfPool.EditorTools
         {
             var root = new GameObject("World").transform;
 
-            // Sand all around the park (pools and their decks cover x -20..95, z -40..180), leaving the pool holes open.
+            // Sand all around the park (pools and their decks cover x -20..95, z -40..200), leaving the pool holes open.
             var sand = new GameObject("Sand Island").transform;
             sand.SetParent(root, false);
-            SandSlab(sand, "North", new Vector3(30, -0.6f, 210), new Vector3(260, 1, 60), sandMat);
+            SandSlab(sand, "North", new Vector3(30, -0.6f, 230), new Vector3(260, 1, 60), sandMat);
             SandSlab(sand, "South", new Vector3(30, -0.6f, -70), new Vector3(240, 1, 60), sandMat);
-            SandSlab(sand, "West", new Vector3(-50, -0.6f, 72), new Vector3(60, 1, 224), sandMat);
-            SandSlab(sand, "East", new Vector3(120, -0.6f, 72), new Vector3(80, 1, 224), sandMat);
+            SandSlab(sand, "West", new Vector3(-50, -0.6f, 80), new Vector3(60, 1, 240), sandMat);
+            SandSlab(sand, "East", new Vector3(120, -0.6f, 80), new Vector3(80, 1, 240), sandMat);
 
             var ocean = new GameObject("Ocean", typeof(MeshFilter), typeof(MeshRenderer));
             ocean.transform.SetParent(root, false);
@@ -76,7 +76,7 @@ namespace SurfPool.EditorTools
             for (int i = 0; i < palmSpots.Length; i++)
             {
                 var spot = palmSpots[i];
-                float y = Mathf.Abs(spot.x - 30) > 50 || Mathf.Abs(spot.z) > 40 ? -0.1f : 0f;
+                float y = Mathf.Abs(spot.x - 30) > 50 || spot.z < -40f || spot.z > N + GreyboxBuilder.MainNorthDeck ? -0.1f : 0f;
                 Model(i % 3 == 0 ? "PalmTreeTall" : "PalmTree", palms, new Vector3(spot.x, y, spot.z), Range(0, 360), Range(0.85f, 1.15f));
             }
 
@@ -212,7 +212,7 @@ namespace SurfPool.EditorTools
             const int n = 80;
             const float size = 1600f;
             // Island footprint in the ocean's local space (ocean is centered at x = 30, z = 0).
-            var hole = Rect.MinMaxRect(-80 - 30 + 2, -100 + 2, 140 - 30 - 2, 204 - 2);
+            var hole = Rect.MinMaxRect(-80 - 30 + 2, -100 + 2, 140 - 30 - 2, 224 - 2);
             var vertices = new Vector3[(n + 1) * (n + 1)];
             var colors = new Color[vertices.Length];
             for (int z = 0; z <= n; z++)

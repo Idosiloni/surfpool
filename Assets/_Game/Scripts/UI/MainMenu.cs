@@ -16,7 +16,7 @@ namespace SurfPool
         public static bool SkipNextTime;
 
         [Tooltip("The point the menu camera circles around.")]
-        [SerializeField] Vector3 orbitCenter = new(30f, 0f, 10f);
+        [SerializeField] Vector3 orbitCenter = new(30f, 0f, 13f);
         [SerializeField] float orbitRadius = 62f;
         [SerializeField] float orbitHeight = 26f;
 
