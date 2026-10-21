@@ -24,8 +24,11 @@ namespace SurfPool.EditorTools
         const float PoolLength = 60f, PoolWidth = 50f, PoolDepth = 5f, WaterLevel = -3f;
         internal const float MainSouth = -12f, MainNorth = MainSouth + PoolWidth, MainZ = MainSouth + PoolWidth / 2f, MainNorthDeck = 20f;
 
-        // Pools stack north along z: main | reef (36 wide, 12 m deck south, 16 north) | lagoon (48 wide).
-        const float ReefZ = MainNorth + MainNorthDeck + 12f + 18f, LagoonZ = ReefZ + 18f + 16f + 12f + 24f;
+        // Pools stack north along z: main | reef (12 m deck south, 16 north) | lagoon. Both are wide like the main pool,
+        // so their rides go left/right down the line too.
+        internal const float ReefLength = 75f, ReefWidth = 72f, LagoonLength = 75f, LagoonWidth = 90f;
+        internal const float ReefZ = MainNorth + MainNorthDeck + 12f + ReefWidth / 2f;
+        internal const float LagoonZ = ReefZ + ReefWidth / 2f + 16f + 12f + LagoonWidth / 2f;
         const float DeckThickness = PoolDepth + 1f;
 
         [MenuItem("Surf Pool/Delete Save Game")]
@@ -247,21 +250,21 @@ namespace SurfPool.EditorTools
             // machines (their chambers fill x -6..0 and the blowers, tanks and control cabins sit behind them).
             var reef = BuildPool(new PoolSpec
             {
-                // A long point-break pool: 75 x 36 m, slower waves that peel from near the north wall (~10 s rides).
+                // A long point-break pool: mellow waves that travel slowly and peel ~5 m/s from a side wall (~13 s rides).
                 name = "Reef Pool", display = "Reef Pool", upgradeId = "pool_reef", z = ReefZ, open = false, depth = PoolDepth,
-                waterLevel = WaterLevel, size = 1.08f, peel = 0.85f, price = 2.5f, water = 60f,
-                length = 75f, width = 36f, travel = 0.7f, peakOffset = 12f,
-                pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-19.3f, 0, -18.8f), new Vector3(-19.3f, 0, ReefZ - 26), new Vector3(14, 0, ReefZ - 26), new Vector3(14, 0, ReefZ - 18 - 0.6f) },
-                pathOut = new[] { new Vector3(75 + 3, 0, ReefZ - 6), new Vector3(75 + 40, 0, ReefZ - 6) },
+                waterLevel = WaterLevel, size = 1.08f, peel = 2f, price = 2.5f, water = 60f,
+                length = ReefLength, width = ReefWidth, travel = 0.5f, peakFromWall = 3f, gridDensity = 2.5f,
+                pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-19.3f, 0, -18.8f), new Vector3(-19.3f, 0, ReefZ - ReefWidth / 2f - 8f), new Vector3(14, 0, ReefZ - ReefWidth / 2f - 8f), new Vector3(14, 0, ReefZ - ReefWidth / 2f - 0.6f) },
+                pathOut = new[] { new Vector3(ReefLength + 3, 0, ReefZ - 6), new Vector3(ReefLength + 40, 0, ReefZ - 6) },
             });
             var lagoon = BuildPool(new PoolSpec
             {
-                // The biggest pool: 75 x 48 m, heavy waves that peel the whole width.
+                // The biggest pool: heavy waves that peel fast across its whole 90 m width (~12 s rides).
                 name = "Big Wave Lagoon", display = "Big Wave Lagoon", upgradeId = "pool_lagoon", z = LagoonZ, open = false,
-                depth = PoolDepth + 1f, waterLevel = WaterLevel - 0.8f, size = 1.25f, peel = 0.9f, price = 5f, water = 150f,
-                length = 75f, width = 48f, travel = 0.65f, peakOffset = 16f,
-                pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-19.3f, 0, -18.8f), new Vector3(-19.3f, 0, LagoonZ - 32), new Vector3(14, 0, LagoonZ - 32), new Vector3(14, 0, LagoonZ - 24 - 0.6f) },
-                pathOut = new[] { new Vector3(75 + 3, 0, LagoonZ - 6), new Vector3(75 + 40, 0, LagoonZ - 6) },
+                depth = PoolDepth + 1f, waterLevel = WaterLevel - 0.8f, size = 1.25f, peel = 2.25f, price = 5f, water = 150f,
+                length = LagoonLength, width = LagoonWidth, travel = 0.5f, peakFromWall = 3f, gridDensity = 2.5f,
+                pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-19.3f, 0, -18.8f), new Vector3(-19.3f, 0, LagoonZ - LagoonWidth / 2f - 8f), new Vector3(14, 0, LagoonZ - LagoonWidth / 2f - 8f), new Vector3(14, 0, LagoonZ - LagoonWidth / 2f - 0.6f) },
+                pathOut = new[] { new Vector3(LagoonLength + 3, 0, LagoonZ - 6), new Vector3(LagoonLength + 40, 0, LagoonZ - 6) },
             });
 
             var spawnerGo = new GameObject("Surfer Spawner");
@@ -408,7 +411,7 @@ namespace SurfPool.EditorTools
                 new(12, 0, -16), new(28, 0, -16), new(44, 0, -16), new(26, 0, -29), new(38, 0, -31),
                 new(8, 0, MainNorth + 3f), new(30, 0, MainNorth + 3f), new(52, 0, MainNorth + 3f), new(64, 0, MainSouth + 16f), new(64, 0, MainSouth + 2f),
                 // On the reef's and lagoon's north decks (they used to stand in the water).
-                new(10, 0, ReefZ + 18f + 3f), new(40, 0, ReefZ + 18f + 3f), new(10, 0, LagoonZ + 24f + 3f), new(40, 0, LagoonZ + 24f + 3f),
+                new(10, 0, ReefZ + ReefWidth / 2f + 3f), new(40, 0, ReefZ + ReefWidth / 2f + 3f), new(10, 0, LagoonZ + LagoonWidth / 2f + 3f), new(40, 0, LagoonZ + LagoonWidth / 2f + 3f),
             };
             foreach (var spot in binSpots)
             {
@@ -434,14 +437,14 @@ namespace SurfPool.EditorTools
             Set(shop, "waveOperator", operatorGuy);
 
             // The other pools' north decks get umbrellas and loungers when they're built.
-            PoolDeckDressing(reef.built, ReefZ, 18f, 75f);
-            PoolDeckDressing(lagoon.built, LagoonZ, 24f, 75f);
+            PoolDeckDressing(reef.built, ReefZ, ReefWidth / 2f, ReefLength);
+            PoolDeckDressing(lagoon.built, LagoonZ, LagoonWidth / 2f, LagoonLength);
 
             // Tiki Garden (Park upgrade): torches and flower beds along every pool, hidden until bought.
             var gardens = new Object[]
             {
-                TikiGarden(null, MainZ, true, PoolWidth / 2f, PoolLength), TikiGarden(reef.built, ReefZ, false, 18f, 75f),
-                TikiGarden(lagoon.built, LagoonZ, false, 24f, 75f),
+                TikiGarden(null, MainZ, true, PoolWidth / 2f, PoolLength), TikiGarden(reef.built, ReefZ, false, ReefWidth / 2f, ReefLength),
+                TikiGarden(lagoon.built, LagoonZ, false, LagoonWidth / 2f, LagoonLength),
             };
             foreach (GameObject garden in gardens) garden.SetActive(false);
             SetArray(shop, "tikiGarden", gardens);
@@ -624,6 +627,8 @@ namespace SurfPool.EditorTools
             public float length, width, travel = 1f, peakOffset = 4f;
             // > 0: peeling waves start this far from a side wall (whatever the pool's current width), using it all.
             public float peakFromWall;
+            // Water mesh points per meter (0 = the default 3). Huge pools use fewer so they stay cheap to animate.
+            public float gridDensity;
             public float Length => length > 0f ? length : PoolLength;
             public float Width => width > 0f ? width : PoolWidth;
             public Vector2[] stages; // (length, width) from smallest to full size; null = always full size
@@ -690,6 +695,7 @@ namespace SurfPool.EditorTools
             SetFloat(water, "travelSpeedMultiplier", spec.travel);
             SetFloat(water, "peakOffset", spec.peakOffset);
             SetFloat(water, "peakFromWall", spec.peakFromWall);
+            if (spec.gridDensity > 0f) SetFloat(water, "verticesPerMeter", spec.gridDensity);
             if (spec.stages == null)
             {
                 SetFloat(water, "length", poolLength);

@@ -163,3 +163,5 @@ Open questions for Ido: should the gear shop keep the passive $15 merch bonus on
 - Replaces the earlier "main pool waves travel 0.75" note.
 - Down the line: in the pocket (0-8 m in front of the break) flow +0.05/s; 2+ m behind it (whitewater) flow -0.2/s
   with a nudge. Rides with 20+ m sideways on green waves get DOWN THE LINE: 6 points per meter (41 m = +245).
+- Reef Pool is now 75x72 (travel 0.5, peel 2.0: ~13 s rides, ~69 m sideways) and the Big Wave Lagoon 75x90
+  (travel 0.5, peel 2.25: ~11 s, ~84 m sideways; its pocket moves ~7 m/s, so you need speed to stay in it).

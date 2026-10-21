@@ -39,8 +39,8 @@ namespace SurfPool.EditorTools
 
             RunDown();
             Festivities();
-            PoolDressing(reefBuilt, reefZ, 18f, 75f);
-            PoolDressing(lagoonBuilt, lagoonZ, 24f, 75f);
+            PoolDressing(reefBuilt, reefZ, GreyboxBuilder.ReefWidth / 2f, GreyboxBuilder.ReefLength);
+            PoolDressing(lagoonBuilt, lagoonZ, GreyboxBuilder.LagoonWidth / 2f, GreyboxBuilder.LagoonLength);
             GateSigns();
             Crowd();
             Birds();

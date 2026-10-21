@@ -44,13 +44,14 @@ namespace SurfPool.EditorTools
         {
             var root = new GameObject("World").transform;
 
-            // Sand all around the park (pools and their decks cover x -20..95, z -40..200), leaving the pool holes open.
+            // Sand all around the park (pools and their decks cover x -20..95, z -40..DecksNorth), leaving the pool holes open.
+            const float DecksNorth = GreyboxBuilder.LagoonZ + GreyboxBuilder.LagoonWidth / 2f + 20f;
             var sand = new GameObject("Sand Island").transform;
             sand.SetParent(root, false);
-            SandSlab(sand, "North", new Vector3(30, -0.6f, 230), new Vector3(260, 1, 60), sandMat);
+            SandSlab(sand, "North", new Vector3(30, -0.6f, DecksNorth + 30f), new Vector3(260, 1, 60), sandMat);
             SandSlab(sand, "South", new Vector3(30, -0.6f, -70), new Vector3(240, 1, 60), sandMat);
-            SandSlab(sand, "West", new Vector3(-50, -0.6f, 80), new Vector3(60, 1, 240), sandMat);
-            SandSlab(sand, "East", new Vector3(120, -0.6f, 80), new Vector3(80, 1, 240), sandMat);
+            SandSlab(sand, "West", new Vector3(-50, -0.6f, (DecksNorth - 40f) / 2f), new Vector3(60, 1, DecksNorth + 40f), sandMat);
+            SandSlab(sand, "East", new Vector3(120, -0.6f, (DecksNorth - 40f) / 2f), new Vector3(80, 1, DecksNorth + 40f), sandMat);
 
             var ocean = new GameObject("Ocean", typeof(MeshFilter), typeof(MeshRenderer));
             ocean.transform.SetParent(root, false);
@@ -212,7 +213,7 @@ namespace SurfPool.EditorTools
             const int n = 80;
             const float size = 1600f;
             // Island footprint in the ocean's local space (ocean is centered at x = 30, z = 0).
-            var hole = Rect.MinMaxRect(-80 - 30 + 2, -100 + 2, 140 - 30 - 2, 224 - 2);
+            var hole = Rect.MinMaxRect(-80 - 30 + 2, -100 + 2, 140 - 30 - 2, GreyboxBuilder.LagoonZ + GreyboxBuilder.LagoonWidth / 2f + 40f);
             var vertices = new Vector3[(n + 1) * (n + 1)];
             var colors = new Color[vertices.Length];
             for (int z = 0; z <= n; z++)

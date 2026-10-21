@@ -301,6 +301,13 @@ namespace SurfPool
             // Foam stays where it was made and fades over foamLinger seconds, leaving lacy trails behind the
             // wave. Vertex color: R = foam, G = face brightness, B = shallowness (beach end), A = foam freshness
             // (1 = just made, toward 0 = old foam the shader breaks into lace).
+            // Nobody looking (another pool, or behind you): skip the mesh. Surfers ride on SurfaceHeightAt, not the mesh.
+            if (surfaceRenderer == null) surfaceRenderer = GetComponent<MeshRenderer>();
+            if (surfaceRenderer != null && !surfaceRenderer.isVisible && !replaying)
+            {
+                EmitSpray();
+                return;
+            }
             UpdateSurface(t, Dt / Mathf.Max(0.1f, foamLinger));
             mesh.vertices = vertices;
             mesh.colors = colors;
@@ -314,6 +321,7 @@ namespace SurfPool
         // ---- the per-frame surface, fast: the same math as LocalHeight + Foam, but what only depends on the row (z)
         // or the column (x) is worked out once, and waves too far from a column are skipped. ----
         int gridX, gridZ;
+        MeshRenderer surfaceRenderer;
         WaveState[] stateArray = new WaveState[0];
         float[] rowBroken = new float[0], rowPocket = new float[0], rowEdge = new float[0], rowSin = new float[0];
         float[] colSin = new float[0], colShallow = new float[0];
