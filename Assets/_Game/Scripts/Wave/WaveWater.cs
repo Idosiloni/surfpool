@@ -399,6 +399,7 @@ namespace SurfPool
             UpdateSurface(t, Dt / Mathf.Max(0.1f, foamLinger));
             mesh.vertices = vertices;
             mesh.colors = colors;
+            mesh.uv2 = tubeShade; // tube shadow for the shader (TEXCOORD1)
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
 
@@ -415,6 +416,7 @@ namespace SurfPool
         float[] colSin = new float[0], colShallow = new float[0];
         int[] colStates = new int[0], colCount = new int[0];
         RowTerms[] rowTerms = new RowTerms[0];
+        Vector2[] tubeShade = new Vector2[0];
         ColTerms[] colTerms = new ColTerms[0];
 
         void UpdateSurface(float t, float fade)
@@ -425,6 +427,7 @@ namespace SurfPool
             if (rowEdge.Length != nz) { rowEdge = new float[nz]; rowSin = new float[nz]; }
             if (colSin.Length != nx) { colSin = new float[nx]; colShallow = new float[nx]; colCount = new int[nx]; }
             if (rowTerms.Length < count * nz) rowTerms = new RowTerms[count * nz * 2];
+            if (tubeShade.Length != vertices.Length) tubeShade = new Vector2[vertices.Length];
             if (colStates.Length < count * nx)
             {
                 colStates = new int[count * nx * 2];
@@ -464,20 +467,22 @@ namespace SurfPool
                 {
                     int i = iz * nx + ix;
                     Vector3 v = baseVertices[i];
-                    float h = colSin[ix] * zSin, foam = 0f, face = 0f;
+                    float h = colSin[ix] * zSin, foam = 0f, face = 0f, shade = 0f;
                     for (int k = 0; k < colCount[ix]; k++)
                     {
                         int c = ix * count + k, s = colStates[c];
-                        Sample(stateArray[s], rowTerms[s * nz + iz], colTerms[c], v.x, v.z, t, edgeScale, out float height, out float f, out float g);
+                        Sample(stateArray[s], rowTerms[s * nz + iz], colTerms[c], v.x, v.z, t, edgeScale, out float height, out float f, out float g, out float sh);
                         h += height;
                         foam = Mathf.Max(foam, f);
                         face = Mathf.Max(face, g);
+                        shade = Mathf.Max(shade, sh);
                     }
                     v.y = h;
                     vertices[i] = v;
                     float fresh = Mathf.Clamp01(foam);
                     float memory = foamMemory[i] = Mathf.Max(fresh, foamMemory[i] - fade);
                     colors[i] = new Color(memory, face, colShallow[ix], memory > 0.001f ? fresh / memory : 1f);
+                    tubeShade[i] = new Vector2(shade, 0f);
                 }
             }
         }
@@ -594,6 +599,7 @@ namespace SurfPool
         struct RowTerms
         {
             public float broken, hb, boreMult, lumps, ball, frontFoam, trailFoam, shoulder, frontG, pocket, mask;
+            public float tube, tubeReach; // under a thrown lip here (0..1) and how far out the lip reaches (m)
         }
 
         /// <summary>What one wave does at one column (x) this frame: the shapes that only need the distance to the crest.</summary>
@@ -624,9 +630,32 @@ namespace SurfPool
             r.shoulder = 1f - 0.3f * far;
             r.frontG = state.type.frontWidth * (1f + 0.5f * far);
             r.mask = state.breaking && !state.type.closeout ? PocketMask(state, z) : 0f;
+            if (state.type.barrel && state.breaking && state.beachBreak <= 0.5f)
+            {
+                if (state.direction != WaveDirection.Left) TubeAt(state, -1, z, ref r);
+                if (state.direction != WaveDirection.Right) TubeAt(state, 1, z, ref r);
+            }
             r.pocket = r.mask * (1f - r.broken) * 0.25f;
             return r;
         }
+
+        /// <summary>The lip strip on one side (as AddLipStrip builds it): is z under it, and how far does it reach.</summary>
+        void TubeAt(in WaveState state, int direction, float z, ref RowTerms r)
+        {
+            float length = LipLengthOf(state);
+            float s = (z - BreakPoint(state, direction)) * direction / length;
+            if (s <= 0f || s >= 1f) return;
+            float tau = 0.8f * (1f - s) * Mathf.Clamp01(state.breakDistance / 1.5f);
+            LipShape(tau, out float lengthA, out _);
+            // Only where the lip is out far enough to roof the face, fading toward the far end where it barely pitches.
+            float covered = Smooth(0.3f, 0.75f, lengthA) * (1f - Smooth(0.8f, 1f, s));
+            if (covered <= r.tube) return;
+            r.tube = covered;
+            r.tubeReach = lengthA * state.amplitude;
+        }
+
+        /// <summary>How far ahead of the break the lip starts to pitch (about 1.5 s of peel; docs/research/wave-look-2.md).</summary>
+        float LipLengthOf(in WaveState state) => Mathf.Max(lipLength, state.type.peelSpeed * 1.5f);
 
         static ColTerms Col(in WaveState state, float x)
         {
@@ -656,7 +685,7 @@ namespace SurfPool
         /// is there. LocalHeight/Foam and the fast UpdateSurface both use this, so riders and the mesh always agree.
         /// </summary>
         void Sample(in WaveState state, in RowTerms r, in ColTerms c, float x, float z, float t, float edgeScale,
-            out float height, out float foam, out float face)
+            out float height, out float foam, out float face, out float shade)
         {
             float d = c.d;
             float shapeG = d <= 0f ? c.backG : Mathf.Exp(-(d / r.frontG) * (d / r.frontG));
@@ -686,6 +715,10 @@ namespace SurfPool
             // Height up the wave (vertex G, 0 = trough, 1 = crest): the shader colors the face by it, dark low down
             // (deep water seen through) to bright aqua at the thin top lit from behind (docs/research/wave-look-2.md).
             // Tiny swells stay plain water.
+            // The tube: the face under a thrown lip is in its shadow, from the crest out to where the lip lands.
+            shade = r.tube > 0f
+                ? r.tube * Smooth(-0.8f, 0.2f, d) * (1f - Smooth(r.tubeReach * 0.75f, r.tubeReach * 1.1f, d)) * (1f - r.broken)
+                : 0f;
             face = Mathf.Lerp(shapeG * r.shoulder, shapeB * r.boreMult / Mathf.Max(0.3f, state.type.whitewashHeight + 0.3f), r.hb)
                 * Mathf.Clamp01(state.amplitude * 0.8f);
         }
@@ -697,7 +730,7 @@ namespace SurfPool
             float edgeScale = 1f - edgeDrop * edge * edge;
             foreach (var state in states)
             {
-                Sample(state, Row(state, z), Col(state, x), x, z, t, edgeScale, out float height, out _, out _);
+                Sample(state, Row(state, z), Col(state, x), x, z, t, edgeScale, out float height, out _, out _, out _);
                 h += height;
             }
             return h;
@@ -721,7 +754,7 @@ namespace SurfPool
             float edge = z / HalfWidth, edgeScale = 1f - edgeDrop * edge * edge;
             foreach (var state in states)
             {
-                Sample(state, Row(state, z), Col(state, x), x, z, Now, edgeScale, out _, out float f, out float g);
+                Sample(state, Row(state, z), Col(state, x), x, z, Now, edgeScale, out _, out float f, out float g, out _);
                 foam = Mathf.Max(foam, f);
                 face = Mathf.Max(face, g);
             }
@@ -735,6 +768,8 @@ namespace SurfPool
             lipVertices.Clear();
             lipColors.Clear();
             lipTriangles.Clear();
+            lipShade.Clear();
+            innerShade.Clear();
 
             foreach (var state in states)
             {
@@ -747,6 +782,7 @@ namespace SurfPool
             if (lipTriangles.Count == 0) return;
             lip.SetVertices(lipVertices);
             lip.SetColors(lipColors);
+            lip.SetUVs(1, lipShade);
             lip.SetTriangles(lipTriangles, 0);
             lip.RecalculateNormals();
             lip.RecalculateBounds();
@@ -759,6 +795,7 @@ namespace SurfPool
         /// barely pitching far ahead of the break, thrown out and hooked over (the tube) near it, landing at it.
         /// </summary>
         readonly List<Vector3> lipInnerVerts = new();
+        readonly List<Vector2> lipShade = new(), innerShade = new();
         readonly List<Color> lipInnerColors = new();
 
         void AddLipStrip(in WaveState state, int direction, float t)
@@ -769,7 +806,7 @@ namespace SurfPool
             float limit = HalfWidth - 0.3f;
             float grown = Mathf.Clamp01(state.breakDistance / 1.5f); // the first lip grows in as the wave starts to break
             // The lip starts to pitch about 1.5 s of peel ahead of where it lands (docs/research/wave-look-2.md).
-            float length = Mathf.Max(lipLength, state.type.peelSpeed * 1.5f);
+            float length = LipLengthOf(state);
             int row = across + 1;
             int outer = lipVertices.Count, inner = outer + (along + 1) * row;
             var innerVerts = lipInnerVerts;
@@ -803,14 +840,18 @@ namespace SurfPool
                     var under = p + new Vector3(-Mathf.Sin(theta), -Mathf.Cos(theta), 0f) * thick;
                     lipVertices.Add(p);
                     innerVerts.Add(under);
+                    lipShade.Add(new Vector2(0.15f * u, 0f));
+                    innerShade.Add(new Vector2(0.9f - 0.4f * u, 0f)); // the roof of the tube, in its own shadow
                     // Foam feathers off the thrown tip; the outer sheet is the thinnest, brightest water on the wave.
                     float foam = k == across ? 0.95f : k == across - 1 ? 0.45f * tau : 0.1f * tau;
                     lipColors.Add(new Color(foam, 0.92f + 0.08f * u, 0f, 1f));
-                    innerColors.Add(new Color(foam * 0.8f, 0.3f + 0.3f * u, 0f, 1f));
+                    innerColors.Add(new Color(foam * 0.8f, 0.15f + 0.3f * u, 0f, 1f));
                 }
             }
             lipVertices.AddRange(innerVerts);
             lipColors.AddRange(innerColors);
+            lipShade.AddRange(innerShade);
+            innerShade.Clear();
 
             for (int i = 0; i < along; i++)
             for (int k = 0; k < across; k++)
@@ -893,10 +934,33 @@ namespace SurfPool
             int count = RandomCount(sprayRate * strength);
             for (int i = 0; i < count; i++) EmitBlob(state, bp - direction * Random.Range(0f, 2.5f), direction, strength);
 
-            // Spit: air squeezed out of the barrel blows mist puffs out of the tube mouth, ahead of the break.
             if (state.type.barrel && state.breakDistance > 1.5f)
             {
-                int puffs = RandomCount(spitRate * strength);
+                // The lip lands: a white burst thrown up off the flat water out in front of the face.
+                LipShape(0.8f, out float landA, out _);
+                float landX = state.center + landA * state.amplitude * 0.75f;
+                int splash = RandomCount(sprayRate * 0.9f * strength);
+                for (int i = 0; i < splash; i++)
+                {
+                    float z = bp + direction * Random.Range(-0.5f, 1.5f);
+                    float x = landX + Random.Range(-0.6f, 0.6f);
+                    var local = new Vector3(x, LocalHeight(x, z, Now) + 0.1f, z);
+                    var velocity = new Vector3(Random.Range(0.5f, 2.5f), Random.Range(3f, 6.5f) * strength, direction * Random.Range(-1f, 1f));
+                    spray.Emit(new ParticleSystem.EmitParams
+                    {
+                        position = transform.TransformPoint(local),
+                        velocity = transform.TransformDirection(velocity),
+                        startSize = Random.Range(0.35f, 0.85f) * strength,
+                        startLifetime = Random.Range(0.7f, 1.3f),
+                    }, 1);
+                }
+            }
+
+            // Spit: air squeezed out of the barrel blows mist out of the tube mouth, ahead of the break, in puffs.
+            if (state.type.barrel && state.breakDistance > 1.5f)
+            {
+                float pulse = Mathf.Max(0f, Mathf.Sin(Now * 4.2f + state.id)) * 2f;
+                int puffs = RandomCount(spitRate * strength * pulse);
                 for (int i = 0; i < puffs; i++)
                 {
                     float z = bp + direction * Random.Range(0.3f, 1.4f);

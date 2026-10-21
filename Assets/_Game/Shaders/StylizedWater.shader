@@ -1,6 +1,7 @@
 // Cartoon water for the wave pool (URP).
 // Vertex color (written by WaveWater every frame): R = foam amount, G = height up the wave (0 trough .. 1 crest),
 // B = shallowness (pale aqua over the shallow beach end), A = foam freshness (old foam breaks into lace).
+// UV2.x (TEXCOORD1) = tube shadow: the face under a thrown lip and the lip's underside, dark like the inside of a barrel.
 // Steep faces turn a lighter teal and glow when the sun shines through them from behind (like real pool waves),
 // foam is broken up by moving noise, lighting is soft-stepped like a toon shader.
 Shader "SurfPool/StylizedWater"
@@ -65,6 +66,7 @@ Shader "SurfPool/StylizedWater"
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
                 half4 color : COLOR;
+                float2 uv1 : TEXCOORD1;
             };
 
             struct Varyings
@@ -74,6 +76,7 @@ Shader "SurfPool/StylizedWater"
                 float3 normalWS : TEXCOORD1;
                 half4 color : COLOR;
                 half fogFactor : TEXCOORD2;
+                half tube : TEXCOORD3;
             };
 
             float Hash(float2 p)
@@ -102,6 +105,7 @@ Shader "SurfPool/StylizedWater"
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 output.positionCS = TransformWorldToHClip(output.positionWS);
                 output.color = input.color;
+                output.tube = input.uv1.x;
                 output.fogFactor = ComputeFogFactor(output.positionCS.z);
                 return output;
             }
@@ -126,6 +130,9 @@ Shader "SurfPool/StylizedWater"
                 half lip = smoothstep(0.9, 1.0, hf);
                 water = lerp(water, _LipBright.rgb, lip * 0.85);
                 water = lerp(water, _TubeColor.rgb, inside * 0.7);
+                // Inside the tube: the lip roofs the face, so it sits in a deep teal shadow.
+                half tube = saturate(input.tube);
+                water = lerp(water, _TubeColor.rgb * 0.55, tube * 0.85);
 
                 // Foam from the vertex color, broken into cartoon blobs by two layers of moving noise. Old foam
                 // (low freshness) needs more to show and gets holes punched in it, so trails turn into lace.
@@ -146,18 +153,18 @@ Shader "SurfPool/StylizedWater"
                 half toon = lerp(0.6, 1.0, smoothstep(0.05, 0.5, ndl));
                 half shadow = lerp(0.65, 1.0, mainLight.shadowAttenuation);
                 half3 ambient = SampleSH(normal) * 0.45;
-                half3 color = albedo * (mainLight.color * toon * shadow + ambient);
+                half3 color = albedo * (mainLight.color * toon * shadow * (1.0 - 0.45 * tube) + ambient);
 
                 // Sun shining through a steep, thin face from behind it: a bright lagoon glow (strongest near the
                 // top, where the water is thinnest).
                 half behind = pow(saturate(dot(viewDir, -mainLight.direction) * 0.5 + 0.5), 3.0);
                 half thin = smoothstep(0.6, 1.0, hf) * saturate(0.4 + steep);
-                color += _GlowColor.rgb * mainLight.color * behind * thin * _GlowStrength * (1.0 - foam) * shadow;
+                color += _GlowColor.rgb * mainLight.color * behind * thin * _GlowStrength * (1.0 - foam) * shadow * (1.0 - tube);
 
                 // Hard-edged sun sparkle and a light rim at grazing angles, both only on open water.
                 half3 halfDir = normalize(mainLight.direction + viewDir);
                 half sparkle = step(0.5, pow(saturate(dot(normal, halfDir)), _SparkleSize));
-                color += mainLight.color * sparkle * 0.5 * (1.0 - foam);
+                color += mainLight.color * sparkle * 0.5 * (1.0 - foam) * (1.0 - tube);
                 half fresnel = pow(1.0 - saturate(dot(normal, viewDir)), _FresnelPower);
                 color = lerp(color, _FaceColor.rgb * 1.15, fresnel * 0.3 * (1.0 - foam));
 
