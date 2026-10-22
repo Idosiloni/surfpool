@@ -79,6 +79,7 @@ namespace SurfPool
             ("E", "Use (hold for jobs)"),
             ("J", "Journal"),
             ("B", "Build (R turn, X remove)"),
+            ("Alt", "Hold: the full HUD"),
             ("H", "Hide / show the HUD"),
             ("Tab", "Pause menu"),
             ("Esc", "Free the mouse"),

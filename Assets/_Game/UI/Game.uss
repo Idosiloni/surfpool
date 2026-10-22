@@ -3776,3 +3776,90 @@
 .tide--full .tide-crest {
     height: 30px;
 }
+
+/* ---------- Quiet HUD (docs/research/hud-less-is-more.md): money + level + clock + one mission line by default.
+   GameHud.Reveal pops the rest in for a few seconds when something rare happens, or while Alt is held / J. ---------- */
+.hud-reveal--enter {
+    opacity: 0;
+    translate: -10px 0;
+}
+
+.level-row,
+.rating-row,
+.income-rate,
+.event-label,
+.challenge-card,
+.park-panel,
+.goal-strip,
+.park-panel > .stat-row {
+    transition-property: opacity, translate, background-color;
+    transition-duration: 0.22s, 0.22s, 1.2s;
+    transition-timing-function: ease-out, ease-out, ease-out;
+}
+
+.level-badge--wallet {
+    width: 34px;
+    height: 34px;
+    border-radius: 17px;
+    font-size: 17px;
+    margin: 0 0 0 14px;
+    border-color: var(--sun-dark);
+}
+
+.status-card .day-row {
+    margin-top: 0;
+}
+
+.status-card .income-rate {
+    margin: 6px 0 0 0;
+}
+
+.status-card .level-row {
+    margin: 8px 0 0 0;
+}
+
+.status-card .rating-row {
+    margin-top: 6px;
+}
+
+/* The mission card's compact form: one line with what to do now. */
+.mission-line {
+    display: none;
+    flex-direction: row;
+    align-items: center;
+}
+
+.mission-line-icon {
+    width: 18px;
+    height: 18px;
+    margin: 0 8px 0 0;
+    -unity-background-image-tint-color: var(--coral);
+}
+
+.mission-line-text {
+    flex-shrink: 1;
+    font-size: 17px;
+    -unity-font-style: bold;
+    color: var(--ink);
+    white-space: normal;
+}
+
+.mission-card--compact {
+    width: auto;
+    max-width: 380px;
+    align-self: flex-start;
+    padding-top: 10px;
+    padding-bottom: 11px;
+}
+
+.mission-card--compact .mission-line {
+    display: flex;
+}
+
+.mission-card--compact .mission-strip,
+.mission-card--compact .mission-title,
+.mission-card--compact .mission-story,
+.mission-card--compact .mission-objectives,
+.mission-card--compact .mission-hint {
+    display: none;
+}

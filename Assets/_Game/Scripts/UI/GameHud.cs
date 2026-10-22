@@ -5,9 +5,12 @@ using UnityEngine.UIElements;
 namespace SurfPool
 {
     /// <summary>
-    /// The in-game HUD (UI Toolkit, Assets/_Game/UI/Hud.uxml + Game.uss): money with +/- popups and the wallet tide,
-    /// park rating stars, wave machine panel, park stats (rows flash in when they change), crosshair and [E] prompt,
-    /// toasts, and speech bubbles over surfers. H hides the panels (GameSettings.CleanHud).
+    /// The in-game HUD (UI Toolkit, Assets/_Game/UI/Hud.uxml + Game.uss). Quiet by default
+    /// (docs/research/hud-less-is-more.md): only money, the park level, the clock and a one-line mission are always on.
+    /// Everything else (<see cref="Reveal"/>) pops in for a few seconds when something rare happens (a level-up, a new
+    /// half star, a lost customer, the morning's event) and is all there while you hold Alt (peek) or open the journal
+    /// (J). Also: the wallet tide and +/- popups, the wave machine panel near a pool, crosshair and [E] prompt, toasts,
+    /// and speech bubbles over surfers. H hides the panels (GameSettings.CleanHud).
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class GameHud : MonoBehaviour
@@ -69,15 +72,63 @@ namespace SurfPool
         /// <summary>Park earnings over the last minute (the "+$/min" readout).</summary>
         public static int IncomePerMinute { get; private set; }
 
-        VisualElement promptBox, tide, tideCrest, servedRow;
-        Label promptKey;
+        VisualElement promptBox, tide, tideCrest, servedRow, missionLine;
+        Label promptKey, missionLineText;
         bool promptUp;
         string promptKeyName;
         float tideLevel, tideSlosh, tidePhase;
         bool tideFull;
         int tideDay = -1;
-        // Park panel rows that only show for a moment when their number changes: (last value, flash until).
-        readonly Dictionary<VisualElement, (int value, float until)> flashRows = new();
+
+        /// <summary>Test hook: acts as if Alt (peek) is held (simulated keys don't reach the game).</summary>
+        public static bool PeekOverride;
+        bool peek;
+        bool lastExpanded;
+        Reveal incomeReveal, levelReveal, ratingReveal, eventReveal, challengeReveal, goalReveal, parkReveal;
+        Reveal ticketReveal, servedReveal, lostReveal, trashReveal, billsReveal;
+        int lastXpStep = -1, lastHalfStars = -1, eventDay = -1, lostSeen = -1, trashStep;
+        string challengeSignature, goalId;
+
+        /// <summary>The full HUD: journal open (J) or Alt held (peek).</summary>
+        bool Expanded => journalOpen || peek;
+
+        /// <summary>
+        /// A HUD piece that stays hidden until something worth seeing happens: <see cref="Ping"/> shows it for a few
+        /// seconds (it pops in), and it's always up while the HUD is expanded or while <c>keep</c> is true.
+        /// </summary>
+        class Reveal
+        {
+            readonly VisualElement element;
+            float until = -1f, pingedAt = -10f;
+            bool shown;
+
+            public Reveal(VisualElement element)
+            {
+                this.element = element;
+                shown = element != null && !element.ClassListContains("hidden");
+            }
+
+            public bool Shown => shown;
+
+            /// <summary>Pinged in the last second (for a highlight).</summary>
+            public bool Fresh => Time.unscaledTime - pingedAt < 1f;
+
+            public void Ping(float seconds)
+            {
+                until = Mathf.Max(until, Time.unscaledTime + seconds);
+                pingedAt = Time.unscaledTime;
+            }
+
+            public void Update(bool allowed, bool expanded, bool keep = false)
+            {
+                if (element == null) return;
+                bool on = allowed && (expanded || keep || Time.unscaledTime < until);
+                if (on == shown) return;
+                shown = on;
+                if (on) UiMotion.Enter(element, "hud-reveal--enter");
+                else element.AddToClassList("hidden");
+            }
+        }
 
         void OnEnable()
         {
@@ -130,6 +181,20 @@ namespace SurfPool
             tide = root.Q("tide");
             tideCrest = root.Q("tideCrest");
             servedRow = root.Q("servedRow");
+            missionLine = root.Q("missionLine");
+            missionLineText = root.Q<Label>("missionLineText");
+            incomeReveal = new Reveal(incomeRate);
+            levelReveal = new Reveal(root.Q("levelRow"));
+            ratingReveal = new Reveal(root.Q("ratingRow"));
+            eventReveal = new Reveal(eventLabel);
+            challengeReveal = new Reveal(challengeCard);
+            goalReveal = new Reveal(goalStrip);
+            parkReveal = new Reveal(root.Q("parkPanel"));
+            ticketReveal = new Reveal(root.Q("ticketRow"));
+            servedReveal = new Reveal(servedRow);
+            lostReveal = new Reveal(lostRow);
+            trashReveal = new Reveal(trashRow);
+            billsReveal = new Reveal(billsRow);
 
             missionCard = root.Q("missionCard");
             missionObjectives = root.Q("missionObjectives");
@@ -189,9 +254,12 @@ namespace SurfPool
 
             UpdateMoneyAndRating();
             var keyboard = UnityEngine.InputSystem.Keyboard.current;
-            if (keyboard != null && keyboard.jKey.wasPressedThisFrame && !InputBlocker.Blocked)
+            if (keyboard != null && keyboard.jKey.wasPressedThisFrame && !InputBlocker.Blocked) journalOpen = !journalOpen;
+            // Peek: hold Alt to see the whole HUD for a moment.
+            peek = PeekOverride || (keyboard != null && (keyboard.leftAltKey.isPressed || keyboard.rightAltKey.isPressed) && !InputBlocker.Blocked);
+            if (Expanded != lastExpanded)
             {
-                journalOpen = !journalOpen;
+                lastExpanded = Expanded;
                 nextChallengeRefresh = 0f;
                 nextMissionRefresh = 0f;
             }
@@ -221,23 +289,34 @@ namespace SurfPool
             }
             else
             {
-                SetText(hint, "WASD move   ·   Shift sprint   ·   E use   ·   B build   ·   J journal   ·   Tab menu");
-                hint.EnableInClassList("hint--hidden", Time.timeSinceLevelLoad > hintSeconds);
+                SetText(hint, "WASD move   ·   Shift sprint   ·   E use   ·   hold Alt: full HUD   ·   J journal   ·   Tab menu");
+                // Only on the very first day (the keys are in the pause menu and Settings after that).
+                bool firstDay = DayCycle.Instance == null || DayCycle.Instance.Day <= 1;
+                hint.EnableInClassList("hint--hidden", !firstDay || Time.timeSinceLevelLoad > hintSeconds);
             }
         }
 
         void UpdateChallenges()
         {
+            // Today's challenges: in the journal, and for a few seconds whenever one moves forward.
             var challenges = DailyChallenges.Instance;
-            challengeCard.EnableInClassList("hidden", challenges == null || challenges.Today.Count == 0);
+            challengeReveal.Update(challenges != null && challenges.Today.Count > 0, Expanded);
             if (challenges == null || Time.unscaledTime < nextChallengeRefresh) return;
             nextChallengeRefresh = Time.unscaledTime + 0.5f;
             int done = 0;
-            foreach (var challenge in challenges.Today) if (challenge.done) done++;
-            SetText(challengeReward, journalOpen
+            var signature = new System.Text.StringBuilder();
+            foreach (var challenge in challenges.Today)
+            {
+                if (challenge.done) done++;
+                signature.Append(challenge.done).Append(challenge.Progress).Append(',');
+            }
+            string now = signature.ToString();
+            if (challengeSignature != null && now != challengeSignature) challengeReveal.Ping(4f);
+            challengeSignature = now;
+            SetText(challengeReward, Expanded
                 ? $"{MoneyText.Format(challenges.Reward)} + 30 XP each"
                 : $"{done}/{challenges.Today.Count} done  ·  J for details");
-            challengeList.EnableInClassList("hidden", !journalOpen);
+            challengeList.EnableInClassList("hidden", !Expanded);
             challengeList.Clear();
             foreach (var challenge in challenges.Today)
             {
@@ -266,7 +345,12 @@ namespace SurfPool
                 subscribedLevel = park;
             }
             SetText(levelLabel, park.Level.ToString());
-            SetText(xpLabel, $"{park.XpToNext:#,0} XP to level {park.Level + 1}");
+            // The XP bar shows up when you level up or pass another quarter of the way to the next level.
+            int step = park.Level * 4 + Mathf.FloorToInt(park.Progress * 4f);
+            if (lastXpStep >= 0 && step > lastXpStep) levelReveal.Ping(4.5f);
+            lastXpStep = step;
+            levelReveal.Update(true, Expanded);
+            SetText(xpLabel, $"Level {park.Level}  ·  {park.XpToNext:#,0} XP to level {park.Level + 1}");
             xpFill.style.width = Length.Percent(park.Progress * 100f);
             // What's coming: the next level that brings something (an upgrade or a perk pick).
             if (shop == null) shop = FindAnyObjectByType<UpgradeShop>();
@@ -276,6 +360,7 @@ namespace SurfPool
 
         void ShowLevelUp(int level)
         {
+            levelReveal.Ping(6f); // with the "next level brings..." line, it's a carrot right after a level-up
             if (shop == null) shop = FindAnyObjectByType<UpgradeShop>();
             var unlocked = shop != null ? shop.UnlockedAt(level) : new List<string>();
             // The banner, fanfare and fireworks come from Celebration; the toast keeps a record of what unlocked.
@@ -341,12 +426,23 @@ namespace SurfPool
                 foreach (var upgrade in shop.Upgrades)
                     if (!upgrade.owned && shop.RequirementMet(upgrade) && shop.LevelMet(upgrade) && (next == null || upgrade.cost < next.cost))
                         next = upgrade;
-            goalStrip.EnableInClassList("hidden", next == null || shop.IsOpen || BuildMode.Active || FishingSpot.Fishing);
+            // The mission line already shows Kai's plan (with its price), so the strip is for the side goal: up for 6 s
+            // when it changes, and while you can afford it ("Ready!"). Peek / journal shows it either way.
+            bool blocked = next == null || shop.IsOpen || BuildMode.Active || FishingSpot.Fishing;
+            var park = ParkLevel.Instance;
+            bool levelGated = next != null && park != null && !shop.LevelMet(next);
+            bool ready = next != null && !levelGated && wallet.Money >= next.cost;
+            string id = next?.id;
+            if (id != goalId)
+            {
+                if (goalId != null && !plan) goalReveal.Ping(6f);
+                goalId = id;
+            }
+            goalReveal.Update(!blocked, Expanded, !plan && ready);
             if (next == null) return;
             SetText(goalKicker, plan ? "KAI'S PLAN" : "NEXT GOAL");
             goalStrip.EnableInClassList("goal-strip--plan", plan);
-            var park = ParkLevel.Instance;
-            if (park != null && !shop.LevelMet(next))
+            if (levelGated)
             {
                 // The plan needs a higher park level first: show the XP still to earn.
                 int from = ParkLevel.XpForLevel(park.Level), to = ParkLevel.XpForLevel(next.level);
@@ -356,7 +452,6 @@ namespace SurfPool
                 goalStrip.EnableInClassList("goal-strip--ready", false);
                 return;
             }
-            bool ready = wallet.Money >= next.cost;
             SetText(goalName, next.title);
             SetText(goalAmount, ready ? "Ready! Buy it at the computer" : $"{MoneyText.Format(Mathf.Max(0, wallet.Money))} / {MoneyText.Format(next.cost)}");
             goalFill.style.width = Length.Percent(Mathf.Clamp01(wallet.Money / (float)next.cost) * 100f);
@@ -378,12 +473,20 @@ namespace SurfPool
                 IncomePerMinute = incomeLastMinute;
                 SetText(incomeRate, (incomeLastMinute >= 0 ? "+" : "") + MoneyText.Format(incomeLastMinute) + " / min");
             }
+            incomeReveal.Update(true, Expanded); // peek / journal only: it changes every few seconds in a busy park
             if (DayCycle.Instance != null)
                 SetText(dayLabel, $"Day {DayCycle.Instance.Day}  ·  {DayCycle.Instance.Clock}" + (DayCycle.Instance.ParkClosed
                     ? DayCycle.GuestsLeft > 0 ? $"  ·  CLOSED ({DayCycle.GuestsLeft} left)" : "  ·  CLOSED: end the day at the desk sign" : ""));
             var dayEvent = DailyEvents.Instance != null ? DailyEvents.Instance.Today : DayEvent.None;
             var wind = DailyEvents.TodayWind;
-            eventLabel.EnableInClassList("hidden", dayEvent == DayEvent.None && wind == Wind.Calm);
+            // Today's event and wind: shown for the first 8 s of each day, then only on peek / journal.
+            int day = DayCycle.Instance != null ? DayCycle.Instance.Day : 0;
+            if (day != eventDay)
+            {
+                eventDay = day;
+                eventReveal.Ping(8f);
+            }
+            eventReveal.Update(dayEvent != DayEvent.None || wind != Wind.Calm, Expanded);
             string today = dayEvent == DayEvent.None ? DailyEvents.WindTitle(wind)
                 : wind == Wind.Calm ? DailyEvents.Title(dayEvent) : DailyEvents.Title(dayEvent) + "  ·  " + DailyEvents.WindTitle(wind);
             SetText(eventLabel, "Today: " + today);
@@ -391,7 +494,12 @@ namespace SurfPool
             {
                 stars.Stars = ParkReputation.Instance.Stars;
                 SetText(ratingLabel, ParkReputation.Instance.Stars.ToString("0.0"));
+                // The stars show up when the rating reaches a new half star (up or down).
+                int halves = Mathf.RoundToInt(ParkReputation.Instance.Stars * 2f);
+                if (lastHalfStars >= 0 && halves != lastHalfStars) ratingReveal.Ping(4f);
+                lastHalfStars = halves;
             }
+            ratingReveal.Update(ParkReputation.Instance != null, Expanded);
         }
 
         /// <summary>The wave machine of the open pool closest to the player.</summary>
@@ -437,7 +545,12 @@ namespace SurfPool
             waveBarFill.style.width = Length.Percent(machine.ReadyProgress * 100f);
             waveBarFill.EnableInClassList("bar-fill--charging", !machine.Ready);
             var service = machine.Service;
-            waveStatus.EnableInClassList("small-text--alert", service != null && service.NeedsService);
+            bool alert = service != null && service.NeedsService;
+            // Just the wave and its charge bar; the lines below come up when they need you (service, choppy water)
+            // or while you peek (Alt) / open the journal (J).
+            waveStatus.EnableInClassList("hidden", !(alert || Expanded));
+            waveAuto.EnableInClassList("hidden", !Expanded);
+            waveStatus.EnableInClassList("small-text--alert", alert);
             if (service != null && service.Broken)
                 SetText(waveStatus, "BROKEN! Hold E at the machine house");
             else if (service != null && service.NeedsService)
@@ -454,6 +567,7 @@ namespace SurfPool
             // Leftover chop: waves bouncing off the beach. Give it a lull and the water goes glassy again.
             float chop = machine.Pool.Water != null ? machine.Pool.Water.Chop : 0f;
             SetText(waveWater, chop < 0.15f ? "Water: glassy" : chop < 0.45f ? "Water: settling..." : "Water: choppy - give it a lull");
+            waveWater.EnableInClassList("hidden", !(chop >= 0.45f || Expanded));
             waveWater.EnableInClassList("water-line--glassy", chop < 0.15f);
             waveWater.EnableInClassList("water-line--choppy", chop >= 0.45f);
         }
@@ -465,10 +579,16 @@ namespace SurfPool
                 SetText(ticketValue, SessionPrices());
                 SetText(rentalValue, MoneyText.Format(pricing.RentalPrice));
             }
+            // The Park panel is empty most of the time: rows come in on peek / journal, lost customers and piles of
+            // trash pop in when they happen, and today's bills from 6 PM. The panel itself only shows with a row in it.
+            ticketReveal.Update(true, Expanded);
             if (spawner != null)
             {
-                Flash(servedRow, spawner.Served, false);
-                Flash(lostRow, spawner.Lost, false);
+                if (lostSeen >= 0 && spawner.Lost > lostSeen) lostReveal.Ping(4f);
+                lostSeen = spawner.Lost;
+                servedReveal.Update(spawner.Served > 0, Expanded);
+                lostReveal.Update(spawner.Lost > 0, Expanded);
+                lostRow.EnableInClassList("stat-row--flash", lostReveal.Fresh);
                 SetText(servedValue, spawner.Served.ToString());
                 SetText(lostValue, spawner.Lost.ToString());
                 lostValue.EnableInClassList("stat-value--bad", spawner.Lost > 0);
@@ -480,27 +600,18 @@ namespace SurfPool
                 SetText(wagesValue, MoneyText.Format(wages) + "/min");
             }
             int trash = Trash.All.Count;
-            Flash(trashRow, trash, trash > 5); // lots of trash stays up: it needs you
+            if (trash / 5 > trashStep && trash >= 5) trashReveal.Ping(4f); // every 5 more pieces of trash
+            trashStep = trash / 5;
+            trashReveal.Update(trash > 0, Expanded);
+            trashRow.EnableInClassList("stat-row--flash", trashReveal.Fresh);
+            bool evening = DayCycle.Instance != null && (DayCycle.Instance.Progress >= 10f / 12f || DayCycle.Instance.ParkClosed);
+            billsReveal.Update(true, Expanded, evening);
+            parkReveal.Update(true, false, ticketReveal.Shown || servedReveal.Shown || lostReveal.Shown || trashReveal.Shown || billsReveal.Shown);
             SetText(trashValue, trash.ToString());
             trashValue.EnableInClassList("stat-value--bad", trash > 5);
             var costs = OperatingCosts.Instance;
             if (costs != null && DayCycle.Instance != null)
                 SetText(billsValue, MoneyText.Format(costs.EstimateToday(DayCycle.Instance.IncomeToday)));
-        }
-
-        /// <summary>
-        /// A Park panel row that only shows for a few seconds when its number changes (lit up for the first second),
-        /// so the panel stays short. Always shown while the journal (J) is open, or when <paramref name="keep"/>.
-        /// </summary>
-        void Flash(VisualElement row, int value, bool keep)
-        {
-            if (row == null) return;
-            float now = Time.unscaledTime;
-            if (!flashRows.TryGetValue(row, out var state)) state = (value, -1f); // first look (e.g. after loading): no flash
-            else if (value != state.value) state = (value, now + 4f);
-            flashRows[row] = state;
-            row.EnableInClassList("stat-row--flash", now < state.until - 3f);
-            row.EnableInClassList("hidden", value == 0 || !(now < state.until || keep || journalOpen));
         }
 
         void ApplyClean() => root?.Q("hudRoot")?.EnableInClassList("hud-root--clean", GameSettings.CleanHud);
@@ -704,10 +815,10 @@ namespace SurfPool
             nextMissionRefresh = Time.unscaledTime + 0.25f;
             if (mission != shownMission) missionShownAt = Time.unscaledTime;
             shownMission = mission;
-            // Compact unless you open the journal (J), the mission just started, or you're still in the tutorial chapter.
-            bool details = journalOpen || Time.unscaledTime - missionShownAt < 12f || missions.Index < 6;
-            missionStory.EnableInClassList("hidden", !details);
-            missionHint.EnableInClassList("hidden", !details);
+            // One line (what to do right now) unless the mission just started (8 s), or you peek (Alt) / open the journal (J).
+            bool details = Expanded || Time.unscaledTime - missionShownAt < 8f;
+            missionCard.EnableInClassList("mission-card--compact", !details);
+            SetText(missionLineText, MissionLine(mission));
             SetText(missionChapter, mission.chapter.ToUpperInvariant());
             SetText(missionTitle, mission.title);
             SetText(missionStory, mission.story);
@@ -727,6 +838,30 @@ namespace SurfPool
                 row.Add(text);
                 missionObjectives.Add(row);
             }
+        }
+
+        /// <summary>"Buy the Turbo Pump  ·  $40 / $75   1/3": the next step, its money if it's an upgrade, and how far along.</summary>
+        string MissionLine(Mission mission)
+        {
+            Objective next = null;
+            int done = 0;
+            foreach (var objective in mission.objectives)
+            {
+                if (objective.Done) done++;
+                else next ??= objective;
+            }
+            if (next == null) return mission.title;
+            string line = next.text + next.Progress;
+            var upgrade = shop != null ? PlanUpgrade() : null;
+            if (upgrade != null && wallet != null)
+            {
+                if (!shop.LevelMet(upgrade)) line += $"  ·  park level {upgrade.level}";
+                else if (upgrade.id != next.upgradeId) line += $"  ·  first: {upgrade.title}";
+                else line += wallet.Money >= upgrade.cost ? "  ·  ready at the computer!"
+                    : $"  ·  {MoneyText.Format(Mathf.Max(0, wallet.Money))} / {MoneyText.Format(upgrade.cost)}";
+            }
+            if (mission.objectives.Count > 1) line += $"   {done}/{mission.objectives.Count}";
+            return line;
         }
 
         void ShowMissionBanner(Mission mission) =>
