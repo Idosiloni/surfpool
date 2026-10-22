@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace SurfPool
@@ -416,6 +417,29 @@ namespace SurfPool
             return transform.TransformPoint(new Vector3(local.x, LocalHeight(local.x, local.z, Now), local.z)).y;
         }
 
+        // Profiler markers: the water is the most expensive script in a big park, so its steps show up by name.
+        static readonly ProfilerMarker StatesMarker = new("WaveWater.States"), SurfaceMarker = new("WaveWater.Surface"),
+            UploadMarker = new("WaveWater.Upload"), NormalsMarker = new("WaveWater.Normals"), LipMarker = new("WaveWater.Lip"),
+            SprayMarker = new("WaveWater.Spray");
+
+        float pendingFade; // foam fade time saved up over frames the mesh skipped
+        static int nextFrameOffset;
+        int frameOffset = -1;
+
+        /// <summary>
+        /// Far pools refresh their mesh less often (you can't see that detail from there): every 2nd frame from 50 m,
+        /// every 3rd from 110 m. Pools take turns, so they don't all update on the same frame.
+        /// </summary>
+        bool SkipThisFrame()
+        {
+            var cam = Camera.main;
+            if (cam == null) return false;
+            float distance = Mathf.Sqrt(surfaceRenderer.bounds.SqrDistance(cam.transform.position));
+            int every = distance < 50f ? 1 : distance < 110f ? 2 : 3;
+            if (frameOffset < 0) frameOffset = nextFrameOffset++ % 6;
+            return (Time.frameCount + frameOffset) % every != 0;
+        }
+
         void Update()
         {
             float t = Now;
@@ -434,27 +458,35 @@ namespace SurfPool
                 }
                 Chop = Mathf.Clamp01(Chop * Mathf.Pow(0.5f, Time.deltaTime / Mathf.Max(0.1f, chopHalfLife)) + added);
             }
-            UpdateStates(t);
+            using (StatesMarker.Auto()) UpdateStates(t);
 
             // Foam stays where it was made and fades over foamLinger seconds, leaving lacy trails behind the
             // wave. Vertex color: R = foam, G = face brightness, B = shallowness (beach end), A = foam freshness
             // (1 = just made, toward 0 = old foam the shader breaks into lace).
             // Nobody looking (another pool, or behind you): skip the mesh. Surfers ride on SurfaceHeightAt, not the mesh.
             if (surfaceRenderer == null) surfaceRenderer = GetComponent<MeshRenderer>();
-            if (surfaceRenderer != null && !surfaceRenderer.isVisible && !replaying)
+            pendingFade += Dt;
+            if (surfaceRenderer != null && (!surfaceRenderer.isVisible || SkipThisFrame()) && !replaying)
             {
-                EmitSpray();
+                using (SprayMarker.Auto()) EmitSpray();
                 return;
             }
-            UpdateSurface(t, Dt / Mathf.Max(0.1f, foamLinger));
-            mesh.vertices = vertices;
-            mesh.colors = colors;
-            mesh.uv2 = tubeShade; // tube shadow + foam lines down the face for the shader (TEXCOORD1)
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
+            using (SurfaceMarker.Auto()) UpdateSurface(t, pendingFade / Mathf.Max(0.1f, foamLinger));
+            pendingFade = 0f;
+            using (UploadMarker.Auto())
+            {
+                mesh.vertices = vertices;
+                mesh.colors = colors;
+                mesh.uv2 = tubeShade; // tube shadow + foam lines down the face for the shader (TEXCOORD1)
+            }
+            using (NormalsMarker.Auto())
+            {
+                mesh.RecalculateNormals();
+                mesh.RecalculateBounds();
+            }
 
-            BuildLip(t);
-            EmitSpray();
+            using (LipMarker.Auto()) BuildLip(t);
+            using (SprayMarker.Auto()) EmitSpray();
         }
 
         // ---- the per-frame surface, fast: the same math as LocalHeight + Foam, but what only depends on the row (z)
@@ -468,6 +500,44 @@ namespace SurfPool
         RowTerms[] rowTerms = new RowTerms[0];
         Vector2[] tubeShade = new Vector2[0];
         ColTerms[] colTerms = new ColTerms[0];
+
+        const int RowsPerBatch = 6;
+        float surfaceT, surfaceFade;
+        int surfaceCount;
+        System.Action<int> surfaceRows;
+
+        /// <summary>One batch of rows of the surface (runs on a worker thread: no Unity objects in here).</summary>
+        void SurfaceRows(int batch)
+        {
+            int nx = gridX, nz = gridZ, count = surfaceCount;
+            float t = surfaceT, fade = surfaceFade;
+            for (int iz = batch * RowsPerBatch, end = Mathf.Min(nz, iz + RowsPerBatch); iz < end; iz++)
+            {
+                float edgeScale = rowEdge[iz], zSin = rowSin[iz];
+                for (int ix = 0; ix < nx; ix++)
+                {
+                    int i = iz * nx + ix;
+                    Vector3 v = baseVertices[i];
+                    float h = colSin[ix] * zSin + colBackwash[ix], foam = 0f, face = 0f, shade = 0f, drip = 0f;
+                    for (int k = 0; k < colCount[ix]; k++)
+                    {
+                        int c = ix * count + k, s = colStates[c];
+                        Sample(stateArray[s], rowTerms[s * nz + iz], colTerms[c], v.x, v.z, t, edgeScale, out float height, out float f, out float g, out float sh, out float dr);
+                        h += height;
+                        foam = Mathf.Max(foam, f);
+                        face = Mathf.Max(face, g);
+                        shade = Mathf.Max(shade, sh);
+                        drip = Mathf.Max(drip, dr);
+                    }
+                    v.y = h;
+                    vertices[i] = v;
+                    float fresh = Mathf.Clamp01(foam);
+                    float memory = foamMemory[i] = Mathf.Max(fresh, foamMemory[i] - fade);
+                    colors[i] = new Color(memory, face, colShallow[ix], memory > 0.001f ? fresh / memory : 1f);
+                    tubeShade[i] = new Vector2(shade, drip);
+                }
+            }
+        }
 
         void UpdateSurface(float t, float fade)
         {
@@ -511,32 +581,13 @@ namespace SurfPool
                 colCount[ix] = n;
             }
 
-            for (int iz = 0; iz < nz; iz++)
-            {
-                float edgeScale = rowEdge[iz], zSin = rowSin[iz];
-                for (int ix = 0; ix < nx; ix++)
-                {
-                    int i = iz * nx + ix;
-                    Vector3 v = baseVertices[i];
-                    float h = colSin[ix] * zSin + colBackwash[ix], foam = 0f, face = 0f, shade = 0f, drip = 0f;
-                    for (int k = 0; k < colCount[ix]; k++)
-                    {
-                        int c = ix * count + k, s = colStates[c];
-                        Sample(stateArray[s], rowTerms[s * nz + iz], colTerms[c], v.x, v.z, t, edgeScale, out float height, out float f, out float g, out float sh, out float dr);
-                        h += height;
-                        foam = Mathf.Max(foam, f);
-                        face = Mathf.Max(face, g);
-                        shade = Mathf.Max(shade, sh);
-                        drip = Mathf.Max(drip, dr);
-                    }
-                    v.y = h;
-                    vertices[i] = v;
-                    float fresh = Mathf.Clamp01(foam);
-                    float memory = foamMemory[i] = Mathf.Max(fresh, foamMemory[i] - fade);
-                    colors[i] = new Color(memory, face, colShallow[ix], memory > 0.001f ? fresh / memory : 1f);
-                    tubeShade[i] = new Vector2(shade, drip);
-                }
-            }
+            // The vertices: every row is independent and Sample only reads, so the rows are shared out over all the
+            // CPU cores (in a big park this loop is most of the frame).
+            surfaceT = t;
+            surfaceFade = fade;
+            surfaceCount = count;
+            surfaceRows ??= SurfaceRows;
+            System.Threading.Tasks.Parallel.For(0, (nz + RowsPerBatch - 1) / RowsPerBatch, surfaceRows);
         }
 
         void UpdateStates(float t)
