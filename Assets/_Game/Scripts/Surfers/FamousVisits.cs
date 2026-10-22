@@ -29,6 +29,18 @@ namespace SurfPool
 
         public static int Visits { get; set; }
 
+        /// <summary>The story's last mission wants Uncle Kai at the gate (set by MissionManager while it's current).</summary>
+        public static bool KaiExpected { get; set; }
+
+        /// <summary>Kai rode his wave and said goodbye: the homecoming happened (the last mission reads it).</summary>
+        public static bool KaiHome { get; private set; }
+
+        /// <summary>The legend in the park right now, if any (missions point at them).</summary>
+        public static Surfer Current => instance != null ? instance.current : null;
+
+        float nextKai = -1f;
+        bool kaiInPark;
+
         void OnEnable() => instance = this;
 
         void OnDisable()
@@ -37,11 +49,28 @@ namespace SurfPool
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() => Visits = 0;
+        static void ResetStatics()
+        {
+            Visits = 0;
+            KaiExpected = KaiHome = false;
+        }
 
         void Update()
         {
-            if (current != null || !DayCycle.Open) return;
+            if (current != null) return;
+            if (kaiInPark && !KaiHome)
+                Notifications.Post("Uncle Kai went to get a shave ice. He'll be back soon.", Notice.Info);
+            kaiInPark = false;
+            if (!DayCycle.Open) return;
+            // The ending: Kai comes home (any day the gates are open, until he has had his wave).
+            if (KaiExpected && !KaiHome)
+            {
+                if (nextKai < 0f) nextKai = Time.time + 8f;
+                if (Time.time < nextKai) return;
+                nextKai = Time.time + 120f;
+                Arrive(FamousSurfers.Kai);
+                return;
+            }
             int level = ParkLevel.Instance != null ? ParkLevel.Instance.Level : 1;
             if (shop == null) shop = FindAnyObjectByType<UpgradeShop>();
             if (level < firstLevel || shop == null || !shop.IsOwned("pro_waves")) return;
@@ -73,10 +102,16 @@ namespace SurfPool
             surfer.Init(spawner, false);
             surfer.MakeFamous(legend);
             current = surfer;
-            recent.Add(legend.id);
-            if (recent.Count > 3) recent.RemoveAt(0);
             Sfx.Play(Sound.PaChime, null, 0.8f);
             Sfx.Play(Sound.Cheer, spawner.Entrance, 0.8f);
+            if (legend == FamousSurfers.Kai)
+            {
+                kaiInPark = true;
+                Notifications.Post("★ Uncle Kai is home! He's at the gate with his old board. Sell him a session (he insists on paying).", Notice.Reward);
+                return surfer;
+            }
+            recent.Add(legend.id);
+            if (recent.Count > 3) recent.RemoveAt(0);
             Notifications.Post($"★ {legend.FullName} just walked in! Sell them a Pro session.", Notice.Reward);
             return surfer;
         }
@@ -86,6 +121,16 @@ namespace SurfPool
         {
             var legend = surfer.Famous;
             Visits++;
+            if (legend == FamousSurfers.Kai)
+            {
+                // Family: however the session went, he's home. The story ends here (the game keeps going).
+                KaiHome = true;
+                Sfx.Play(Sound.CashBig);
+                Sfx.Play(Sound.Cheer, surfer.transform.position, 1f);
+                Notifications.Post("Uncle Kai rode the Surf Ranch. The whole park stood up and cheered.", Notice.Reward);
+                if (StoryScreen.Instance != null) StoryScreen.Instance.ShowEnding();
+                return legend.endLines[Random.Range(0, legend.endLines.Length)];
+            }
             if (happiness <= 0.5f)
             {
                 Notifications.Post($"{legend.FullName} left unimpressed...", Notice.Bad);

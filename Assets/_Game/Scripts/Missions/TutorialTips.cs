@@ -60,7 +60,7 @@ namespace SurfPool
             new("kai_pro", () => Owns("pro_waves"), "Pro waves! The pros will ask for barrels next. Give them barrels.", "Portugal"),
             new("kai_second_pool", () => Owns("pool_reef"), "A reef across the sandbar?! When I left you could barely patch the old pool. I cried a little. Good tears.", "Morocco"),
             new("kai_level20", () => Level >= 20, "A surf camp bus stopped me and asked for directions to {0}. ME!", "Australia"),
-            new("kai_home", () => Owns("pool_ranch"), "Booked a ticket home. Save me a wave on that long strip of yours, kiddo.", "a plane"),
+            new("kai_home", () => Owns("pool_ranch"), "A foil on a rail, one wave down a 150 m strip?! I saw the photos. I'm dusting off my old board.", "a sailboat"),
         };
 
         float nextAt;

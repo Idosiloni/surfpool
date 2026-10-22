@@ -23,6 +23,22 @@ namespace SurfPool
             "I left you some notes along the way, and I'll send you postcards. Follow them.\n\n" +
             "P.S. Over the years I lost 12 of my treasures around the island. Look for the glowing lights on the sand!";
 
+        // The ending (MissionManager "kai_home"): Kai is back and has ridden his wave. {0} = the park's name.
+        const string Ending =
+            "Kiddo,\n\n" +
+            "Thirty years ago I dug a hole in the sand, poured some concrete and dreamed about waves. Today I rode the " +
+            "longest wave of my life in it, and the whole park cheered.\n\n" +
+            "Look at {0}! Legends in the lineup, a wave that runs forever, and that rival down the coast copying " +
+            "everything you do. You didn't just fix up my old pool. You built the best surf park in the world.\n\n" +
+            "I'm staying around for a while. Somebody has to teach the groms to duck dive. But the park is yours. " +
+            "It always was.\n\n" +
+            "P.S. Splash Valley called. They want to know your secret. I told them: stay humble, stay stoked.";
+
+        public static StoryScreen Instance { get; private set; }
+
+        Label heading, body, signature;
+        Button button;
+        bool ending;
         VisualElement root;
         bool open;
 
@@ -30,10 +46,35 @@ namespace SurfPool
 
         void OnEnable()
         {
+            Instance = this;
             var doc = GetComponent<UIDocument>().rootVisualElement;
             root = doc.Q("storyRoot");
-            doc.Q<Label>("storyBody").text = Letter;
-            doc.Q<Button>("storyButton").clicked += Close;
+            heading = doc.Q<Label>("storyHeading");
+            body = doc.Q<Label>("storyBody");
+            signature = doc.Q<Label>("storySignature");
+            button = doc.Q<Button>("storyButton");
+            body.text = Letter;
+            button.clicked += Close;
+        }
+
+        void OnDisable()
+        {
+            if (Instance == this) Instance = null;
+        }
+
+        /// <summary>Kai's last letter: the story's ending, after he has ridden his wave. Closing it just goes back to the park.</summary>
+        public void ShowEnding()
+        {
+            if (open || root == null) return;
+            ending = true;
+            heading.text = "Welcome home, Uncle Kai";
+            body.text = string.Format(Ending, ParkName.Name);
+            signature.text = "Aloha, Uncle Kai";
+            button.text = "Keep surfing!";
+            open = true;
+            InputBlocker.Block();
+            FirstPersonController.LockCursor(false);
+            Sfx.Play(Sound.UiOpen);
         }
 
         void Start()
@@ -68,6 +109,11 @@ namespace SurfPool
             UiMotion.Hide(root);
             InputBlocker.Release();
             FirstPersonController.LockCursor(true);
+            if (ending)
+            {
+                ending = false;
+                return;
+            }
             // Next: name the park, then the missions start.
             if (ParkNamer.Instance != null) ParkNamer.Instance.Open(true, BeginMissions);
             else BeginMissions();

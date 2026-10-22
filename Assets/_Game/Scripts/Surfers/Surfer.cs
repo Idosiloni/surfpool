@@ -289,7 +289,7 @@ namespace SurfPool
         {
             Famous = legend;
             Skill = WaveLevel.Pro;
-            visit.name = legend.name.Split(' ')[0];
+            visit.name = legend.FirstName;
             visit.famous = true;
             visit.skill = WaveLevel.Pro;
             archetype = legend.type;

@@ -29,6 +29,10 @@ namespace SurfPool
         public Func<Transform> marker;
         public int reward;
         public List<Objective> objectives = new();
+        /// <summary>A letter for the Mail tab when this mission starts (story beats from other people). Optional.</summary>
+        public string mail;
+        /// <summary>Runs every frame while this is the current mission (e.g. the ending calls Kai to the gate).</summary>
+        public Action whileActive;
 
         public bool Done => objectives.TrueForAll(o => o.Done);
     }
@@ -93,7 +97,9 @@ namespace SurfPool
         void Update()
         {
             var mission = Current;
-            if (mission == null || !mission.Done) return;
+            if (mission == null) return;
+            mission.whileActive?.Invoke();
+            if (!mission.Done) return;
             if (mission.reward > 0) Wallet.Instance.Add(mission.reward, "mission reward");
             Notifications.Post($"Mission complete: {mission.title}!", Notice.Reward);
             Sfx.Play(Sound.Mission);
@@ -101,6 +107,8 @@ namespace SurfPool
             Sfx.Duck();
             Completed?.Invoke(mission);
             current++;
+            var next = Current;
+            if (next?.mail != null) Notifications.Post(string.Format(next.mail, ParkName.Name), Notice.Info);
         }
 
         static Objective Count(string text, Func<long> value, long target) => new() { text = text, current = value, target = target };
@@ -120,7 +128,10 @@ namespace SurfPool
             const string ch1 = "Chapter 1 · The Grand Reopening";
             const string ch2 = "Chapter 2 · Word Gets Around";
             const string ch3 = "Chapter 3 · The Pro Tour";
-            const string ch4 = "Chapter 4 · World-Class Surf Park";
+            const string ch4 = "Chapter 4 · Legends";
+            const string ch5 = "Chapter 5 · The Big One";
+            const string ch6 = "Chapter 6 · Kai Comes Home";
+            int Level() => ParkLevel.Instance != null ? ParkLevel.Instance.Level : 1;
 
             missions.Add(new Mission
             {
@@ -257,16 +268,83 @@ namespace SurfPool
 
             missions.Add(new Mission
             {
+                id = "first_legend", chapter = ch4, title = "A legend drops in", reward = 8000,
+                story = "Word is out: real surf legends want to ride here. When one walks in, sell them a Pro session and send them your best waves. They tell everyone.",
+                hint = "From park level 15, with Pro waves, a legend walks in every few minutes.",
+                objectives =
+                {
+                    Count("Reach park level 15", () => Level(), 15),
+                    Count("Host a surf legend", () => FamousVisits.Visits, 1),
+                },
+            });
+            missions.Add(new Mission
+            {
                 id = "world_class", chapter = ch4, title = "World-class", reward = 50000,
-                story = "Look at this place! Let's make it the best surf park in the world.",
-                hint = "Serve lots of surfers, keep 5 stars, and open more zones.",
+                story = "Look at this place! Legends in the lineup and a line at the gate. Let's make it feel like a real resort.",
+                hint = "Keep surfers happy for 5 stars. The park gets fancier as your total earnings grow.",
                 objectives =
                 {
                     Count("Give 300 full sessions", () => GameStats.SurfersServed, 300),
                     Flag("Reach a 5-star rating", () => ParkReputation.Instance != null && ParkReputation.Instance.Stars >= 5f),
-                    Flag("Open 3 zones", () => PoolRegistry.OpenPools >= Mathf.Min(3, PoolRegistry.TotalPools) && PoolRegistry.TotalPools > 1), // main, Reef, Lagoon (the Cove and the Ranch come later)
-                    Count("Earn $500,000 in total", () => GameStats.TotalEarned, 500000),
+                    Flag("Become a resort (earn $150,000 in total)", () => ParkGlowUp.TierFor(GameStats.TotalEarned) >= 2),
                 },
+            });
+
+            // Chapter 5: a rival park down the coast notices you.
+            missions.Add(new Mission
+            {
+                id = "rival", chapter = ch5, title = "Splash Valley", reward = 20000,
+                mail = "Letter from Chad Waverly, Splash Valley Resort: \"Cute little pool, {0}. Ours has the biggest waves on the coast. Call us when you've got a real one.\"",
+                story = "A slick rival resort says your waves are tiny. Dig the Big Wave zone behind the grandstand and show them what big means.",
+                hint = "The Big Wave zone is in the Pools tab (park level 20). Its Pro waves can be Big or Giant.",
+                marker = () => upgradeComputer,
+                objectives =
+                {
+                    Owns("Dig the Big Wave zone", "pool_lagoon"),
+                    Count("See 30 tube rides", () => GameStats.TubeRides, 30),
+                },
+            });
+            missions.Add(new Mission
+            {
+                id = "the_cove", chapter = ch5, title = "Rights and lefts", reward = 40000,
+                mail = "Postcard from Uncle Kai (Peru): \"Saw Splash Valley's ad on a bus. Their wave goes one way. Make yours go both.\"",
+                story = "A pier of wave paddles that makes a right on one side and a left on the other, every set. Splash Valley has nothing like it.",
+                hint = "The Cove is in the Pools tab (park level 22).",
+                marker = () => upgradeComputer,
+                objectives =
+                {
+                    Owns("Build the Cove", "pool_cove"),
+                    Count("Give 600 full sessions", () => GameStats.SurfersServed, 600),
+                },
+            });
+
+            // Chapter 6: the longest wave, the showdown, and Kai's homecoming (the ending; the game goes on after).
+            missions.Add(new Mission
+            {
+                id = "the_ranch", chapter = ch6, title = "The longest wave", reward = 0,
+                story = "One last dream from Kai's notebook: a 150 m strip where a foil drags one perfect wave down the line. Build it.",
+                hint = "The Surf Ranch is in the Pools tab (park level 25).",
+                marker = () => upgradeComputer,
+                objectives = { Owns("Build the Surf Ranch", "pool_ranch") },
+            });
+            missions.Add(new Mission
+            {
+                id = "showdown", chapter = ch6, title = "The showdown", reward = 100000,
+                mail = "Letter from Chad Waverly: \"Fine. One judged ride each, winner is the best park on the coast. I scored a 7.20. Your move.\"",
+                story = "Splash Valley wants a showdown: one judged ride each. Chad scored 7.20. Grab your board, ride a Pro wave and beat him.",
+                hint = "Your own rides are judged 0-10: speed, big turns, flow, different moves, combos, barrels. Only Pro waves can score that high.",
+                marker = () => surfPeg,
+                objectives = { Flag("Beat Chad's 7.20 on a judged ride", () => GameStats.BestJudgeScore > 7.2f) },
+            });
+            missions.Add(new Mission
+            {
+                id = "kai_home", chapter = ch6, title = "Kai comes home",
+                mail = "Postcard from Uncle Kai (a plane): \"Heard about the showdown. Landing tomorrow. Save me a wave, kiddo.\"",
+                story = "A taxi is coming up the road. Uncle Kai is home! Sell him a session and give him the wave of his life.",
+                hint = "He comes in at the gate while the park is open, like any surfer.",
+                marker = () => FamousVisits.Current != null && FamousVisits.Current.Famous == FamousSurfers.Kai ? FamousVisits.Current.transform : ticketRegister,
+                whileActive = () => FamousVisits.KaiExpected = true,
+                objectives = { Flag("Welcome Uncle Kai home", () => FamousVisits.KaiHome) },
             });
         }
     }

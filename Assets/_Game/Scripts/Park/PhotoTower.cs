@@ -189,7 +189,7 @@ namespace SurfPool
                 {
                     bestScore = score;
                     best = surfer;
-                    bestReason = surfer.Famous != null && moment >= 0.85f ? $"{surfer.Famous.nickname} in action!" : reason;
+                    bestReason = surfer.Famous != null && moment >= 0.85f ? $"{(string.IsNullOrEmpty(surfer.Famous.nickname) ? surfer.Famous.FullName : surfer.Famous.nickname)} in action!" : reason;
                 }
             }
             int grade = bestScore >= 0.82f ? 3 : bestScore >= 0.62f ? 2 : bestScore >= 0.45f ? 1 : 0;

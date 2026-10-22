@@ -13,7 +13,11 @@ namespace SurfPool
         public Color board;
         public System.Func<CharacterLook> look;
 
-        public string FullName => $"{name.Split(' ')[0]} \"{nickname}\" {name.Substring(name.IndexOf(' ') + 1)}";
+        public string FullName => string.IsNullOrEmpty(nickname) ? name : $"{name.Split(' ')[0]} \"{nickname}\" {name.Substring(name.IndexOf(' ') + 1)}";
+
+        /// <summary>What reviews and bubbles call them (Uncle Kai is just "Kai").</summary>
+        public string FirstName => firstName ?? name.Split(' ')[0];
+        public string firstName;
     }
 
     /// <summary>
@@ -118,6 +122,24 @@ namespace SurfPool
             },
         };
 
-        public static FamousSurfer Find(string id) => System.Array.Find(Roster, f => f.id == id);
+        public static FamousSurfer Find(string id) => id == Kai.id ? Kai : System.Array.Find(Roster, f => f.id == id);
+
+        /// <summary>
+        /// Uncle Kai himself, home from his travels for the story's ending (MissionManager "kai_home"). Not in the
+        /// roster, so he never drops by at random.
+        /// </summary>
+        public static readonly FamousSurfer Kai = new()
+        {
+            id = "kai", name = "Uncle Kai", firstName = "Kai", nickname = "", type = Archetype.Local, level = 99,
+            signature = "OLD-SCHOOL CUTBACK!", board = Hex("#C9A15A"),
+            catchLines = new[] { "Thirty years and she still pumps!", "Watch the old man go!", "This one's for you, kiddo!" },
+            endLines = new[] { "Best wave of my life.", "You did it, kiddo.", "Now THAT's a surf park." },
+            look = () => new CharacterLook
+            {
+                skin = CharacterLooks.Skins[2], hair = Hex("#D8D4CC"), hairStyle = CharacterLooks.Short, outfit = Outfit.Tee,
+                top = Hex("#2FB8A8"), topPattern = Pattern.Hibiscus, bottom = Hex("#E8D5A8"), hat = CharacterLooks.Bucket,
+                hatColor = Hex("#E8D5A8"), beard = true, mood = Face.Happy, voice = 0.82f, width = 1.06f, height = 0.98f,
+            },
+        };
     }
 }
