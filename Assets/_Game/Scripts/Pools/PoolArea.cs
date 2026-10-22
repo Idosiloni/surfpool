@@ -17,6 +17,8 @@ namespace SurfPool
         {
             public string name;
             public float length, width;
+            [Tooltip("The beach corners' curve at this size (see WaveWater.beachCorner).")]
+            public Vector2 beachCorner;
             [Tooltip("Walls, floor, beach and the deck that fills the not-yet-dug part, for this size.")]
             public GameObject visuals;
         }
@@ -123,7 +125,7 @@ namespace SurfPool
             var waterPosition = water.transform.position;
             waterPosition.z = southEdge + size.width / 2f;
             water.transform.position = waterPosition;
-            water.Resize(size.length, size.width);
+            water.Resize(size.length, size.width, size.beachCorner);
 
             // The lineup sits in the middle of the new water (surfers spread out from it across the width).
             if (lineup != null) lineup.position = new Vector3(lineup.position.x, lineup.position.y, waterPosition.z);

@@ -392,7 +392,7 @@ namespace SurfPool
                 }
             }
             Vector3 local = w.InverseTransformPoint(want);
-            float limit = water.Width * 0.5f - 0.4f;
+            float limit = water.HalfWidthAt(local.x) - 0.4f;
             local.z = Mathf.Clamp(local.z, -limit, limit);
             local.x = Mathf.Clamp(local.x, 0.5f, water.Length - 9f); // not up on the pool's beach slope
             want = w.TransformPoint(local);
@@ -698,7 +698,7 @@ namespace SurfPool
             }
 
             float dt = Time.deltaTime;
-            float limit = water.Width * 0.5f - 1.2f;
+            float limit = water.HalfWidthAt(crest) - 1.2f;
             float steer = (keyboard.dKey.isPressed ? -1f : 0f) + (keyboard.aKey.isPressed ? 1f : 0f);
             if (steer == 0f) steer = Mathf.Clamp(SteerOverride, -1f, 1f);
             // Carving builds up and bleeds off speed, so turns feel like turns, not sliding.
@@ -1297,7 +1297,7 @@ namespace SurfPool
             var water = pool.Water;
             Vector3 local = water.transform.InverseTransformPoint(world);
             local.x = Mathf.Clamp(local.x, 2f, water.Length - 10f);
-            float limit = water.Width * 0.5f - 1f;
+            float limit = water.HalfWidthAt(local.x) - 1f;
             local.z = Mathf.Clamp(local.z, -limit, limit);
             return water.transform.TransformPoint(local);
         }

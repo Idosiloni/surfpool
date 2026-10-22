@@ -174,8 +174,8 @@ namespace SurfPool
             lastSurface = surface;
             var local = water.transform.InverseTransformPoint(p);
             local.x += (0.05f + rise * 0.9f) * Time.deltaTime;
-            local.x = Mathf.Clamp(local.x, 1.5f, water.Length - 3.5f);
-            float limit = water.Width * 0.5f - 0.8f;
+            local.x = Mathf.Clamp(local.x, 1.5f, water.ShoreAt(local.z) - 0.5f); // washes up at the waterline, not under the sand
+            float limit = water.HalfWidthAt(local.x) - 0.8f;
             float side = local.z >= 0f ? 1f : -1f;
             local.z = Mathf.Clamp(local.z + side * WallDrift * Time.deltaTime, -limit, limit);
             p = water.transform.TransformPoint(local);

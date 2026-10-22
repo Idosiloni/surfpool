@@ -50,6 +50,13 @@ namespace SurfPool
         [Tooltip("How much smaller the wave is at the pool walls than in the middle (0 to 1).")]
         [Range(0f, 1f)] [SerializeField] float edgeDrop = 0.2f;
 
+        [Header("Beach shape")]
+        [Tooltip("The beach end's corners curve round (x = how far back from the beach, z = how far in from the side " +
+                 "wall, m): the sand sweeps into a crescent. 0 = square corners.")]
+        [SerializeField] Vector2 beachCorner;
+        [Tooltip("How far up the pool (fraction of its length) the waterline sits from the top of the beach slope.")]
+        [SerializeField] float shoreFraction = 0.15f;
+
         [Header("Breaking near the beach")]
         [Tooltip("How far down the pool (0 to 1) every wave turns to whitewash and shrinks.")]
         [Range(0f, 1f)] [SerializeField] float beachBreakStart = 0.85f;
@@ -223,6 +230,28 @@ namespace SurfPool
         public float Width => width;
         float HalfWidth => width * 0.5f;
 
+        /// <summary>
+        /// Half the width of open water at local x. The same as Width / 2, except near the beach where the curved sand
+        /// corners close in, so riders and floating junk stay off the sand.
+        /// </summary>
+        public float HalfWidthAt(float x)
+        {
+            if (beachCorner.x <= 0f) return HalfWidth;
+            float start = length * (1f - shoreFraction) - beachCorner.x;
+            if (x <= start) return HalfWidth;
+            float u = Mathf.Clamp01((x - start) / beachCorner.x);
+            return HalfWidth - beachCorner.y + beachCorner.y * Mathf.Sqrt(1f - u * u);
+        }
+
+        /// <summary>Where the water meets the sand (local x) at local z: the straight waterline, curving in at the corners.</summary>
+        public float ShoreAt(float z)
+        {
+            float shore = length * (1f - shoreFraction);
+            if (beachCorner.x <= 0f) return shore;
+            float v = Mathf.Clamp01((Mathf.Abs(z) - (HalfWidth - beachCorner.y)) / Mathf.Max(0.01f, beachCorner.y));
+            return shore - beachCorner.x + beachCorner.x * Mathf.Sqrt(1f - v * v);
+        }
+
         /// <summary>A wave in the pool right now: its id (the time it was sent) and its type.</summary>
         public (float id, WaveLevel level) GetWave(int index) => (waves[index].start, waves[index].type.level);
 
@@ -319,8 +348,9 @@ namespace SurfPool
         }
 
         /// <summary>Changes the pool's size (the main pool grows with Pool Expansion upgrades) and rebuilds the mesh.</summary>
-        public void Resize(float newLength, float newWidth)
+        public void Resize(float newLength, float newWidth, Vector2 newBeachCorner)
         {
+            beachCorner = newBeachCorner;
             if (Mathf.Approximately(newLength, length) && Mathf.Approximately(newWidth, width) && mesh != null) return;
             length = newLength;
             width = newWidth;

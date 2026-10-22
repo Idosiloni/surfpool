@@ -23,6 +23,7 @@ namespace SurfPool.EditorTools
                 depth = PoolDepth + 2f, waterLevel = WaterLevel - 1.5f, size = 1.15f, peel = 2.2f, price = 10f, water = 150f,
                 length = RanchLength, width = RanchWidth, travel = 0.2f, peakFromWall = 4f, gridDensity = 2f,
                 x0 = RanchX, machineDepth = RanchRail, backDeck = RanchRail, airWall = false,
+                beachCorner = new Vector2(7, 18), look = PoolLook.Ranch,
                 // East along the south decks (past the Reef's machine) to the Ranch's south end.
                 pathToPool = new[] { new Vector3(40, 0, SpineZ), new Vector3(RanchX + 14f, 0, SpineZ), new Vector3(RanchX + 14f, 0, south - 0.6f) },
                 // Off the east beach, back south and west along the south decks to the exit.

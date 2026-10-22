@@ -114,6 +114,8 @@ namespace SurfPool.EditorTools
                 // Starts small; Pool Expansion I and II grow it (bigger waves need a bigger pool).
                 stages = new[] { new Vector2(40, 30), new Vector2(50, 40), new Vector2(PoolLength, PoolWidth) },
                 stageNames = new[] { "Starter Pool", "Expanded Pool", "Full-Size Pool" },
+                // Its beach curves rounder as it grows (bare sand, then planters, then palms in the corners).
+                stageCorners = new[] { new Vector2(5, 8), new Vector2(7, 12), new Vector2(8, 15) },
                 pathToPool = new[] { new Vector3(24, 0, -14), new Vector3(14, 0, MainSouth - 0.6f) },
                 pathOut = new[] { new Vector3(PoolLength + 3, 0, MainSouth + 6f), new Vector3(OutLane, 0, MainSouth + 3f), new Vector3(OutLane, 0, -30), new Vector3(45, 0, -40) },
             });
@@ -289,6 +291,7 @@ namespace SurfPool.EditorTools
                 waterLevel = WaterLevel, size = 1.08f, peel = 1.7f, price = 2.5f, water = 50f,
                 length = ReefLength, width = ReefWidth, travel = 0.5f, peakFromWall = 3f, gridDensity = 2.5f,
                 x0 = ReefX0, yaw = 180f, eastDeck = HalfSandbar, southDeck = Pier, northDeck = 12f, backDeck = 14.5f,
+                beachCorner = new Vector2(8, 16), look = PoolLook.Reef,
                 pathToPool = new[] { new Vector3(40, 0, SpineZ), new Vector3(ReefX0 - 12f, 0, SpineZ), new Vector3(ReefX0 - 12f, 0, MainSouth - 0.6f) },
                 pathOut = new[] { new Vector3(SandbarEast - 3f, 0, ReefZ), new Vector3(OutLane, 0, ReefZ - 6f), new Vector3(OutLane, 0, -30), new Vector3(45, 0, -40) },
             });
@@ -300,6 +303,7 @@ namespace SurfPool.EditorTools
                 depth = PoolDepth + 2f, waterLevel = WaterLevel - 1.8f, size = 1.25f, peel = 1.9f, price = 5f, water = 110f,
                 length = LagoonLength, width = LagoonWidth, travel = 0.5f, peakFromWall = 3f, gridDensity = 2.5f,
                 eastDeck = HalfSandbar, southDeck = Pier, northDeck = 16f,
+                beachCorner = new Vector2(9, 16), look = PoolLook.BigWave,
                 pathToPool = new[] { new Vector3(40, 0, SpineZ), new Vector3(InLane, 0, SpineZ), new Vector3(InLane, 0, MainNorth + Pier - 2.5f),
                     new Vector3(14, 0, MainNorth + Pier - 2.5f), new Vector3(14, 0, MainNorth + Pier - 0.6f) },
                 pathOut = new[] { new Vector3(LagoonLength + 3, 0, LagoonZ), new Vector3(OutLane, 0, LagoonZ - 6f), new Vector3(OutLane, 0, -30), new Vector3(45, 0, -40) },
@@ -689,7 +693,15 @@ namespace SurfPool.EditorTools
             // > 0: deck depths on each side in the pool's own frame (south = -z, north = +z, east = the beach end; a pool
             // turned 180 degrees has them the other way round in the world). Zones next to each other share a pier.
             public float southDeck, northDeck, eastDeck = 20f;
+            // The beach corners' curve (x back from the beach, z in from the side wall; see WaveWater.HalfWidthAt), one
+            // per size stage if the pool has stages, and the look of its edges: pricier zones get fancier edges.
+            public Vector2 beachCorner;
+            public Vector2[] stageCorners;
+            public PoolLook look;
         }
+
+        /// <summary>How a pool's edges look: plain tiles for the starter pool, then rock, slate, sandstone and white.</summary>
+        enum PoolLook { Tiles, Reef, BigWave, Cove, Ranch }
 
         class PoolBuild
         {
@@ -730,13 +742,14 @@ namespace SurfPool.EditorTools
             float southZ = zc - halfW;
             var stageObjects = new List<GameObject>();
             if (spec.stages == null)
-                BuildBasin(built, southZ, poolLength, poolWidth, depth, thickness, spec.waterLevel, poolLength, poolWidth);
+                BuildBasin(built, southZ, poolLength, poolWidth, depth, thickness, spec.waterLevel, poolLength, poolWidth, spec.beachCorner, spec.look, 2);
             else
                 for (int i = 0; i < spec.stages.Length; i++)
                 {
                     var stage = new GameObject($"Size {i + 1} ({spec.stages[i].x:0}x{spec.stages[i].y:0})");
                     stage.transform.SetParent(built, false);
-                    BuildBasin(stage.transform, southZ, spec.stages[i].x, spec.stages[i].y, depth, thickness, spec.waterLevel, poolLength, poolWidth);
+                    BuildBasin(stage.transform, southZ, spec.stages[i].x, spec.stages[i].y, depth, thickness, spec.waterLevel, poolLength, poolWidth,
+                        StageCorner(spec, i), spec.look, i);
                     stage.SetActive(i == 0);
                     stageObjects.Add(stage);
                 }
@@ -752,10 +765,14 @@ namespace SurfPool.EditorTools
             SetFloat(water, "peakOffset", spec.peakOffset);
             SetFloat(water, "peakFromWall", spec.peakFromWall);
             if (spec.gridDensity > 0f) SetFloat(water, "verticesPerMeter", spec.gridDensity);
+            SetFloat(water, "shoreFraction", BeachRun * Mathf.Clamp01(-spec.waterLevel / depth));
             if (spec.stages == null)
             {
                 SetFloat(water, "length", poolLength);
                 SetFloat(water, "width", poolWidth);
+                var waterSo = new SerializedObject(water);
+                waterSo.FindProperty("beachCorner").vector2Value = spec.beachCorner;
+                waterSo.ApplyModifiedPropertiesWithoutUndo();
             }
             var lipGo = new GameObject("Barrel Lip", typeof(MeshFilter), typeof(MeshRenderer));
             lipGo.transform.SetParent(waterGo.transform, false);
@@ -874,6 +891,7 @@ namespace SurfPool.EditorTools
                     element.FindPropertyRelative("name").stringValue = spec.stageNames[i];
                     element.FindPropertyRelative("length").floatValue = spec.stages[i].x;
                     element.FindPropertyRelative("width").floatValue = spec.stages[i].y;
+                    element.FindPropertyRelative("beachCorner").vector2Value = StageCorner(spec, i);
                     element.FindPropertyRelative("visuals").objectReferenceValue = stageObjects[i];
                 }
                 so.ApplyModifiedPropertiesWithoutUndo();
@@ -1085,12 +1103,13 @@ namespace SurfPool.EditorTools
         /// z = southZ northward. Anything smaller than full size gets deck over the rest of the full footprint.
         /// </summary>
         static void BuildBasin(Transform parent, float southZ, float length, float width, float depth, float thickness, float waterLevel,
-            float fullLength, float fullWidth)
+            float fullLength, float fullWidth, Vector2 corner, PoolLook look, int stage)
         {
             float halfW = width / 2f, zc = southZ + halfW, wallY = -depth / 2f;
-            TiledBox("Wall North", parent, new Vector3(length / 2, wallY, zc + halfW - 0.05f), new Vector3(length, depth, 0.1f), mats.tile);
-            TiledBox("Wall South", parent, new Vector3(length / 2, wallY, zc - halfW + 0.05f), new Vector3(length, depth, 0.1f), mats.tile);
-            TiledBox("Wall Machine", parent, new Vector3(0.05f, wallY, zc), new Vector3(0.1f, depth, width), mats.tile);
+            var (wallMat, copingMat) = EdgeMaterials(look);
+            TiledBox("Wall North", parent, new Vector3(length / 2, wallY, zc + halfW - 0.05f), new Vector3(length, depth, 0.1f), wallMat);
+            TiledBox("Wall South", parent, new Vector3(length / 2, wallY, zc - halfW + 0.05f), new Vector3(length, depth, 0.1f), wallMat);
+            TiledBox("Wall Machine", parent, new Vector3(0.05f, wallY, zc), new Vector3(0.1f, depth, width), wallMat);
             TiledBox("Floor", parent, new Vector3(length / 2, -depth - 0.5f, zc), new Vector3(length, 1, width), mats.tile);
 
             // A band of dark tiles along the waterline, like real pools have.
@@ -1113,16 +1132,12 @@ namespace SurfPool.EditorTools
                 AddBuoy(parent, new Vector3(x, waterLevel, southZ + width - 0.9f), color);
             }
 
-            float rampStart = length * 0.75f;
-            float run = length - rampStart;
-            float rampLength = Mathf.Sqrt(run * run + depth * depth);
-            float rampAngle = Mathf.Atan2(depth, run) * Mathf.Rad2Deg;
-            var ramp = Box("Beach", parent, new Vector3(rampStart + run / 2, -depth / 2 - 0.15f, zc), new Vector3(rampLength, 0.3f, width), mats.sand);
-            ramp.transform.rotation = Quaternion.Euler(0, 0, rampAngle);
+            BuildBeach(parent, length, width, zc, depth, corner);
 
-            Box("Coping North", parent, new Vector3(length / 2, 0.06f, zc + halfW + 0.25f), new Vector3(length + 1f, 0.12f, 0.5f), mats.coping);
-            Box("Coping South", parent, new Vector3(length / 2, 0.06f, zc - halfW - 0.25f), new Vector3(length + 1f, 0.12f, 0.5f), mats.coping);
-            Box("Coping Machine", parent, new Vector3(-0.25f, 0.06f, zc), new Vector3(0.5f, 0.12f, width), mats.coping);
+            Box("Coping North", parent, new Vector3(length / 2, 0.06f, zc + halfW + 0.25f), new Vector3(length + 1f, 0.12f, 0.5f), copingMat);
+            Box("Coping South", parent, new Vector3(length / 2, 0.06f, zc - halfW - 0.25f), new Vector3(length + 1f, 0.12f, 0.5f), copingMat);
+            Box("Coping Machine", parent, new Vector3(-0.25f, 0.06f, zc), new Vector3(0.5f, 0.12f, width), copingMat);
+            EdgeDressing(parent, length, width, zc, corner, look, stage);
 
             Blocker("Blocker North", parent, new Vector3(length / 2, 0.75f, zc + halfW + 0.1f), new Vector3(length, 1.5f, 0.2f));
             Blocker("Blocker South", parent, new Vector3(length / 2, 0.75f, zc - halfW - 0.1f), new Vector3(length, 1.5f, 0.2f));
@@ -1152,6 +1167,136 @@ namespace SurfPool.EditorTools
                     Object.DestroyImmediate(cone.GetComponent<Collider>());
                 }
             }
+        }
+
+        /// <summary>The beach slope covers the last quarter of the pool (its waterline: WaveWater.shoreFraction).</summary>
+        const float BeachRun = 0.25f;
+
+        static Vector2 StageCorner(PoolSpec spec, int stage) =>
+            spec.stageCorners != null && stage < spec.stageCorners.Length ? spec.stageCorners[stage] : spec.beachCorner;
+
+        /// <summary>
+        /// The sand beach at the end of a pool: a slope over the last quarter whose top follows the beach corners'
+        /// curve (an ellipse quarter at each end), so the waterline sweeps round into a crescent and the corners are
+        /// dry sand at deck height. The same curve as WaveWater.ShoreAt, shifted back up the slope.
+        /// </summary>
+        static void BuildBeach(Transform parent, float length, float width, float zc, float depth, Vector2 corner)
+        {
+            float halfW = width / 2f, run = length * BeachRun;
+            float TopX(float z) // where the slope reaches deck height
+            {
+                if (corner.x <= 0f) return length;
+                float v = Mathf.Clamp01((Mathf.Abs(z) - (halfW - corner.y)) / Mathf.Max(0.01f, corner.y));
+                return length - corner.x + corner.x * Mathf.Sqrt(1f - v * v);
+            }
+            float x0 = length - corner.x - run;
+            const float step = 0.75f;
+            int nx = Mathf.CeilToInt((length - x0) / step) + 1, nz = Mathf.CeilToInt(width / step) + 1;
+            var vertices = new Vector3[nx * nz];
+            var uv = new Vector2[vertices.Length];
+            for (int i = 0; i < nx; i++)
+            for (int j = 0; j < nz; j++)
+            {
+                float x = Mathf.Lerp(x0, length, i / (nx - 1f)), z = Mathf.Lerp(-halfW, halfW, j / (nz - 1f));
+                float e = (TopX(z) - x) / run;
+                // Deeper than the floor where the slope has ended, so the tiled floor covers it cleanly.
+                float y = e >= 1f ? -depth - 0.1f : -depth * Mathf.Clamp01(e);
+                vertices[i * nz + j] = new Vector3(x, y, zc + z);
+                uv[i * nz + j] = new Vector2(x, z) * 0.25f;
+            }
+            var triangles = new int[(nx - 1) * (nz - 1) * 6];
+            int k = 0;
+            for (int i = 0; i < nx - 1; i++)
+            for (int j = 0; j < nz - 1; j++)
+            {
+                int a = i * nz + j, b = a + nz;
+                triangles[k++] = a; triangles[k++] = a + 1; triangles[k++] = b;
+                triangles[k++] = b; triangles[k++] = a + 1; triangles[k++] = b + 1;
+            }
+            var mesh = new Mesh { name = "Beach", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32, vertices = vertices, uv = uv, triangles = triangles };
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            var go = new GameObject("Beach", typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider));
+            go.transform.SetParent(parent, false);
+            go.GetComponent<MeshFilter>().sharedMesh = mesh;
+            go.GetComponent<MeshRenderer>().sharedMaterial = mats.sand;
+            go.GetComponent<MeshCollider>().sharedMesh = mesh;
+        }
+
+        /// <summary>Wall tiles and coping for each look (the starter pool keeps the pale blue tiles and white coping).</summary>
+        static (Material wall, Material coping) EdgeMaterials(PoolLook look)
+        {
+            Material Tiles(string name, Color color)
+            {
+                var mat = Mat(name, color, 0.45f);
+                mat.SetTexture("_BaseMap", PoolTileTexture());
+                return mat;
+            }
+            return look switch
+            {
+                PoolLook.Reef => (Tiles("ReefTile", new Color(0.32f, 0.52f, 0.5f)), Mat("ReefCoping", new Color(0.36f, 0.33f, 0.31f), 0.15f)),
+                PoolLook.BigWave => (Tiles("BigWaveTile", new Color(0.22f, 0.3f, 0.38f)), Mat("BigWaveCoping", new Color(0.2f, 0.21f, 0.23f), 0.35f)),
+                PoolLook.Cove => (Tiles("CoveTile", new Color(0.86f, 0.76f, 0.6f)), Mat("CoveCoping", new Color(0.93f, 0.84f, 0.68f), 0.25f)),
+                PoolLook.Ranch => (Tiles("RanchTile", new Color(0.95f, 0.96f, 0.97f)), Mat("RanchCoping", new Color(1f, 1f, 1f), 0.6f)),
+                _ => (mats.tile, mats.coping),
+            };
+        }
+
+        /// <summary>
+        /// What sits on the dry sand corners and along the edges, so each zone (and each size of the main pool) has
+        /// its own silhouette: the first pool is bare, then planters, then palms; the Reef is lined with lava rocks,
+        /// the Big Wave zone has big dark boulders, the Cove palms, the Ranch neat white planters. Nothing here has a
+        /// collider (the edge blockers stop the player; the net must reach over the rocks).
+        /// </summary>
+        static void EdgeDressing(Transform parent, float length, float width, float zc, Vector2 corner, PoolLook look, int stage)
+        {
+            float halfW = width / 2f;
+            var random = new System.Random(Mathf.RoundToInt(length * 31f + width * 7f + (int)look * 101 + stage));
+            float Range(float a, float b) => a + (float)random.NextDouble() * (b - a);
+            void Put(string model, Vector3 position, float scale)
+            {
+                var go = WorldArt.Model(model, parent, position, Range(0f, 360f), scale);
+                if (go == null) return;
+                foreach (var collider in go.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(collider);
+            }
+
+            // Each dry corner: its middle, well past the curve (on flat sand).
+            foreach (float side in new[] { -1f, 1f })
+            {
+                if (corner.x <= 0f) break;
+                var spot = new Vector3(length - corner.x * 0.22f, 0f, zc + side * (halfW - corner.y * 0.22f));
+                switch (look)
+                {
+                    case PoolLook.Tiles:
+                        if (stage >= 1) Put("FlowerPlanter", spot, 1f);
+                        if (stage >= 2) Put("PalmTree", spot + new Vector3(-corner.x * 0.12f, 0f, -side * corner.y * 0.25f), 1f);
+                        break;
+                    case PoolLook.Reef:
+                        Put("Rock", spot, Range(1.3f, 1.7f));
+                        Put("Rock", spot + new Vector3(-1.6f, 0f, -side * 2.2f), Range(0.7f, 1f));
+                        Put("PalmTree", spot + new Vector3(0.6f, 0f, -side * 4.5f), 1.05f);
+                        break;
+                    case PoolLook.BigWave:
+                        Put("Rock", spot, Range(1.9f, 2.3f));
+                        Put("Rock", spot + new Vector3(-2.2f, 0f, -side * 3f), Range(1.2f, 1.5f));
+                        Put("Rock", spot + new Vector3(0.8f, 0f, -side * 5.2f), Range(0.8f, 1f));
+                        break;
+                    case PoolLook.Cove:
+                        Put("PalmTree", spot, 1.1f);
+                        Put("PalmTree", spot + new Vector3(-1.5f, 0f, -side * 3.5f), 0.9f);
+                        break;
+                    case PoolLook.Ranch:
+                        Put("FlowerPlanter", spot, 1f);
+                        Put("FlowerPlanter", spot + new Vector3(0f, 0f, -side * 3f), 1f);
+                        break;
+                }
+            }
+
+            // Lava rocks along the Reef's side edges (beach half only: surfers jump in near the machine end).
+            if (look == PoolLook.Reef)
+                foreach (float side in new[] { -1f, 1f })
+                    for (float x = length * 0.4f; x < length - corner.x - 1f; x += Range(5.5f, 8f))
+                        Put("Rock", new Vector3(x, 0.05f, zc + side * (halfW + 0.7f)), Range(0.85f, 1.2f));
         }
 
         /// <summary>A box whose UVs are in meters / tileSize on every face, so a tile texture keeps square tiles.</summary>

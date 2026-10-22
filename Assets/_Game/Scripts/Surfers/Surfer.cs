@@ -1041,7 +1041,7 @@ namespace SurfPool
         {
             // Stay off the pool walls (being pushed apart by other surfers mustn't float anyone out of the pool).
             Vector3 local = water.transform.InverseTransformPoint(position);
-            float limit = water.Width * 0.5f - 1f;
+            float limit = water.HalfWidthAt(local.x) - 1f;
             if (Mathf.Abs(local.z) > limit)
             {
                 local.z = Mathf.Clamp(local.z, -limit, limit);
@@ -1201,7 +1201,7 @@ namespace SurfPool
 
             // Peeling waves: ride just ahead of the break point (the pocket) on your side.
             // Whitewater: ride straight in front of the foam, carving a little.
-            float limit = water.Width * 0.5f - 1.5f;
+            float limit = water.HalfWidthAt(crest + offset) - 1.5f;
             float carve = Mathf.Sin((Time.time - rideStartTime) * carveSpeed);
             float targetZ;
             inBarrel = false;

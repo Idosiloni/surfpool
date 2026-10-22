@@ -26,6 +26,7 @@ namespace SurfPool.EditorTools
                 x0 = x0, yaw = yaw, southDeck = southDeck, northDeck = northDeck, eastDeck = eastDeck,
                 backDeck = 0f, machineDepth = CovePierHalf, lotBack = CovePierHalf, airWall = false,
                 pathToPool = toPool, pathOut = outPath,
+                beachCorner = new Vector2(6, 12), look = PoolLook.Cove,
             };
             // Surfers walk east along the main pool's south deck, up the sandbar, then along the pier to their side.
             float pierWalk = CoveZ - CoveWidth / 2f - 2.5f, edge = CoveZ - CoveWidth / 2f - 0.6f;
