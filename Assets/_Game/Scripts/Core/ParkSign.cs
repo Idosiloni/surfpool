@@ -25,6 +25,8 @@ namespace SurfPool
             }
         }
 
+        public bool CanUse => DayCycle.Instance != null && DayCycle.Instance.ParkClosed && DayCycle.GuestsLeft == 0;
+
         public void Interact()
         {
             var day = DayCycle.Instance;

@@ -41,6 +41,7 @@ namespace SurfPool
             public List<string> perks = new();
             public string parkName = "";
             public float bestJudgeScore;
+            public int bestDayIncome;
             public string playerBoard = "";
             public bool boardsSaved; // false in saves from before boards were sold
             public string[] ownedBoards = new string[0];
@@ -88,6 +89,7 @@ namespace SurfPool
                 perks = new List<string>(ParkPerks.Chosen),
                 parkName = ParkName.Saved,
                 bestJudgeScore = GameStats.BestJudgeScore,
+                bestDayIncome = GameStats.BestDayIncome,
                 playerBoard = SurfQuiver.Current.ToString(),
                 boardsSaved = true,
                 ownedBoards = SurfQuiver.SaveOwned(),
@@ -178,6 +180,7 @@ namespace SurfPool
             GameStats.Wipeouts = data.wipeouts;
             GameStats.PlayerRides = data.playerRides;
             GameStats.BestJudgeScore = data.bestJudgeScore;
+            GameStats.BestDayIncome = data.bestDayIncome;
             SurfQuiver.Load(data.playerBoard, data.boardsSaved ? data.ownedBoards : null);
             GameStats.TotalEarned = data.totalEarned;
             GameStats.SnacksSold = data.snacksSold;

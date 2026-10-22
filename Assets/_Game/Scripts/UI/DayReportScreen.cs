@@ -223,10 +223,16 @@ namespace SurfPool
 
         void Close()
         {
+            if (!open || UiWipe.Busy) return;
+            revealing = false;
+            UiWipe.Play(StartNextDay); // a wave washes the report away and brings the morning
+        }
+
+        void StartNextDay()
+        {
             if (!open) return;
             open = false;
-            revealing = false;
-            UiMotion.Hide(root);
+            root.AddToClassList("hidden");
             Time.timeScale = 1f;
             InputBlocker.Release();
             FirstPersonController.LockCursor(true);

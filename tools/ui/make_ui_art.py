@@ -6,6 +6,8 @@ Run: python3 tools/ui/make_ui_art.py [out_dir]   (numpy only, 4x supersampled li
 - poster.png         retro surf poster: striped sun over three wave bands (main menu)
 - header_waves.png   faint white wave lines, tiled along window headers
 - divider.png        wavy line, tiled as a section divider (white, tinted in USS)
+- foam_edge.png      the leading edge of the screen wipe: ink water, a lagoon band and a scalloped foam curl
+- tide_crest.png     the wallet tide's wavy top: see-through teal under a white foam line, two seamless periods
 """
 import os
 import struct
@@ -144,11 +146,63 @@ def divider():
     save("divider", downsample(rgba, ss))
 
 
+def foam_edge():
+    """The right edge of the wave wipe (UiWipe): solid ink on the left, a lagoon band, then a white foam curl with
+    scalloped lumps and a few bubbles, transparent to the right. Tall, stretched along the screen's height."""
+    w, h, ss = 192, 768, 2
+    ys, xs = np.mgrid[0:h * ss, 0:w * ss]
+    x = (xs + 0.5) / (w * ss) * w  # pixels
+    y = (ys + 0.5) / (h * ss) * h
+    # The foam front wobbles: big scallops plus small lumps.
+    front = 118 + 16 * np.sin(y / h * np.pi * 2 * 5) + 7 * np.sin(y / h * np.pi * 2 * 13 + 1.3)
+    rgb = np.zeros((h * ss, w * ss, 3), np.float32)
+    alpha = np.zeros((h * ss, w * ss), np.float32)
+    ink, lagoon, teal, white = hex_rgb("#0B2E3A"), hex_rgb("#7EE0D2"), hex_rgb("#14B8A6"), np.ones(3, np.float32)
+    water = x < front - 26
+    band = (x >= front - 26) & (x < front - 12)
+    foam = (x >= front - 12) & (x < front)
+    k = np.clip(x / np.maximum(front - 26, 1), 0, 1)[..., None]
+    rgb[water] = (ink * (1 - k * 0.35) + teal * (k * 0.35))[water]
+    rgb[band] = lagoon
+    rgb[foam] = white
+    alpha[water | band | foam] = 1
+    rng = np.random.default_rng(5)
+    for _ in range(46):
+        by, bx, r = rng.uniform(0, h), rng.uniform(-10, 34), rng.uniform(2.5, 7)
+        cx = 118 + 16 * np.sin(by / h * np.pi * 2 * 5) + 7 * np.sin(by / h * np.pi * 2 * 13 + 1.3) + bx
+        ring = np.abs(np.hypot(x - cx, y - by) - r) < 1.4
+        dot = np.hypot(x - cx, y - by) < r * 0.45
+        hit = (ring | dot) & (x >= front - 4)
+        rgb[hit] = white
+        alpha[hit] = 1
+    rgba = np.concatenate([rgb, alpha[..., None]], axis=2)
+    save("foam_edge", downsample(rgba, ss))
+
+
+def tide_crest():
+    """Wallet tide top edge: teal water under a white foam line, transparent above. Two periods, so sliding it by
+    half its width loops seamlessly."""
+    w, h, ss = 512, 48, 4
+    ys, xs = np.mgrid[0:h * ss, 0:w * ss]
+    x = (xs + 0.5) / (w * ss)
+    y = (ys + 0.5) / (h * ss) * h  # pixels from the top
+    surface = 20 + 7 * np.sin(x * np.pi * 2 * 2) + 2.5 * np.sin(x * np.pi * 2 * 6 + 0.7)
+    rgba = np.zeros((h * ss, w * ss, 4), np.float32)
+    below = y >= surface
+    rgba[below, :3] = hex_rgb("#14B8A6")
+    rgba[below, 3] = 0.45
+    line = np.abs(y - surface) < 2.6
+    rgba[line] = [1, 1, 1, 0.95]
+    save("tide_crest", downsample(rgba, ss))
+
+
 def main():
     backdrop()
     poster()
     header_waves()
     divider()
+    foam_edge()
+    tide_crest()
 
 
 if __name__ == "__main__":

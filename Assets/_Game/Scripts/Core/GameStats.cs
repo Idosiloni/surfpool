@@ -22,6 +22,8 @@ namespace SurfPool
         public static long TotalEarned;
         /// <summary>Your best judged ride (0-10).</summary>
         public static float BestJudgeScore;
+        /// <summary>The most the park has earned in one day (the wallet tide's line to beat).</summary>
+        public static int BestDayIncome;
         /// <summary>Your own surfing (for daily challenges; not saved, counted per play session).</summary>
         public static int PlayerTricks, PlayerSpins, PlayerGoodRides;
 
@@ -44,6 +46,7 @@ namespace SurfPool
             PlayerRides = 0;
             TotalEarned = 0;
             BestJudgeScore = 0f;
+            BestDayIncome = 0;
             PlayerTricks = PlayerSpins = PlayerGoodRides = 0;
         }
     }

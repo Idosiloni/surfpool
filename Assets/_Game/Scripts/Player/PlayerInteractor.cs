@@ -23,6 +23,9 @@ namespace SurfPool
 
         public IInteractable Target { get; private set; }
 
+        /// <summary>You pressed E on something that can't be used right now (the HUD shakes the prompt).</summary>
+        public static event System.Action Refused;
+
         void Update()
         {
             Target = null;
@@ -36,7 +39,11 @@ namespace SurfPool
             var mouse = Mouse.current;
             bool pressed = (keyboard != null && keyboard.eKey.wasPressedThisFrame)
                         || (mouse != null && Cursor.lockState == CursorLockMode.Locked && mouse.leftButton.wasPressedThisFrame);
-            if (pressed) Target.Interact();
+            if (pressed)
+            {
+                if (!Target.CanUse) Refused?.Invoke();
+                Target.Interact();
+            }
             bool held = (keyboard != null && keyboard.eKey.isPressed)
                      || (mouse != null && Cursor.lockState == CursorLockMode.Locked && mouse.leftButton.isPressed);
             if (held && Target is IHoldInteractable holdable) holdable.Hold(Time.deltaTime);

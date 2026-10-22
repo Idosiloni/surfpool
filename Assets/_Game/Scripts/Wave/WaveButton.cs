@@ -22,6 +22,8 @@ namespace SurfPool
               $"  ({MoneyText.Format(machine.PressCost)} power)"
             : $"Wave machine charging... {Mathf.CeilToInt(machine.SecondsUntilReady)}";
 
+        public bool CanUse => machine.Ready && !machine.Broken;
+
         void Awake()
         {
             block = new MaterialPropertyBlock();

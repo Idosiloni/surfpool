@@ -7,6 +7,11 @@
             <ui:VisualElement class="top-left-row" picking-mode="Ignore">
             <ui:VisualElement class="card status-card" picking-mode="Ignore">
                 <ui:VisualElement class="card-strip wallet" picking-mode="Ignore">
+                    <!-- Wallet tide: water rising behind the money toward your best day's takings -->
+                    <ui:VisualElement name="tide" class="tide" picking-mode="Ignore">
+                        <ui:VisualElement name="tideCrest" class="tide-crest" picking-mode="Ignore" />
+                        <ui:VisualElement class="tide-fill" picking-mode="Ignore" />
+                    </ui:VisualElement>
                     <ui:VisualElement class="coin-badge" picking-mode="Ignore">
                         <ui:VisualElement class="icon icon--coin coin-icon" picking-mode="Ignore" />
                     </ui:VisualElement>
@@ -192,8 +197,8 @@
 
         <ui:VisualElement name="crosshair" class="crosshair" picking-mode="Ignore" />
         <ui:VisualElement name="prompt" class="prompt" picking-mode="Ignore">
-            <ui:VisualElement class="prompt-box" picking-mode="Ignore">
-                <ui:Label text="E" class="key-badge" picking-mode="Ignore" />
+            <ui:VisualElement name="promptBox" class="prompt-box" picking-mode="Ignore">
+                <ui:Label name="promptKey" text="E" class="key-badge" picking-mode="Ignore" />
                 <ui:Label name="promptLabel" text="Use" class="prompt-label" picking-mode="Ignore" />
             </ui:VisualElement>
         </ui:VisualElement>

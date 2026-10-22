@@ -38,7 +38,7 @@ namespace SurfPool
             saveLabel = doc.Q<Label>("menuSave");
             continueButton = doc.Q<Button>("menuContinue");
             newButton = doc.Q<Button>("menuNew");
-            continueButton.clicked += Close;
+            continueButton.clicked += () => UiWipe.Play(Close); // a wave washes you into the park
             newButton.clicked += NewGame;
             doc.Q<Button>("menuSettings").clicked += SettingsScreen.Open;
             doc.Q<Button>("menuQuit").clicked += Quit;

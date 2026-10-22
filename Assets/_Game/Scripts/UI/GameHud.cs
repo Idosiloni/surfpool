@@ -5,8 +5,9 @@ using UnityEngine.UIElements;
 namespace SurfPool
 {
     /// <summary>
-    /// The in-game HUD (UI Toolkit, Assets/_Game/UI/Hud.uxml + Game.uss): money with +/- popups, park rating stars,
-    /// wave machine panel, park stats, crosshair and [E] prompt, toasts, and speech bubbles over surfers.
+    /// The in-game HUD (UI Toolkit, Assets/_Game/UI/Hud.uxml + Game.uss): money with +/- popups and the wallet tide,
+    /// park rating stars, wave machine panel, park stats (rows flash in when they change), crosshair and [E] prompt,
+    /// toasts, and speech bubbles over surfers. H hides the panels (GameSettings.CleanHud).
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class GameHud : MonoBehaviour
@@ -29,6 +30,7 @@ namespace SurfPool
             public Label text;
             public VisualElement patience;
             public VisualElement patienceFill;
+            public VisualElement face; // colorblind marks: smile / meh / frown next to the patience bar
         }
 
         VisualElement hudRootElement;
@@ -66,6 +68,16 @@ namespace SurfPool
 
         /// <summary>Park earnings over the last minute (the "+$/min" readout).</summary>
         public static int IncomePerMinute { get; private set; }
+
+        VisualElement promptBox, tide, tideCrest, servedRow;
+        Label promptKey;
+        bool promptUp;
+        string promptKeyName;
+        float tideLevel, tideSlosh, tidePhase;
+        bool tideFull;
+        int tideDay = -1;
+        // Park panel rows that only show for a moment when their number changes: (last value, flash until).
+        readonly Dictionary<VisualElement, (int value, float until)> flashRows = new();
 
         void OnEnable()
         {
@@ -113,6 +125,11 @@ namespace SurfPool
             levelNext = root.Q<Label>("levelNext");
             goalKicker = root.Q<Label>("goalKicker");
             xpFill = root.Q("xpFill");
+            promptBox = root.Q("promptBox");
+            promptKey = root.Q<Label>("promptKey");
+            tide = root.Q("tide");
+            tideCrest = root.Q("tideCrest");
+            servedRow = root.Q("servedRow");
 
             missionCard = root.Q("missionCard");
             missionObjectives = root.Q("missionObjectives");
@@ -134,12 +151,17 @@ namespace SurfPool
 
             Notifications.Posted += ShowToast;
             Celebration.Shown += ShowCelebration;
+            PlayerInteractor.Refused += ShakePrompt;
+            GameSettings.Changed += ApplyClean;
+            ApplyClean();
         }
 
         void OnDisable()
         {
             Notifications.Posted -= ShowToast;
             Celebration.Shown -= ShowCelebration;
+            PlayerInteractor.Refused -= ShakePrompt;
+            GameSettings.Changed -= ApplyClean;
             banners.Clear();
             if (wallet != null) wallet.Changed -= ShowPopup;
             wallet = null;
@@ -173,6 +195,12 @@ namespace SurfPool
                 nextChallengeRefresh = 0f;
                 nextMissionRefresh = 0f;
             }
+            if (keyboard != null && keyboard.hKey.wasPressedThisFrame && !InputBlocker.Blocked)
+            {
+                GameSettings.SetCleanHud(!GameSettings.CleanHud);
+                Notifications.Post(GameSettings.CleanHud ? "HUD hidden. Press H to bring it back." : "HUD back.", Notice.Info, false);
+            }
+            UpdateTide();
             UpdateLevel();
             UpdateGoal();
             UpdateChallenges();
@@ -439,7 +467,8 @@ namespace SurfPool
             }
             if (spawner != null)
             {
-                lostRow.EnableInClassList("hidden", spawner.Lost == 0);
+                Flash(servedRow, spawner.Served, false);
+                Flash(lostRow, spawner.Lost, false);
                 SetText(servedValue, spawner.Served.ToString());
                 SetText(lostValue, spawner.Lost.ToString());
                 lostValue.EnableInClassList("stat-value--bad", spawner.Lost > 0);
@@ -451,12 +480,62 @@ namespace SurfPool
                 SetText(wagesValue, MoneyText.Format(wages) + "/min");
             }
             int trash = Trash.All.Count;
-            trashRow.EnableInClassList("hidden", trash == 0);
+            Flash(trashRow, trash, trash > 5); // lots of trash stays up: it needs you
             SetText(trashValue, trash.ToString());
             trashValue.EnableInClassList("stat-value--bad", trash > 5);
             var costs = OperatingCosts.Instance;
             if (costs != null && DayCycle.Instance != null)
                 SetText(billsValue, MoneyText.Format(costs.EstimateToday(DayCycle.Instance.IncomeToday)));
+        }
+
+        /// <summary>
+        /// A Park panel row that only shows for a few seconds when its number changes (lit up for the first second),
+        /// so the panel stays short. Always shown while the journal (J) is open, or when <paramref name="keep"/>.
+        /// </summary>
+        void Flash(VisualElement row, int value, bool keep)
+        {
+            if (row == null) return;
+            float now = Time.unscaledTime;
+            if (!flashRows.TryGetValue(row, out var state)) state = (value, -1f); // first look (e.g. after loading): no flash
+            else if (value != state.value) state = (value, now + 4f);
+            flashRows[row] = state;
+            row.EnableInClassList("stat-row--flash", now < state.until - 3f);
+            row.EnableInClassList("hidden", value == 0 || !(now < state.until || keep || journalOpen));
+        }
+
+        void ApplyClean() => root?.Q("hudRoot")?.EnableInClassList("hud-root--clean", GameSettings.CleanHud);
+
+        /// <summary>
+        /// The wallet tide: water behind the money rises with today's takings toward your best day so far, sloshes
+        /// when money comes in, and foams over (once a day) when you beat it.
+        /// </summary>
+        void UpdateTide()
+        {
+            var day = DayCycle.Instance;
+            if (tide == null || day == null) return;
+            if (day.Day != tideDay)
+            {
+                tideDay = day.Day;
+                tideFull = false;
+            }
+            int goal = Mathf.Max(GameStats.BestDayIncome, 200);
+            float dt = Time.unscaledDeltaTime;
+            tideLevel = Mathf.MoveTowards(tideLevel, Mathf.Clamp01(day.IncomeToday / (float)goal), dt * 0.25f);
+            tideSlosh = Mathf.MoveTowards(tideSlosh, 0f, dt * 1.2f);
+            tidePhase = (tidePhase + dt / 4f * (1f + 2.5f * tideSlosh)) % 1f;
+            float t = Time.unscaledTime;
+            float bob = Mathf.Sin(t * 1.7f) * 2f + Mathf.Sin(t * 8f) * 7f * tideSlosh;
+            tide.style.height = Length.Percent(Mathf.Clamp(tideLevel * 100f + bob, 0f, 100f));
+            tideCrest.style.translate = new Translate(Length.Percent(-50f * tidePhase), 0f);
+            bool full = GameStats.BestDayIncome > 0 && day.IncomeToday >= goal;
+            tide.EnableInClassList("tide--full", full);
+            if (full && !tideFull)
+            {
+                tideFull = true;
+                tideSlosh = 1f;
+                Notifications.Post($"Best day ever! You just beat your record of {MoneyText.Format(goal)} (the tide in your wallet).", Notice.Reward);
+                Sfx.Play(Sound.CashBig);
+            }
         }
 
         /// <summary>"$20" at first; "$20 · $50 · $120" once better surfers come (beginner · intermediate · pro).</summary>
@@ -469,18 +548,68 @@ namespace SurfPool
             return text;
         }
 
+        /// <summary>
+        /// The [E] prompt: pops in when you look at something, cross-fades when its action changes, shows HOLD on the
+        /// key cap for hold actions, and goes sandy (and shakes if you press anyway) when it can't be used yet.
+        /// </summary>
         void UpdatePrompt()
         {
             bool menuOpen = InputBlocker.Blocked;
             bool cursorFree = player != null && !player.CursorLocked && !menuOpen;
             var target = interactor != null && !menuOpen ? interactor.Target : null;
             string text = target?.Prompt;
+            bool show = !string.IsNullOrEmpty(text) && !cursorFree;
 
             crosshair.EnableInClassList("hidden", menuOpen || cursorFree);
             crosshair.EnableInClassList("crosshair--active", !string.IsNullOrEmpty(text));
-            prompt.EnableInClassList("hidden", string.IsNullOrEmpty(text) || cursorFree);
-            if (!string.IsNullOrEmpty(text)) SetText(promptLabel, text);
+            if (show)
+            {
+                bool hold = text.StartsWith("Hold E");
+                string label = hold ? HoldLabel(text) : text;
+                promptKeyName ??= UnityEngine.InputSystem.Keyboard.current != null ? UnityEngine.InputSystem.Keyboard.current.eKey.displayName : "E";
+                SetText(promptKey, hold ? "HOLD " + promptKeyName : promptKeyName);
+                promptBox.EnableInClassList("prompt-box--no", !target.CanUse);
+                if (!promptUp) UiMotion.Enter(prompt, "prompt--enter");
+                else if (WithoutDigits(promptLabel.text) != WithoutDigits(label)) UiMotion.Bump(promptLabel, "prompt-label--swap", 70);
+                SetText(promptLabel, label);
+            }
+            else prompt.AddToClassList("hidden");
+            promptUp = show;
             clickToPlay.EnableInClassList("hidden", !cursorFree);
+        }
+
+        /// <summary>"Hold E to repair the machine" -> "Repair the machine" (the key cap already says HOLD E).</summary>
+        static string HoldLabel(string text)
+        {
+            string rest = text.Substring(6).TrimStart();
+            if (rest.StartsWith("to ")) rest = rest.Substring(3);
+            return rest.Length > 0 ? char.ToUpperInvariant(rest[0]) + rest.Substring(1) : text;
+        }
+
+        /// <summary>Countdowns ("charging... 3") change every second; only a new action should cross-fade.</summary>
+        static string WithoutDigits(string text)
+        {
+            var chars = new System.Text.StringBuilder(text.Length);
+            foreach (char c in text) if (!char.IsDigit(c)) chars.Append(c);
+            return chars.ToString();
+        }
+
+        /// <summary>Pressed E on something that can't be used yet: the prompt shakes its head.</summary>
+        void ShakePrompt()
+        {
+            if (promptBox == null || GameSettings.ReduceMotion) return;
+            Sfx.Play(Sound.UiClose, null, 0.9f, 0.85f);
+            string[] steps = { "prompt-box--shake-left", "prompt-box--shake-right", "prompt-box--shake-left", null };
+            for (int i = 0; i < steps.Length; i++)
+            {
+                string step = steps[i];
+                promptBox.schedule.Execute(() =>
+                {
+                    promptBox.RemoveFromClassList("prompt-box--shake-left");
+                    promptBox.RemoveFromClassList("prompt-box--shake-right");
+                    if (step != null) promptBox.AddToClassList(step);
+                }).StartingIn(i * 40);
+            }
         }
 
         void UpdateBubbles()
@@ -529,6 +658,10 @@ namespace SurfPool
 
                 bubble.patience.EnableInClassList("hidden", !surfer.ShowPatience);
                 float patience = Mathf.Clamp01(surfer.Patience);
+                bubble.face.EnableInClassList("hidden", !surfer.ShowPatience);
+                bubble.face.EnableInClassList("icon--smile", patience >= 0.6f);
+                bubble.face.EnableInClassList("icon--meh", patience < 0.6f && patience >= 0.3f);
+                bubble.face.EnableInClassList("icon--frown", patience < 0.3f);
                 bubble.patienceFill.style.width = Length.Percent(patience * 100f);
                 bubble.patienceFill.EnableInClassList("patience-fill--mid", patience < 0.6f && patience >= 0.3f);
                 bubble.patienceFill.EnableInClassList("patience-fill--low", patience < 0.3f);
@@ -648,17 +781,25 @@ namespace SurfPool
             bubble.patienceFill = new VisualElement { pickingMode = PickingMode.Ignore };
             bubble.patienceFill.AddToClassList("patience-fill");
             bubble.patience.Add(bubble.patienceFill);
+            bubble.face = new VisualElement { pickingMode = PickingMode.Ignore };
+            bubble.face.AddToClassList("icon");
+            bubble.face.AddToClassList("patience-face");
 
             bubble.root.Add(box);
             bubble.root.Add(tail);
             bubble.root.Add(bubble.patience);
+            bubble.root.Add(bubble.face);
             bubbleLayer.Add(bubble.root);
             return bubble;
         }
 
         void ShowPopup(int amount, string reason)
         {
-            if (amount > 0) UiMotion.Bump(money, "money-label--bump");
+            if (amount > 0)
+            {
+                UiMotion.Bump(money, "money-label--bump");
+                tideSlosh = Mathf.Max(tideSlosh, 0.6f);
+            }
             var label = new Label((amount >= 0 ? "+" : "") + MoneyText.Short(amount) + (string.IsNullOrEmpty(reason) ? "" : "  " + reason))
             {
                 pickingMode = PickingMode.Ignore,

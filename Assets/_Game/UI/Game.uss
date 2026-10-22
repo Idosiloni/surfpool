@@ -436,6 +436,12 @@
     justify-content: space-between;
     align-items: center;
     margin-top: 5px;
+    margin-left: -4px;
+    margin-right: -4px;
+    padding: 0 4px;
+    border-radius: 8px;
+    transition-property: background-color;
+    transition-duration: 1.2s;
 }
 
 .stat-name {
@@ -2080,14 +2086,26 @@
 /* ---------- Settings ---------- */
 
 .settings-window {
-    width: 720px;
+    width: 1180px;
     height: auto;
+    max-height: 98%;
+}
+
+/* Scrolls only when a big UI size makes the window taller than the screen. */
+.settings-scroll {
+    flex-shrink: 1;
 }
 
 .settings-window .report-column {
     margin-right: 0;
     flex-grow: 0;
+    flex-shrink: 0;
     flex-basis: auto;
+    padding: 10px 18px 12px 18px;
+}
+
+.settings-window .section-gap {
+    margin-top: 12px;
 }
 
 .settings-slider,
@@ -3539,4 +3557,222 @@
     color: var(--muted);
     white-space: normal;
     -unity-text-align: middle-center;
+}
+
+/* ---------- Wave wipe (UI/UiWipe.cs): ink water with a foam edge washes across the screen ---------- */
+.wipe {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    translate: 0 0;
+    transition-property: translate, opacity;
+    transition-duration: 0.38s, 0.38s;
+    transition-timing-function: ease-in-out-sine, ease-in-out-sine;
+}
+
+.wipe-body {
+    position: absolute;
+    left: -2px;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    background-color: var(--ink);
+}
+
+.wipe-edge {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: -190px;
+    width: 192px;
+    background-image: url("project://database/Assets/_Game/UI/Art/foam_edge.png");
+    -unity-background-scale-mode: stretch-to-fill;
+}
+
+.wipe--start {
+    translate: -115% 0;
+}
+
+.wipe--end {
+    translate: 115% 0;
+}
+
+.wipe--fade {
+    transition-duration: 0.16s, 0.16s;
+}
+
+.wipe--fade.wipe--start,
+.wipe--fade.wipe--end {
+    translate: 0 0;
+    opacity: 0;
+}
+
+/* ---------- Contextual HUD (game-ui-craft #9): H = clean screen; Park rows flash in when they change ---------- */
+.hud-root--clean .top-left,
+.hud-root--clean .top-right,
+.hud-root--clean .goal-strip,
+.hud-root--clean .hint,
+.hud-root--clean .rush-pill {
+    display: none;
+}
+
+.stat-row--flash {
+    background-color: rgba(255, 200, 87, 0.45);
+    transition-duration: 0.1s;
+}
+
+/* ---------- Prompt v2 (game-ui-craft #11): pops in, cross-fades, sandy + shake when it can't be used ---------- */
+.prompt-box {
+    scale: 1 1;
+    opacity: 1;
+    transition-property: scale, opacity, translate, background-color;
+    transition-duration: 0.12s, 0.12s, 0.04s, 0.15s;
+    transition-timing-function: ease-out-back, ease-out, linear, ease-out;
+}
+
+.prompt--enter > .prompt-box {
+    scale: 0.85 0.85;
+    opacity: 0;
+}
+
+.prompt-label {
+    transition-property: opacity;
+    transition-duration: 0.07s;
+}
+
+.prompt-label--swap {
+    opacity: 0.15;
+}
+
+.prompt-box--no {
+    background-color: var(--sand);
+    border-color: var(--muted);
+}
+
+.prompt-box--no > .prompt-label {
+    color: var(--ink-soft);
+}
+
+.prompt-box--no > .key-badge {
+    border-color: var(--muted);
+    color: var(--muted);
+}
+
+.prompt-box--shake-left {
+    translate: -5px 0;
+}
+
+.prompt-box--shake-right {
+    translate: 5px 0;
+}
+
+/* ---------- Accessibility (Settings): colorblind marks, reduce motion ---------- */
+.patience-face {
+    display: none;
+    position: absolute;
+    bottom: -4px;
+    left: -26px;
+    width: 22px;
+    height: 22px;
+    -unity-background-image-tint-color: var(--ink);
+}
+
+.marks .patience-face {
+    display: flex;
+}
+
+.marks .patience-face.hidden {
+    display: none;
+}
+
+.reduce-motion * {
+    transition-duration: 0s;
+}
+
+/* ---------- Settings: two columns and the key list ---------- */
+.settings-columns {
+    flex-direction: row;
+}
+
+.settings-column {
+    flex-grow: 1;
+    flex-basis: 0;
+    margin-right: 28px;
+}
+
+.settings-column--last {
+    margin-right: 0;
+}
+
+.keys-list {
+    margin-top: 2px;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.keys-row {
+    width: 50%;
+    flex-direction: row;
+    align-items: center;
+    margin: 1px 0;
+}
+
+.keys-cap {
+    min-width: 64px;
+    height: 27px;
+    font-size: 15px;
+    margin-right: 12px;
+    border-bottom-width: 4px;
+}
+
+.keys-text {
+    font-size: 16px;
+    color: var(--ink);
+}
+
+.keys-heading {
+    width: 100%;
+    font-size: 15px;
+    color: var(--wood);
+    letter-spacing: 1.5px;
+    margin: 8px 0 2px 0;
+}
+
+/* ---------- Wallet tide (game-ui-craft #15): water behind the money rising toward your best day ---------- */
+.wallet {
+    overflow: hidden;
+}
+
+.tide {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 0;
+}
+
+.tide-fill {
+    flex-grow: 1;
+    background-color: rgba(20, 184, 166, 0.45);
+}
+
+.tide-crest {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    width: 200%;
+    height: 24px;
+    margin-bottom: -8px;
+    background-image: url("project://database/Assets/_Game/UI/Art/tide_crest.png");
+    -unity-background-scale-mode: stretch-to-fill;
+}
+
+.tide--full .tide-fill {
+    background-color: rgba(20, 184, 166, 0.65);
+}
+
+.tide--full .tide-crest {
+    height: 30px;
 }

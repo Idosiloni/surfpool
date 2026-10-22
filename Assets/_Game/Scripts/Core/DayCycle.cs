@@ -260,6 +260,7 @@ namespace SurfPool
                 today.lost = spawner.Lost - lostAtStart;
             }
             if (OperatingCosts.Instance != null) OperatingCosts.Instance.PayDailyBills(today.TotalIncome);
+            GameStats.BestDayIncome = Mathf.Max(GameStats.BestDayIncome, today.TotalIncome);
             Sfx.Play(Sound.DayEnd);
             Lifeguard.Whistle();
             DayEnded?.Invoke(today);

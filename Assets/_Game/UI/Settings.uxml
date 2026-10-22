@@ -9,31 +9,55 @@
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:Label text="SurfOS" class="window-tag window-tag--teal" />
-            <ui:VisualElement class="report-column section-gap">
-                <ui:Label text="CONTROLS" class="section-title" />
-                <ui:Slider name="setSensitivity" label="Mouse sensitivity" low-value="0.25" high-value="3" class="settings-slider" />
-                <ui:Toggle name="setInvert" label="Invert mouse Y" class="settings-toggle" />
-            </ui:VisualElement>
-            <ui:VisualElement class="report-column section-gap">
-                <ui:Label text="SOUND" class="section-title" />
-                <ui:Slider name="setMusic" label="Music" low-value="0" high-value="1" class="settings-slider" />
-                <ui:Slider name="setEffects" label="Effects" low-value="0" high-value="1" class="settings-slider" />
-                <ui:Slider name="setAmbience" label="Beach" low-value="0" high-value="1" class="settings-slider" />
-            </ui:VisualElement>
-            <ui:VisualElement class="report-column section-gap">
-                <ui:Label text="GRAPHICS" class="section-title" />
-                <ui:VisualElement class="quality-row">
-                    <ui:Label text="Quality" class="settings-label" />
-                    <ui:Button name="qualityLow" text="Fast" class="quality-button" />
-                    <ui:Button name="qualityMid" text="Balanced" class="quality-button" />
-                    <ui:Button name="qualityHigh" text="Pretty" class="quality-button" />
+            <ui:ScrollView class="settings-scroll">
+            <ui:VisualElement class="settings-columns">
+                <ui:VisualElement class="settings-column">
+                    <ui:VisualElement class="report-column section-gap">
+                        <ui:Label text="CONTROLS" class="section-title" />
+                        <ui:Slider name="setSensitivity" label="Mouse sensitivity" low-value="0.25" high-value="3" class="settings-slider" />
+                        <ui:Toggle name="setInvert" label="Invert mouse Y" class="settings-toggle" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="report-column section-gap">
+                        <ui:Label text="SOUND" class="section-title" />
+                        <ui:Slider name="setMusic" label="Music" low-value="0" high-value="1" class="settings-slider" />
+                        <ui:Slider name="setEffects" label="Effects" low-value="0" high-value="1" class="settings-slider" />
+                        <ui:Slider name="setAmbience" label="Beach" low-value="0" high-value="1" class="settings-slider" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="report-column section-gap">
+                        <ui:Label text="GRAPHICS" class="section-title" />
+                        <ui:VisualElement class="quality-row">
+                            <ui:Label text="Quality" class="settings-label" />
+                            <ui:Button name="qualityLow" text="Fast" class="quality-button" />
+                            <ui:Button name="qualityMid" text="Balanced" class="quality-button" />
+                            <ui:Button name="qualityHigh" text="Pretty" class="quality-button" />
+                        </ui:VisualElement>
+                        <ui:Toggle name="setFullscreen" label="Fullscreen" class="settings-toggle" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
-                <ui:Toggle name="setFullscreen" label="Fullscreen" class="settings-toggle" />
+                <ui:VisualElement class="settings-column settings-column--last">
+                    <ui:VisualElement class="report-column section-gap">
+                        <ui:Label text="ACCESSIBILITY" class="section-title" />
+                        <ui:Slider name="setUiScale" label="UI size" low-value="0.8" high-value="1.3" class="settings-slider" />
+                        <ui:Slider name="setShake" label="Camera shake" low-value="0" high-value="1" class="settings-slider" />
+                        <ui:Toggle name="setReduceMotion" label="Reduce motion" class="settings-toggle" />
+                        <ui:Toggle name="setMarks" label="Colorblind marks" class="settings-toggle" />
+                        <ui:Toggle name="setCleanHud" label="Hide the HUD (H)" class="settings-toggle" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="report-column section-gap">
+                        <ui:Label text="KEYS" class="section-title" />
+                        <ui:VisualElement name="keysList" class="keys-list" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
             </ui:VisualElement>
+            </ui:ScrollView>
             <ui:VisualElement class="screen-footer section-gap">
                 <ui:Label />
                 <ui:Button name="settingsClose" text="Done" class="close-button" />
             </ui:VisualElement>
         </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:VisualElement name="wipe" class="wipe hidden" picking-mode="Ignore">
+        <ui:VisualElement class="wipe-body" picking-mode="Ignore" />
+        <ui:VisualElement class="wipe-edge" picking-mode="Ignore" />
     </ui:VisualElement>
 </ui:UXML>
