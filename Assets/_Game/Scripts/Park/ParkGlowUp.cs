@@ -42,7 +42,7 @@ namespace SurfPool
         {
             "",
             "Business is good, so the park got a makeover: wooden boardwalks, loungers and shade. It's a beach club now!",
-            "The park is a resort now: sandstone decks, cabanas, palms in big planters and lights under the water.",
+            "The park is a resort now: sandstone decks, cabanas, shade sails and lights under the water.",
             "Pure luxury: marble decks, a fountain at the gate, fire pits and VIP cabanas. Uncle Kai won't believe it.",
         };
 
@@ -139,6 +139,32 @@ namespace SurfPool
             if (Time.unscaledTime < nextCheck) return;
             nextCheck = Time.unscaledTime + 0.4f;
             Refresh(true);
+            UpdatePoolLights();
+        }
+
+        static readonly int PoolGlowId = Shader.PropertyToID("_PoolGlow");
+        MaterialPropertyBlock glowBlock;
+        float poolGlowShown = -1f;
+
+        /// <summary>
+        /// From the resort tier on, the pools' wall lights come on as the sun goes down: the water glows turquoise
+        /// (StylizedWater _PoolGlow, per pool renderer so the ocean stays dark).
+        /// </summary>
+        void UpdatePoolLights()
+        {
+            float glow = Tier >= 2 && DayCycle.Instance != null ? DayCycle.Instance.Darkness : 0f;
+            if (Mathf.Abs(glow - poolGlowShown) < 0.01f) return;
+            poolGlowShown = glow;
+            glowBlock ??= new MaterialPropertyBlock();
+            foreach (var pool in PoolRegistry.All)
+            {
+                if (pool == null || pool.Water == null) continue;
+                var renderer = pool.Water.GetComponent<MeshRenderer>();
+                if (renderer == null) continue;
+                renderer.GetPropertyBlock(glowBlock);
+                glowBlock.SetFloat(PoolGlowId, glow);
+                renderer.SetPropertyBlock(glowBlock);
+            }
         }
 
         void Refresh(bool allowAnimation)

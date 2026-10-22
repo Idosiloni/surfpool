@@ -536,7 +536,7 @@ namespace SurfPool.EditorTools
         /// A soft round spark, bright enough to bloom. Additive glows (rocket trails); alpha-blended keeps its color
         /// against a bright daytime sky (the bursts).
         /// </summary>
-        static Material SparkMaterial(string name, bool additive, float brightness)
+        internal static Material SparkMaterial(string name, bool additive, float brightness)
         {
             var mat = ParticleMaterial(name, additive);
             mat.SetTexture("_BaseMap", SparkTexture());
@@ -545,7 +545,7 @@ namespace SurfPool.EditorTools
             return mat;
         }
 
-        static Material ParticleMaterial(string name, bool additive)
+        internal static Material ParticleMaterial(string name, bool additive)
         {
             string path = $"Assets/_Game/Materials/{name}.mat";
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -661,7 +661,7 @@ namespace SurfPool.EditorTools
         }
 
         /// <summary>Swaps a model's "Bulb" material for a glowing one.</summary>
-        static void Glow(GameObject model)
+        internal static void Glow(GameObject model)
         {
             if (model == null) return;
             var bulb = GreyboxBuilder.Mat("BulbGlow", new Color(1f, 0.9f, 0.6f), 0.5f, new Color(2.4f, 1.9f, 1.0f));

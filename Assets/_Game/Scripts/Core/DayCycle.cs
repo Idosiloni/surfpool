@@ -156,6 +156,16 @@ namespace SurfPool
             foreach (var guest in BeachGuest.All.ToArray()) guest.GoHome();
         }
 
+        /// <summary>0 in daylight, rising to 1 as dusk falls after closing time (park lights come on with it).</summary>
+        public float Darkness
+        {
+            get
+            {
+                float k = Mathf.Clamp01((time - dayLength * 0.92f) / (dayLength * 0.08f + duskLength));
+                return k * k * (3f - 2f * k);
+            }
+        }
+
         /// <summary>The sun sinks below the horizon and the world goes dusky blue while the last guests leave.</summary>
         void UpdateDusk()
         {

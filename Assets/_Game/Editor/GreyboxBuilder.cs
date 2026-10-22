@@ -647,6 +647,7 @@ namespace SurfPool.EditorTools
             ParkExtras.ParkingLot();
             GlowUpBuilder.Build(shop, reef.built, lagoon.built, deckMat, copingMat, tileMat, ReefZ, LagoonZ);
             BuildUpgradeProps();
+            LuxuryBuilder.Props(); // last: it fits around everything else
             var wornTile = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/PoolTileWorn.mat");
             if (wornTile != null)
             {
@@ -992,13 +993,9 @@ namespace SurfPool.EditorTools
             var dressing = new GameObject("Deck Dressing").transform;
             dressing.SetParent(parent, false);
             float z = zc + halfWidth + 7f, yaw = PoolYaw(parent);
+            // Loungers under umbrellas that become cabanas and fire pits as the park gets richer (luxury tiers).
             for (int i = 0; i < Mathf.RoundToInt(length / 10f); i++)
-            {
-                float x = 6 + i * 9f;
-                WorldArt.Model(i % 2 == 0 ? "BeachUmbrellaCoral" : "BeachUmbrellaTeal", dressing, InPool(parent, new Vector3(x, 0, z + 0.8f)), i * 47f);
-                WorldArt.Model("LoungeChair", dressing, InPool(parent, new Vector3(x - 0.8f, 0, z)), 180f + yaw);
-                WorldArt.Model("LoungeChair", dressing, InPool(parent, new Vector3(x + 0.8f, 0, z)), 180f + yaw);
-            }
+                LuxuryBuilder.DeckSet(dressing, InPool(parent, new Vector3(6 + i * 9f, 0, z)), yaw, i % 2 == 0, "");
             for (int i = 0; i < Mathf.RoundToInt(length / 15f); i++)
                 WorldArt.Model(i % 2 == 0 ? "PalmTreeTall" : "PalmTree", dressing, InPool(parent, new Vector3(2 + i * 17f, 0, z + 5f)), i * 83f);
         }

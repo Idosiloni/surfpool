@@ -6,9 +6,9 @@ using UnityEngine;
 namespace SurfPool.EditorTools
 {
     /// <summary>
-    /// After a rebuild of the lagoon layout: lists every prop standing in a zone's water and every surfer route that
-    /// walks across water (menu Surf Pool > Check Layout, or <see cref="Report"/> via eval). Things that belong in the
-    /// water (the pools themselves, buoys) are skipped.
+    /// After a rebuild of the lagoon layout: lists every prop standing in a zone's water, every surfer route that
+    /// walks across water, and every luxury-tier prop standing on a route (menu Surf Pool > Check Layout, or
+    /// <see cref="Report"/> via eval). Things that belong in the water (the pools themselves, buoys) are skipped.
     /// </summary>
     public static class LayoutCheck
     {
@@ -86,8 +86,70 @@ namespace SurfPool.EditorTools
                 Route("path in", spawner.PathIn, null);
                 Route("rental in", spawner.RentalPathIn, null);
             }
-            sb.Insert(0, $"Layout check: {props} props in water, {routes} route segments across water\n");
+            // Luxury props (they come later, so nothing was laid out around them): none may stand on a walk.
+            int blocking = 0;
+            var segments = RouteSegments();
+            foreach (var item in Object.FindObjectsByType<GlowItem>(FindObjectsInactive.Include))
+            {
+                if (item.fromTier <= 0) continue;
+                foreach (var renderer in item.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (renderer is ParticleSystemRenderer) continue;
+                    var b = renderer.bounds;
+                    if (b.min.y > 2.2f) continue; // overhead (a sail, a roof): walkers pass under
+                    float gap = Gap(new Vector2(b.min.x, b.min.z), new Vector2(b.max.x, b.max.z), segments);
+                    if (gap >= 0.6f) continue;
+                    if (++blocking <= 60) sb.AppendLine($"LUXURY on a route: {Path(item.transform)} at ({item.transform.position.x:0.0}, {item.transform.position.z:0.0}), {gap:0.0} m away");
+                    break;
+                }
+            }
+            sb.Insert(0, $"Layout check: {props} props in water, {routes} route segments across water, {blocking} luxury props on routes\n");
             return sb.ToString();
+        }
+
+        /// <summary>Every walk in the park as ground segments (x, z): surfers' routes in, out and to each pool.</summary>
+        internal static List<(Vector2 a, Vector2 b)> RouteSegments()
+        {
+            var list = new List<(Vector2, Vector2)>();
+            void Add(IList<Vector3> points)
+            {
+                for (int i = 0; i + 1 < points.Count; i++)
+                    list.Add((new Vector2(points[i].x, points[i].z), new Vector2(points[i + 1].x, points[i + 1].z)));
+            }
+            var spawner = Object.FindAnyObjectByType<SurferSpawner>(FindObjectsInactive.Include);
+            foreach (var pool in Object.FindObjectsByType<PoolArea>(FindObjectsInactive.Include))
+            {
+                if (spawner != null) Add(spawner.PathToPool(pool));
+                var outPath = new List<Vector3> { pool.BeachLanding.position };
+                if (pool.PathOut != null) foreach (var t in pool.PathOut) if (t != null) outPath.Add(t.position);
+                Add(outPath);
+                var back = new List<Vector3>();
+                if (pool.ReturnPathOut != null) foreach (var t in pool.ReturnPathOut) if (t != null) back.Add(t.position);
+                Add(back);
+            }
+            if (spawner != null)
+            {
+                Add(spawner.PathIn);
+                Add(spawner.RentalPathIn);
+            }
+            return list;
+        }
+
+        /// <summary>Shortest ground distance from a rectangle (min, max) to any of the segments.</summary>
+        internal static float Gap(Vector2 min, Vector2 max, List<(Vector2 a, Vector2 b)> segments)
+        {
+            float best = float.MaxValue;
+            foreach (var (a, b) in segments)
+            {
+                int steps = Mathf.Max(1, Mathf.CeilToInt(Vector2.Distance(a, b) / 0.25f));
+                for (int s = 0; s <= steps; s++)
+                {
+                    var p = Vector2.Lerp(a, b, s / (float)steps);
+                    float dx = Mathf.Max(min.x - p.x, 0f, p.x - max.x), dz = Mathf.Max(min.y - p.y, 0f, p.y - max.y);
+                    best = Mathf.Min(best, Mathf.Sqrt(dx * dx + dz * dz));
+                }
+            }
+            return best;
         }
 
         static string Path(Transform t)

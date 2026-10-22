@@ -29,6 +29,7 @@ Shader "SurfPool/StylizedWater"
         _RippleNormal ("Ripple detail (lighting only)", Range(0, 1)) = 0.6
         _StreakStrength ("Face streaks", Range(0, 0.5)) = 0.18
         _DripScale ("Foam lines down the face: spacing", Float) = 2.2
+        _PoolGlow ("Pool lights glow (set per pool after dark)", Range(0, 1)) = 0
     }
 
     SubShader
@@ -67,6 +68,7 @@ Shader "SurfPool/StylizedWater"
                 half _RippleNormal;
                 half _StreakStrength;
                 float _DripScale;
+                half _PoolGlow;
             CBUFFER_END
             float _LipSeeThrough; // global, set by PlayerSurfing
 
@@ -215,6 +217,11 @@ Shader "SurfPool/StylizedWater"
                 color += mainLight.color * sparkle * 0.5 * (1.0 - foam) * (1.0 - tube);
                 half fresnel = pow(1.0 - saturate(dot(litNormal, viewDir)), _FresnelPower);
                 color = lerp(color, _FaceColor.rgb * 1.15, fresnel * 0.3 * (1.0 - foam));
+
+                // Resort pools after dark: lights in the walls make the water glow turquoise from below (ParkGlowUp sets
+                // it per pool, so the ocean, which shares this material, stays dark). Ripples break it up a little.
+                half led = _PoolGlow * (1.0 - foam * 0.7) * (1.0 - tube * 0.5) * (0.85 + 0.2 * (r0 - 0.75));
+                color += half3(0.03, 0.22, 0.28) * led;
 
                 color = MixFog(color, input.fogFactor);
                 return half4(color, 1);
