@@ -20,6 +20,8 @@ namespace SurfPool
     /// <summary>A story step: what Uncle Kai's notebook says, what to do, a hint, where to go, and a cash reward.</summary>
     public class Mission
     {
+        /// <summary>Saved instead of the list position, so missions can be added or moved without breaking saves.</summary>
+        public string id;
         public string chapter;
         public string title;
         public string story;
@@ -74,10 +76,17 @@ namespace SurfPool
         /// <summary>Called when the player closes the intro letter.</summary>
         public void Begin() => started = true;
 
-        /// <summary>Jump to a saved mission index (save/load).</summary>
-        public void Restore(int index, bool hasStarted)
+        /// <summary>The current mission's id for saving ("done" once every mission is finished).</summary>
+        public string CurrentId => current < missions.Count ? missions[current].id : "done";
+
+        /// <summary>
+        /// Jump to a saved mission (save/load): by id; saves from before mission ids have only the list position,
+        /// which is still the right one for them (missions keep that old order until new ones are added).
+        /// </summary>
+        public void Restore(string id, int index, bool hasStarted)
         {
-            current = Mathf.Clamp(index, 0, missions.Count);
+            int found = id == "done" ? missions.Count : missions.FindIndex(m => m.id == id);
+            current = found >= 0 ? found : Mathf.Clamp(index, 0, missions.Count);
             started = hasStarted;
         }
 
@@ -115,7 +124,7 @@ namespace SurfPool
 
             missions.Add(new Mission
             {
-                chapter = ch1, title = "Open the doors",
+                id = "open_doors", chapter = ch1, title = "Open the doors",
                 story = "First things first: the ticket desk. It's the teal kiosk by the pool. Surfers buy their sessions there.",
                 hint = "Walk to the ticket desk (follow the marker).",
                 marker = () => ticketRegister,
@@ -123,7 +132,7 @@ namespace SurfPool
             });
             missions.Add(new Mission
             {
-                chapter = ch1, title = "Your first customer", reward = 10,
+                id = "first_customer", chapter = ch1, title = "Your first customer", reward = 10,
                 story = "Here comes a beginner! Stand behind the counter, look at the black register and press E to sell a session.",
                 hint = "Look at the register and press E when a surfer is waiting.",
                 marker = () => ticketRegister,
@@ -131,7 +140,7 @@ namespace SurfPool
             });
             missions.Add(new Mission
             {
-                chapter = ch1, title = "Make some waves", reward = 10,
+                id = "make_waves", chapter = ch1, title = "Make some waves", reward = 10,
                 story = "My old wave machine still works! At the console by the deep end, the screen picks the wave and the big red button sends it.",
                 hint = "Go to the wave console and press E on the big red button.",
                 marker = () => waveConsole,
@@ -139,7 +148,7 @@ namespace SurfPool
             });
             missions.Add(new Mission
             {
-                chapter = ch1, title = "Stoked!", reward = 25,
+                id = "stoked", chapter = ch1, title = "Stoked!", reward = 25,
                 story = "Every surfer gets 3 waves. Keep the waves coming and watch the patience bars over their heads!",
                 hint = "Send a wave whenever a surfer is waiting in the water.",
                 marker = () => waveConsole,
@@ -147,14 +156,14 @@ namespace SurfPool
             });
             missions.Add(new Mission
             {
-                chapter = ch1, title = "Back in business", reward = 50,
+                id = "back_in_business", chapter = ch1, title = "Back in business", reward = 50,
                 story = "Sell sessions, send waves, keep everyone happy. Happy surfers tip, and a good rating brings more of them. The +/- buttons at the desk set your price: when the park gets nicer, surfers will pay more, so raise it!",
                 hint = "Keep serving surfers. Tips count too!",
                 objectives = { Count("Earn $150", () => GameStats.TotalEarned, 150) },
             });
             missions.Add(new Mission
             {
-                chapter = ch1, title = "Fix up the place",
+                id = "fix_up", chapter = ch1, title = "Fix up the place",
                 story = "The computer on the ticket desk runs SurfOS. That's where you buy upgrades for the park.",
                 hint = "Press E on the computer screen on the desk and buy any upgrade.",
                 marker = () => upgradeComputer,
@@ -163,7 +172,7 @@ namespace SurfPool
 
             missions.Add(new Mission
             {
-                chapter = ch2, title = "Owner's privilege", reward = 50,
+                id = "owners_privilege", chapter = ch2, title = "Owner's privilege", reward = 50,
                 story = "You can't run a surf park without surfing it! Grab your board from the peg by the wave console.",
                 hint = "E on your board by the console. W paddle, Space to stand up when a wave reaches you, F sends a wave.",
                 marker = () => surfPeg,
@@ -171,7 +180,7 @@ namespace SurfPool
             });
             missions.Add(new Mission
             {
-                chapter = ch2, title = "Bigger waves", reward = 300,
+                id = "bigger_waves", chapter = ch2, title = "Bigger waves", reward = 300,
                 story = "Beginners are great, but intermediate surfers pay two and a half times as much. Bigger waves need a bigger pool, so dig it out first, then teach the machine some proper peeling waves.",
                 hint = "Buy Pool Expansion I (Pools tab), then the Intermediate Wave Program (Waves tab).",
                 marker = () => upgradeComputer,
@@ -183,7 +192,7 @@ namespace SurfPool
             });
             missions.Add(new Mission
             {
-                chapter = ch2, title = "Regulars", reward = 300,
+                id = "regulars", chapter = ch2, title = "Regulars", reward = 300,
                 story = "Word is spreading. Keep the line moving and the lineup happy.",
                 hint = "Serve surfers and keep your park rating high.",
                 objectives =
@@ -194,7 +203,7 @@ namespace SurfPool
             });
             missions.Add(new Mission
             {
-                chapter = ch2, title = "Board rentals", reward = 300,
+                id = "board_rentals", chapter = ch2, title = "Board rentals", reward = 300,
                 story = "Lots of people show up without a board. Open the rental stand and hand them one from the rack.",
                 hint = "Buy the Board Rental Stand (Rentals tab), then rent boards.",
                 marker = () => shop.IsOwned("rental_stand") ? rentalRack : upgradeComputer,
@@ -206,16 +215,16 @@ namespace SurfPool
             });
             missions.Add(new Mission
             {
-                chapter = ch2, title = "Hire some help", reward = 400,
-                story = "You can't do everything yourself. Hire your first staff member and let them handle a job.",
-                hint = "Hire anyone from the Staff tab.",
+                id = "hire_help", chapter = ch2, title = "Hire some help", reward = 400,
+                story = "You can't do everything yourself. Start with the chore nobody loves: hauling boards back to the rack. Hire a Board Runner.",
+                hint = "The Board Runner is in the Staff tab (after you've rented out 20 boards).",
                 marker = () => upgradeComputer,
-                objectives = { Flag("Hire a staff member", () => StaffMember.Active.Count > 0) },
+                objectives = { Owns("Hire a Board Runner", "board_runner") },
             });
 
             missions.Add(new Mission
             {
-                chapter = ch3, title = "Go pro", reward = 1500,
+                id = "go_pro", chapter = ch3, title = "Go pro", reward = 1500,
                 story = "The pros are calling. Steep, fast, barreling waves, and they pay six times the base price. This is what I always dreamed of. Pro waves need the pool at full size.",
                 hint = "Buy Pool Expansion II (Pools tab), then the Pro Wave Program (Waves tab).",
                 marker = () => upgradeComputer,
@@ -227,7 +236,7 @@ namespace SurfPool
             });
             missions.Add(new Mission
             {
-                chapter = ch3, title = "Get barreled", reward = 2000,
+                id = "get_barreled", chapter = ch3, title = "Get barreled", reward = 2000,
                 story = "Nothing beats watching a pro disappear into the tube. Send them Pro waves!",
                 hint = "Pro surfers ride inside the barrel on Pro waves.",
                 marker = () => waveConsole,
@@ -235,7 +244,7 @@ namespace SurfPool
             });
             missions.Add(new Mission
             {
-                chapter = ch3, title = "Second pool", reward = 5000,
+                id = "second_pool", chapter = ch3, title = "Second pool", reward = 5000,
                 story = "One pool isn't enough anymore. Build a second pool and double the surf!",
                 hint = "Buy a new pool in the Pools tab.",
                 marker = () => upgradeComputer,
@@ -248,7 +257,7 @@ namespace SurfPool
 
             missions.Add(new Mission
             {
-                chapter = ch4, title = "World-class", reward = 50000,
+                id = "world_class", chapter = ch4, title = "World-class", reward = 50000,
                 story = "Look at this place! Let's make it the best surf park in the world.",
                 hint = "Serve lots of surfers, keep 5 stars, and build every pool.",
                 objectives =

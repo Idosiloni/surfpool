@@ -263,7 +263,7 @@ namespace SurfPool
                 }
                 else if (!unlocked)
                 {
-                    var requires = new Label("Needs " + shop.TitleOf(upgrade.requires));
+                    var requires = new Label(shop.NeedsText(upgrade));
                     requires.AddToClassList("card-requires");
                     card.Add(requires);
                 }

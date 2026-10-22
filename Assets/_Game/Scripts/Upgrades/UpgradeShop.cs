@@ -19,7 +19,17 @@ namespace SurfPool
         public int level = 1;
         [Tooltip("Id of an upgrade that must be bought first. Empty = none.")]
         public string requires;
+        /// <summary>
+        /// "Do it by hand first" (docs/research/pacing-and-upgrade-costs.md): automation unlocks after you've done the
+        /// job yourself this many times, counted by <see cref="handCount"/> (null = no gate).
+        /// </summary>
+        public int handTarget;
+        public Func<long> handCount;
+        /// <summary>What the hand count counts, for "Send 12 more waves by hand first".</summary>
+        public string handWhat;
         [NonSerialized] public bool owned;
+
+        public long HandLeft => handCount == null ? 0 : Math.Max(0, handTarget - handCount());
     }
 
     /// <summary>
@@ -28,14 +38,16 @@ namespace SurfPool
     /// </summary>
     public class UpgradeShop : MonoBehaviour, IInteractable
     {
-        // Costs follow the curve in docs/BALANCE.md: each purchase takes a few minutes of the income you have when it
-        // unlocks. Order matters: an upgrade's requirement must come before it in this list (saves restore in order).
-        [SerializeField] List<Upgrade> upgrades = new()
+        // Costs follow the curve in docs/BALANCE.md and docs/research/pacing-and-upgrade-costs.md: cheap things teach a
+        // mechanic, automation of a core job (waves, tickets) comes late and costs 6-10 minutes of income, passive
+        // income costs 30+. Dull chores get helpers before core jobs. Order matters: an upgrade's requirement must come
+        // before it in this list (saves restore in order). This list in code is the only copy (not saved in the scene).
+        readonly List<Upgrade> upgrades = new()
         {
             // Pools: the main pool grows first, then whole new pools.
-            new Upgrade { id = "pool_expand_1", category = UpgradeCategory.Pools, title = "Pool Expansion I", cost = 400, level = 3,
+            new Upgrade { id = "pool_expand_1", category = UpgradeCategory.Pools, title = "Pool Expansion I", cost = 500, level = 3,
                 description = "Dig the main pool out to 50 x 19 m. Room for 2 more surfers, and big enough for Intermediate waves." },
-            new Upgrade { id = "pool_expand_2", category = UpgradeCategory.Pools, title = "Pool Expansion II", cost = 3000, level = 10, requires = "intermediate_waves",
+            new Upgrade { id = "pool_expand_2", category = UpgradeCategory.Pools, title = "Pool Expansion II", cost = 4000, level = 10, requires = "intermediate_waves",
                 description = "The main pool's full size: 60 x 24 m. Room for 2 more surfers, and big enough for Pro waves." },
             new Upgrade { id = "pool_reef", category = UpgradeCategory.Pools, title = "Build the Reef Pool", cost = 18000, level = 15, requires = "pool_expand_2",
                 description = "A second pool north of the main one. Longer peeling waves. Room for 4 more surfers, and every session there costs 2.5x." },
@@ -49,13 +61,13 @@ namespace SurfPool
             // Waves
             new Upgrade { id = "faster_machine", category = UpgradeCategory.Waves, title = "Turbo Pump", cost = 75, level = 1,
                 description = "The wave machine recharges twice as fast (4 s -> 2 s)." },
-            new Upgrade { id = "auto_waves", category = UpgradeCategory.Waves, title = "Auto Wave Timer", cost = 200, level = 2,
-                description = "The machine sends the selected wave by itself every 12 seconds. A yellow light turns on." },
             new Upgrade { id = "intermediate_waves", category = UpgradeCategory.Waves, title = "Intermediate Wave Program", cost = 600, level = 3, requires = "pool_expand_1",
                 description = "Unlocks bigger peeling Intermediate waves. Intermediate surfers start coming, and they pay 2.5x the base price." },
-            new Upgrade { id = "wave_sets", category = UpgradeCategory.Waves, title = "Wave Sets", cost = 900, level = 5, requires = "faster_machine",
+            new Upgrade { id = "wave_sets", category = UpgradeCategory.Waves, title = "Wave Sets", cost = 500, level = 3, requires = "faster_machine",
                 description = "Each press sends a set of 2 waves, 4 s apart (the lineup calls it: SET INCOMING!). More rides, less waiting." },
-            new Upgrade { id = "smart_auto", category = UpgradeCategory.Waves, title = "Smart Wave Timer", cost = 2000, level = 8, requires = "auto_waves",
+            new Upgrade { id = "auto_waves", category = UpgradeCategory.Waves, title = "Auto Wave Timer", cost = 3000, level = 8, requires = "wave_sets", handTarget = 40, handCount = () => GameStats.WavesSent, handWhat = "waves by hand",
+                description = "The machine sends the selected wave by itself every 12 seconds. A yellow light turns on." },
+            new Upgrade { id = "smart_auto", category = UpgradeCategory.Waves, title = "Smart Wave Timer", cost = 6000, level = 11, requires = "auto_waves",
                 description = "Auto waves pick the wave type most waiting surfers want." },
             new Upgrade { id = "wave_shaper", category = UpgradeCategory.Waves, title = "Reef Shaper", cost = 2500, level = 8, requires = "intermediate_waves",
                 description = "Unlocks Lefts and Rights. They peel longer than a peak (longer rides, more tricks), and surfers pay $5 more for them. Regular-foot surfers love rights, goofy-foot surfers love lefts." },
@@ -87,7 +99,7 @@ namespace SurfPool
                 description = "A stronger line (tension builds 30% slower) and better bait: big fish bite twice as often." },
             new Upgrade { id = "trash_cans", category = UpgradeCategory.Park, title = "Trash Cans", cost = 300, level = 3,
                 description = "Bins all around the decks. Surfers drop 60% less litter (trash on the ground makes them less happy)." },
-            new Upgrade { id = "solar_panels", category = UpgradeCategory.Park, title = "Solar Panels", cost = 1500, level = 4,
+            new Upgrade { id = "solar_panels", category = UpgradeCategory.Park, title = "Solar Panels", cost = 1500, level = 6,
                 description = "Solar panels on every wave machine roof. Waves use half the electricity." },
             new Upgrade { id = "water_recycling", category = UpgradeCategory.Park, title = "Water Recycling", cost = 5000, level = 12, requires = "solar_panels",
                 description = "Filter tanks next to every wave machine clean and reuse the pool water. The daily water bill is halved." },
@@ -109,7 +121,7 @@ namespace SurfPool
                 description = "Fancy towels, smoothies, priority lineup. Surfers will pay $25 more (times their skill and pool)." },
             new Upgrade { id = "grandstand", category = UpgradeCategory.Park, title = "Grandstand", cost = 22000, level = 17, requires = "pro_waves",
                 description = "Big bleachers by the main pool. Spectators pay $400 every minute to watch, and the buzz brings surfers 30% more often." },
-            new Upgrade { id = "season_passes", category = UpgradeCategory.Park, title = "Season Passes", cost = 35000, level = 18, requires = "surf_shop",
+            new Upgrade { id = "season_passes", category = UpgradeCategory.Park, title = "Season Passes", cost = 45000, level = 19, requires = "surf_shop",
                 description = "Locals buy yearly passes: $1,000 every minute, even while you sleep." },
 
             // Rentals
@@ -121,15 +133,15 @@ namespace SurfPool
                 description = "Nicer boards: rentals cost $10 more." },
 
             // Staff
-            new Upgrade { id = "lifeguard", category = UpgradeCategory.Staff, title = "Hire Lifeguard", cost = 250, level = 2,
+            new Upgrade { id = "lifeguard", category = UpgradeCategory.Staff, title = "Hire Lifeguard", cost = 800, level = 4,
                 description = "Wage $3/min. Surfers wait 50% longer for waves and wipeouts don't ruin their mood." },
-            new Upgrade { id = "desk_clerk", category = UpgradeCategory.Staff, title = "Hire Desk Clerk", cost = 500, level = 3,
+            new Upgrade { id = "desk_clerk", category = UpgradeCategory.Staff, title = "Hire Desk Clerk", cost = 2000, level = 7, handTarget = 60, handCount = () => GameStats.TicketsSold, handWhat = "sessions yourself",
                 description = "Wage $6/min. Sells sessions at the desk for you (at your prices)." },
-            new Upgrade { id = "board_runner", category = UpgradeCategory.Staff, title = "Hire Board Runner", cost = 600, level = 4, requires = "rental_stand",
+            new Upgrade { id = "board_runner", category = UpgradeCategory.Staff, title = "Hire Board Runner", cost = 900, level = 5, requires = "rental_stand", handTarget = 20, handCount = () => GameStats.BoardsRented, handWhat = "boards",
                 description = "Wage $6/min. Carries returned boards from the bin back to the rack for you." },
-            new Upgrade { id = "rental_clerk", category = UpgradeCategory.Staff, title = "Hire Rental Clerk", cost = 700, level = 5, requires = "rental_stand",
+            new Upgrade { id = "rental_clerk", category = UpgradeCategory.Staff, title = "Hire Rental Clerk", cost = 1500, level = 7, requires = "rental_stand",
                 description = "Wage $8/min. Hands rental boards to renters for you." },
-            new Upgrade { id = "snack_cook", category = UpgradeCategory.Staff, title = "Hire Snack Cook", cost = 1500, level = 6, requires = "snack_bar",
+            new Upgrade { id = "snack_cook", category = UpgradeCategory.Staff, title = "Hire Snack Cook", cost = 2000, level = 7, requires = "snack_bar", handTarget = 20, handCount = () => GameStats.SnacksSold, handWhat = "snacks",
                 description = "Wage $6/min. Cooks and serves every snack order at the snack bar for you." },
             new Upgrade { id = "acai_turbo_blender", category = UpgradeCategory.Park, title = "Turbo Blender", cost = 900, level = 7, requires = "acai_bar",
                 description = "A big chrome blender for the Acai & Shake Shack: shakes blend in less than half the time (and the barista works faster)." },
@@ -137,19 +149,19 @@ namespace SurfPool
                 description = "Tap-to-pay at the Surf Gear Shop: items ring up 2.5x faster, and the screen asks for a tip (+$3 on every sale)." },
             new Upgrade { id = "shaper_power_planer", category = UpgradeCategory.Park, title = "Power Planer", cost = 5000, level = 14, requires = "board_shaper",
                 description = "A heavy-duty planer on a ceiling rail with a dust extractor: blanks shape in half the time (and the apprentice works faster)." },
-            new Upgrade { id = "acai_barista", category = UpgradeCategory.Staff, title = "Hire Acai Barista", cost = 1400, level = 7, requires = "acai_bar",
+            new Upgrade { id = "acai_barista", category = UpgradeCategory.Staff, title = "Hire Acai Barista", cost = 2500, level = 8, requires = "acai_bar",
                 description = "Wage $7/min. Makes and serves every bowl and shake at the Acai & Shake Shack (a little slower than you, smaller tips)." },
-            new Upgrade { id = "gear_clerk", category = UpgradeCategory.Staff, title = "Hire Shop Clerk", cost = 3000, level = 11, requires = "surf_shop",
+            new Upgrade { id = "gear_clerk", category = UpgradeCategory.Staff, title = "Hire Shop Clerk", cost = 5000, level = 12, requires = "surf_shop",
                 description = "Wage $10/min. Fetches and rings up gear for every customer at the Surf Gear Shop." },
-            new Upgrade { id = "shaper_apprentice", category = UpgradeCategory.Staff, title = "Hire Apprentice Shaper", cost = 9000, level = 14, requires = "board_shaper",
+            new Upgrade { id = "shaper_apprentice", category = UpgradeCategory.Staff, title = "Hire Apprentice Shaper", cost = 20000, level = 15, requires = "board_shaper",
                 description = "Wage $30/min. Takes custom orders and shapes boards by themself (slowly: about 40 s a board)." },
             new Upgrade { id = "janitor", category = UpgradeCategory.Staff, title = "Hire Janitor", cost = 900, level = 5,
                 description = "Wage $5/min. Walks the decks picking up every piece of trash, so the park stays spotless (and the inspector stays happy)." },
-            new Upgrade { id = "mechanic", category = UpgradeCategory.Staff, title = "Hire Mechanic", cost = 1800, level = 6,
+            new Upgrade { id = "mechanic", category = UpgradeCategory.Staff, title = "Hire Mechanic", cost = 2500, level = 8,
                 description = "Wage $10/min. Services worn wave machines and fixes broken ones in every pool, so you don't have to." },
             new Upgrade { id = "surf_coach", category = UpgradeCategory.Staff, title = "Hire Surf Coach", cost = 2500, level = 9,
                 description = "Wage $15/min. Gives beginners lessons: they wipe out far less, and each beginner session earns a $25 lesson fee." },
-            new Upgrade { id = "wave_operator", category = UpgradeCategory.Staff, title = "Hire Wave Operator", cost = 6000, level = 13,
+            new Upgrade { id = "wave_operator", category = UpgradeCategory.Staff, title = "Hire Wave Operator", cost = 18000, level = 16,
                 description = "Wage $25/min. Watches every pool and sends exactly the wave the waiting surfers want. Full automation!" },
         };
 
@@ -252,7 +264,7 @@ namespace SurfPool
             }
             if (!RequirementMet(upgrade))
             {
-                Message = $"Buy {TitleOf(upgrade.requires)} first.";
+                Message = NeedsText(upgrade) + ".";
                 Sfx.Play(Sound.Error);
                 return false;
             }
@@ -299,7 +311,16 @@ namespace SurfPool
         /// <summary>Upgrades that open up at exactly this park level (for the level-up banner).</summary>
         public List<string> UnlockedAt(int level) => upgrades.FindAll(u => u.level == level).ConvertAll(u => u.title);
 
-        public bool RequirementMet(Upgrade upgrade) => string.IsNullOrEmpty(upgrade.requires) || IsOwned(upgrade.requires);
+        public bool RequirementMet(Upgrade upgrade) =>
+            (string.IsNullOrEmpty(upgrade.requires) || IsOwned(upgrade.requires)) && upgrade.HandLeft == 0;
+
+        /// <summary>Why it can't be bought yet: "Needs Wave Sets" or "Send 12 more waves by hand first".</summary>
+        public string NeedsText(Upgrade upgrade) =>
+            !string.IsNullOrEmpty(upgrade.requires) && !IsOwned(upgrade.requires) ? "Needs " + TitleOf(upgrade.requires)
+            : upgrade.HandLeft > 0 ? $"{HandVerb(upgrade)} {upgrade.HandLeft} more {upgrade.handWhat} first" : "";
+
+        static string HandVerb(Upgrade upgrade) => upgrade.handWhat.StartsWith("waves") ? "Send"
+            : upgrade.handWhat.StartsWith("sessions") ? "Sell" : upgrade.handWhat.StartsWith("boards") ? "Rent out" : "Serve";
 
         public string TitleOf(string id) => upgrades.Find(u => u.id == id)?.title ?? id;
 

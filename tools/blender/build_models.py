@@ -4,8 +4,11 @@ Assets/_Game/Models/. Run inside Blender (e.g. via the Blender MCP):
 
     exec(open("/Users/ido/surf-pool-sim/tools/blender/build_models.py").read())
 
-Every model is built from simple primitives, flat shaded, with a few flat-color materials
-(the park palette below). Models sit on z = 0 (Blender is Z-up) and are centered on x/y.
+Every model is built from simple primitives with a few flat-color materials (the park palette below). The look
+(docs/research/blender-high-level.md): every box and cylinder gets a small bevel BEFORE parts are joined, so light
+catches the edges like a toy; the joined model is smooth-shaded with edges sharper than 40 degrees kept hard and
+weighted normals, so flat faces stay clean and the bevels read round; thin sheets (fronds, canopies, flags) get real
+thickness from Solidify. Models sit on z = 0 (Blender is Z-up) and are centered on x/y.
 Re-running rebuilds and re-exports everything.
 """
 import math
@@ -23,6 +26,7 @@ PALETTE = {
     "Wood": (0.69, 0.48, 0.29),
     "DarkWood": (0.45, 0.30, 0.18),
     "Trunk": (0.55, 0.43, 0.31),
+    "TrunkDark": (0.47, 0.36, 0.26),
     "Leaf": (0.30, 0.69, 0.31),
     "LeafDark": (0.20, 0.52, 0.25),
     "Coconut": (0.40, 0.27, 0.15),
@@ -79,11 +83,57 @@ def clear_scene():
             bpy.data.meshes.remove(mesh)
 
 
+BEVEL = 0.025  # m: the light-catching chamfer on every part's hard edges
+SHARP_ANGLE = 40  # degrees: edges sharper than this stay hard when a model is smoothed
+
+
 def finish(obj, mat_name):
     obj.data.materials.clear()
     obj.data.materials.append(material(mat_name))
     for poly in obj.data.polygons:
         poly.use_smooth = False
+    return obj
+
+
+def apply_modifier(obj, modifier):
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.modifier_apply(modifier=modifier.name)
+
+
+def bevel(obj, width, angle=30, segments=2):
+    """Chamfers the edges sharper than `angle` (parts thinner than ~5 cm stay crisp: string lights, grille bars)."""
+    if width < 0.004:
+        return obj
+    m = obj.modifiers.new("Bevel", "BEVEL")
+    m.width = width
+    m.segments = segments
+    m.limit_method = "ANGLE"
+    m.angle_limit = math.radians(angle)
+    apply_modifier(obj, m)
+    return obj
+
+
+def solidify(obj, thickness=0.02):
+    """Real thickness for a thin sheet (a frond, a canopy, a flag): edges that catch light, no z-fighting."""
+    m = obj.modifiers.new("Solidify", "SOLIDIFY")
+    m.thickness = thickness
+    m.offset = 0
+    apply_modifier(obj, m)
+    return obj
+
+
+def smooth_and_sharpen(obj, angle=SHARP_ANGLE):
+    """Smooth shading, hard edges kept sharp, weighted normals: big faces stay flat-lit, bevels look rounded."""
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.shade_smooth_by_angle(angle=math.radians(angle))
+    m = obj.modifiers.new("WeightedNormal", "WEIGHTED_NORMAL")
+    m.keep_sharp = True
+    m.weight = 50
+    bpy.ops.object.modifier_apply(modifier=m.name)
     return obj
 
 
@@ -93,6 +143,7 @@ def box(name, size, location, mat, rotation=(0, 0, 0)):
     obj.name = name
     obj.scale = size
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    bevel(obj, min(BEVEL, min(size) * 0.25) if min(size) >= 0.05 else 0)
     return finish(obj, mat)
 
 
@@ -103,6 +154,8 @@ def cylinder(name, radius, depth, location, mat, vertices=8, rotation=(0, 0, 0),
         bpy.ops.mesh.primitive_cone_add(vertices=vertices, radius1=radius, radius2=radius_top, depth=depth, location=location, rotation=rotation)
     obj = bpy.context.active_object
     obj.name = name
+    # Only the cap rims get the chamfer (the sides of an 8-sided cylinder meet at 45 degrees and stay as they are).
+    bevel(obj, min(BEVEL, radius * 0.25, depth * 0.25) if min(radius, depth) >= 0.05 else 0, angle=60)
     return finish(obj, mat)
 
 
@@ -114,16 +167,14 @@ def ico(name, radius, location, mat, subdivisions=1):
 
 
 def mesh_object(name, verts, faces, mat, double_sided=False):
-    """Mesh from raw data. double_sided adds back faces (offset a hair) so thin sheets show from both sides in Unity."""
-    if double_sided:
-        count = len(verts)
-        verts = list(verts) + [(x, y, z - 0.01) for x, y, z in verts]
-        faces = list(faces) + [tuple(i + count for i in reversed(face)) for face in faces]
+    """Mesh from raw data. double_sided = a thin sheet seen from both sides: it gets 2 cm of real thickness."""
     mesh = bpy.data.meshes.new(name)
     mesh.from_pydata(verts, [], faces)
     mesh.update()
     obj = bpy.data.objects.new(name, mesh)
     bpy.context.collection.objects.link(obj)
+    if double_sided:
+        solidify(obj, 0.02)
     return finish(obj, mat)
 
 
@@ -149,6 +200,7 @@ def join(name, parts):
     bpy.ops.object.origin_set(type="ORIGIN_CURSOR")
     # Merge duplicate material slots so the FBX has one slot per color.
     bpy.ops.object.material_slot_remove_unused()
+    smooth_and_sharpen(obj)
     return obj
 
 
@@ -177,79 +229,119 @@ def export(obj):
 
 # ---------------------------------------------------------------- models
 
+def lathe(name, path, profile, mats, sides=8):
+    """One continuous round mesh along a path: rings of `sides` points, ring i centered at path[i] with radius
+    profile[i]; mats[i] colors the band between ring i and i+1 (for trunk ring scars, stripes)."""
+    verts, faces, face_mats = [], [], []
+    for center, radius in zip(path, profile):
+        for k in range(sides):
+            a = k / sides * math.tau
+            verts.append((center.x + math.cos(a) * radius, center.y + math.sin(a) * radius, center.z))
+    for i in range(len(path) - 1):
+        for k in range(sides):
+            a, b = i * sides + k, i * sides + (k + 1) % sides
+            faces.append((a, b, b + sides, a + sides))
+            face_mats.append(mats[i])
+    bottom, top = len(verts), len(verts) + 1
+    verts += [tuple(path[0]), tuple(path[-1])]
+    for k in range(sides):
+        faces.append((bottom, (k + 1) % sides, k))
+        face_mats.append(mats[0])
+        n = (len(path) - 1) * sides
+        faces.append((top, n + k, n + (k + 1) % sides))
+        face_mats.append(mats[-1])
+    mesh = bpy.data.meshes.new(name)
+    mesh.from_pydata(verts, [], faces)
+    mesh.update()
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.collection.objects.link(obj)
+    names = sorted(set(mats), key=mats.index)
+    for m in names:
+        obj.data.materials.append(material(m))
+    for poly, m in zip(obj.data.polygons, face_mats):
+        poly.material_index = names.index(m)
+    return obj
+
+
 def palm_tree(name="PalmTree", height=6.5, seed=1):
-    """Curved segmented trunk, drooping fronds, a few coconuts."""
+    """One continuous bent trunk (flared base, ring scars, a leafy boot under the crown), feathery drooping
+    fronds with a center rib and real thickness, a cluster of coconuts."""
     rng = random.Random(seed)
     parts = []
-    segments = 7
-    lean = Vector((0.9, 0.2, 0))
-    top = Vector((0, 0, 0))
-    radius = 0.24
-    for i in range(segments):
-        t0, t1 = i / segments, (i + 1) / segments
-        p0 = Vector((0, 0, height * t0)) + lean * (t0 ** 2)
-        p1 = Vector((0, 0, height * t1)) + lean * (t1 ** 2)
-        mid = (p0 + p1) / 2
-        direction = (p1 - p0)
-        seg = cylinder(f"Trunk{i}", radius * (1 - 0.35 * t0), direction.length * 1.02, mid, "Trunk", vertices=7,
-                       radius_top=radius * (1 - 0.35 * t1) * 0.92)
-        seg.rotation_mode = "QUATERNION"
-        seg.rotation_quaternion = Vector((0, 0, 1)).rotation_difference(direction.normalized())
-        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
-        parts.append(seg)
-        top = p1
+    lean = Vector((0.9 + rng.uniform(-0.2, 0.2), 0.2 + rng.uniform(-0.15, 0.15), 0))
+    rings = 22
+    path, profile, mats = [], [], []
+    for i in range(rings + 1):
+        t = i / rings
+        path.append(Vector((0, 0, height * t)) + lean * (t ** 2))
+        r = 0.27 * (1 - 0.42 * t)
+        r *= 1 + 0.45 * max(0.0, 1 - t / 0.07)  # flared base
+        r *= 1.07 if i % 2 == 0 else 0.97  # bumpy ring scars
+        profile.append(r)
+        mats.append("TrunkDark" if i % 2 == 0 else "Trunk")
+    parts.append(lathe("Trunk", path, profile, mats, sides=10))
+    top = path[-1]
+    # The "boot": old frond bases bunched under the crown.
+    parts.append(cylinder("Boot", 0.3, 0.55, top + Vector((0, 0, -0.1)), "TrunkDark", vertices=8, radius_top=0.2))
 
-    fronds = 8
+    fronds = 9
     for i in range(fronds):
         angle = (i / fronds) * math.tau + rng.uniform(-0.2, 0.2)
-        length = rng.uniform(2.4, 3.0)
-        droop = rng.uniform(1.0, 1.5)
+        length = rng.uniform(2.5, 3.2)
+        droop = rng.uniform(1.0, 1.6)
         mat = "Leaf" if i % 2 == 0 else "LeafDark"
         verts, faces = [], []
-        steps = 5
+        steps = 10
         for s in range(steps + 1):
             t = s / steps
             out = length * t
-            down = droop * t * t - 0.35 * t
-            width = 0.55 * math.sin(math.pi * min(1.0, t * 1.15)) + 0.05
+            down = droop * t * t - 0.4 * t
+            # Leaflets: the edge zig-zags in and out, so a frond reads as feathery, not a paddle.
+            width = (0.62 * math.sin(math.pi * min(1.0, t * 1.12)) + 0.05) * (1.0 if s % 2 == 0 else 0.72)
             center = Vector((math.cos(angle) * out, math.sin(angle) * out, -down))
             side = Vector((-math.sin(angle), math.cos(angle), 0)) * width
-            verts += [tuple(top + center - side), tuple(top + center + Vector((0, 0, 0.12 * (1 - t)))),
-                      tuple(top + center + side)]
+            sag = Vector((0, 0, -0.18 * width))  # leaflets hang down off the rib
+            verts += [tuple(top + center - side + sag), tuple(top + center + Vector((0, 0, 0.1 * (1 - t)))),
+                      tuple(top + center + side + sag)]
         for s in range(steps):
             a = s * 3
             faces += [(a, a + 3, a + 4, a + 1), (a + 1, a + 4, a + 5, a + 2)]
         parts.append(mesh_object(f"Frond{i}", verts, faces, mat, double_sided=True))
 
-    for i in range(3):
-        angle = i * math.tau / 3
-        parts.append(ico(f"Coconut{i}", 0.17, top + Vector((math.cos(angle) * 0.22, math.sin(angle) * 0.22, -0.25)), "Coconut"))
+    for i in range(4):
+        angle = i * math.tau / 4 + 0.4
+        parts.append(ico(f"Coconut{i}", 0.16, top + Vector((math.cos(angle) * 0.24, math.sin(angle) * 0.24, -0.3 - 0.08 * (i % 2))), "Coconut"))
     return join(name, parts)
 
 
 def kiosk(name, roof_mat):
-    """Open-front beach kiosk frame: 4 posts, striped pitched roof with overhang, front sign board.
-    Footprint 3.6 x 2.6 m, the open customer side faces -Y. Sits around a counter placed in Unity."""
+    """Open-front beach kiosk frame: 4 chunky posts, a deep striped roof with a big overhang and a trim board, a
+    scalloped valance, and a framed sign. Footprint 3.6 x 2.6 m, the open customer side faces -Y. Sits around a
+    counter placed in Unity."""
     parts = []
     w, d, h = 3.6, 2.6, 2.5
-    for x in (-w / 2 + 0.1, w / 2 - 0.1):
-        for y in (-d / 2 + 0.1, d / 2 - 0.1):
-            parts.append(box("Post", (0.14, 0.14, h), (x, y, h / 2), "Wood"))
-    parts.append(box("Beam Front", (w, 0.16, 0.18), (0, -d / 2 + 0.1, h), "DarkWood"))
-    parts.append(box("Beam Back", (w, 0.16, 0.18), (0, d / 2 - 0.1, h), "DarkWood"))
-    # Striped roof: alternating colored slats, sloping down toward the customer side.
+    for x in (-w / 2 + 0.12, w / 2 - 0.12):
+        for y in (-d / 2 + 0.12, d / 2 - 0.12):
+            parts.append(box("Post", (0.2, 0.2, h), (x, y, h / 2), "Wood"))
+            parts.append(box("Post Foot", (0.28, 0.28, 0.12), (x, y, 0.06), "DarkWood"))
+    parts.append(box("Beam Front", (w + 0.1, 0.2, 0.22), (0, -d / 2 + 0.12, h), "DarkWood"))
+    parts.append(box("Beam Back", (w + 0.1, 0.2, 0.22), (0, d / 2 - 0.12, h), "DarkWood"))
+    # Striped roof: alternating colored slats, sloping down toward the customer side, with a white trim board.
     stripes = 9
-    roof_w, roof_d = w + 0.8, d + 1.0
+    roof_w, roof_d = w + 1.2, d + 1.5
     for i in range(stripes):
         x = -roof_w / 2 + roof_w * (i + 0.5) / stripes
         mat = roof_mat if i % 2 == 0 else "White"
-        parts.append(box("Roof", (roof_w / stripes, roof_d, 0.08), (x, -0.15, h + 0.35), mat, rotation=(math.radians(-12), 0, 0)))
-    # Scalloped valance hanging off the front edge.
+        parts.append(box("Roof", (roof_w / stripes, roof_d, 0.12), (x, -0.2, h + 0.38), mat, rotation=(math.radians(-12), 0, 0)))
+    parts.append(box("Roof Trim", (roof_w + 0.08, 0.1, 0.2), (0, -roof_d / 2 - 0.12, h + 0.1), "White"))
+    # Scalloped valance hanging off the front edge: every other flap a little longer.
     for i in range(stripes):
         x = -roof_w / 2 + roof_w * (i + 0.5) / stripes
         mat = roof_mat if i % 2 == 0 else "White"
-        parts.append(box("Valance", (roof_w / stripes, 0.04, 0.28), (x, -roof_d / 2 - 0.12, h + 0.02), mat))
-    parts.append(box("Sign", (2.0, 0.08, 0.45), (0, -d / 2 - 0.05, h + 0.85), "Navy"))
+        drop = 0.34 if i % 2 == 0 else 0.26
+        parts.append(box("Valance", (roof_w / stripes, 0.05, drop), (x, -roof_d / 2 - 0.2, h - drop / 2), mat))
+    parts.append(box("Sign Frame", (2.5, 0.1, 0.72), (0, -d / 2 - 0.06, h + 0.95), "White"))
+    parts.append(box("Sign", (2.3, 0.12, 0.56), (0, -d / 2 - 0.07, h + 0.95), "Navy"))
     return join(name, parts)
 
 
@@ -555,16 +647,19 @@ def return_crate(name="ReturnCrate"):
 
 
 def bench(name="Bench"):
-    """3 m wooden slat bench, 0.5 m seat height, 0.8 m deep (along Y)."""
+    """3 m wooden slat bench, 0.5 m seat height, 0.8 m deep (along Y), chunky legs with armrests."""
     parts = []
     for i in range(4):
-        parts.append(box("Seat Slat", (3.0, 0.16, 0.05), (0, -0.3 + i * 0.2, 0.47), "Wood"))
+        parts.append(box("Seat Slat", (3.0, 0.16, 0.06), (0, -0.3 + i * 0.2, 0.47), "Wood"))
     for x in (-1.3, 0, 1.3):
-        parts.append(box("Leg", (0.08, 0.7, 0.45), (x, 0, 0.22), "DarkWood"))
-    parts.append(box("Back Slat", (3.0, 0.05, 0.14), (0, 0.38, 0.72), "Wood"))
-    parts.append(box("Back Slat", (3.0, 0.05, 0.14), (0, 0.38, 0.9), "Teal"))
+        parts.append(box("Leg", (0.1, 0.72, 0.45), (x, 0, 0.22), "DarkWood"))
+    for x in (-1.42, 1.42):
+        parts.append(box("Armrest", (0.1, 0.72, 0.07), (x, -0.02, 0.7), "DarkWood"))
+        parts.append(box("Arm Post", (0.08, 0.08, 0.24), (x, -0.32, 0.58), "DarkWood"))
+    parts.append(box("Back Slat", (3.0, 0.06, 0.15), (0, 0.38, 0.72), "Wood"))
+    parts.append(box("Back Slat", (3.0, 0.06, 0.15), (0, 0.38, 0.9), "Teal"))
     for x in (-1.3, 1.3):
-        parts.append(box("Back Post", (0.08, 0.06, 0.5), (x, 0.38, 0.72), "DarkWood"))
+        parts.append(box("Back Post", (0.1, 0.07, 0.52), (x, 0.38, 0.72), "DarkWood"))
     return join(name, parts)
 
 
@@ -599,66 +694,94 @@ def car(name="Car"):
 
 
 def lifeguard_tower(name="LifeguardTower"):
-    """Stilts, platform with railing, ladder, and a red-and-white roof. Faces -Y (toward the pool when rotated)."""
+    """Chunky stilts with X-braces, platform with railing and a rescue ring hanging on it, a ladder with round rungs,
+    and a red-and-white roof with a wide overhang. Faces -Y (toward the pool when rotated)."""
     parts = []
-    for x in (-0.55, 0.55):
-        for y in (-0.55, 0.55):
-            parts.append(box("Leg", (0.12, 0.12, 1.9), (x, y, 0.95), "White"))
-    parts.append(box("Platform", (1.5, 1.5, 0.12), (0, 0, 1.9), "Wood"))
-    for x, y, sx, sy in ((0, -0.72, 1.5, 0.06), (0, 0.72, 1.5, 0.06), (-0.72, 0, 0.06, 1.5), (0.72, 0, 0.06, 1.5)):
-        parts.append(box("Rail", (sx, sy, 0.08), (x, y, 2.45), "Red"))
-    for x in (-0.72, 0.72):
-        for y in (-0.72, 0.72):
-            parts.append(box("RoofPost", (0.08, 0.08, 1.4), (x, y, 2.6), "White"))
+    for x in (-0.6, 0.6):
+        for y in (-0.6, 0.6):
+            parts.append(box("Leg", (0.17, 0.17, 1.95), (x, y, 0.97), "White"))
+    # X-braces on the two sides and the back (the front stays open to the ladder).
+    brace = math.degrees(math.atan2(1.5, 1.2))
+    for x in (-0.6, 0.6):
+        for sign in (-1, 1):
+            parts.append(box("Brace", (0.06, 1.9, 0.08), (x, 0, 0.95), "White", rotation=(math.radians(sign * brace), 0, 0)))
+    for sign in (-1, 1):
+        parts.append(box("Brace", (1.9, 0.06, 0.08), (0, 0.6, 0.95), "White", rotation=(0, math.radians(sign * brace), 0)))
+    parts.append(box("Platform", (1.7, 1.7, 0.14), (0, 0, 1.95), "Wood"))
+    parts.append(box("Platform Trim", (1.76, 1.76, 0.06), (0, 0, 1.86), "Red"))
+    for x, y, sx, sy in ((0, -0.8, 1.7, 0.08), (0, 0.8, 1.7, 0.08), (-0.8, 0, 0.08, 1.7), (0.8, 0, 0.08, 1.7)):
+        parts.append(box("Rail", (sx, sy, 0.1), (x, y, 2.5), "Red"))
+    for x in (-0.8, 0.8):
+        for y in (-0.8, 0.8):
+            parts.append(box("RoofPost", (0.11, 0.11, 1.45), (x, y, 2.68), "White"))
+    # Rescue ring on the front rail: a chunky red/white torus.
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.27, minor_radius=0.075, major_segments=16, minor_segments=6,
+                                     location=(0.35, -0.86, 2.3), rotation=(math.radians(90), 0, 0))
+    ring = bpy.context.active_object
+    ring.name = "Ring"
+    finish(ring, "Red")
+    ring.data.materials.append(material("White"))
+    for i, poly in enumerate(ring.data.polygons):
+        angle = math.atan2(poly.center.z, poly.center.x)
+        poly.material_index = 1 if int((angle + math.pi) / (math.pi / 2)) % 2 else 0
+    parts.append(ring)
+    roof_w, roof_d = 2.3, 2.4
     for i in range(6):
-        x = -0.9 + 1.8 * (i + 0.5) / 6
-        parts.append(box("Roof", (1.8 / 6, 1.9, 0.07), (x, 0, 3.32), "Red" if i % 2 == 0 else "White",
+        x = -roof_w / 2 + roof_w * (i + 0.5) / 6
+        parts.append(box("Roof", (roof_w / 6, roof_d, 0.09), (x, 0, 3.42), "Red" if i % 2 == 0 else "White",
                          rotation=(math.radians(-8), 0, 0)))
+    parts.append(box("Roof Edge", (roof_w + 0.06, 0.08, 0.16), (0, -roof_d / 2 - 0.02, 3.5), "White"))
     for i in range(6):
-        parts.append(box("LadderStep", (0.6, 0.06, 0.05), (0, 1.0, 0.3 * (i + 1)), "Wood"))
-    for x in (-0.3, 0.3):
-        parts.append(box("LadderRail", (0.06, 0.06, 2.0), (x, 1.0, 1.0), "Wood"))
-    parts.append(box("Seat", (0.6, 0.5, 0.08), (0, 0.2, 2.35), "Yellow"))
+        parts.append(cylinder("LadderStep", 0.035, 0.62, (0, 1.05, 0.3 * (i + 1)), "Wood", vertices=6, rotation=(0, math.radians(90), 0)))
+    for x in (-0.31, 0.31):
+        parts.append(box("LadderRail", (0.08, 0.08, 2.05), (x, 1.05, 1.02), "Wood"))
+    parts.append(box("Seat", (0.6, 0.5, 0.1), (0, 0.25, 2.38), "Yellow"))
     return join(name, parts)
 
 
 def beach_umbrella(name="BeachUmbrella", color="Teal"):
-    parts = [cylinder("Pole", 0.035, 2.4, (0, 0, 1.2), "White", vertices=6)]
+    """Striped canopy with a curved (two-step) slope and a scalloped rim, a fat pole with a little top knob."""
+    parts = [cylinder("Pole", 0.05, 2.45, (0, 0, 1.22), "White", vertices=8)]
     segments = 8
     for i in range(segments):
         a0 = i / segments * math.tau
         a1 = (i + 1) / segments * math.tau
-        verts = [(0, 0, 2.45),
-                 (math.cos(a0) * 1.25, math.sin(a0) * 1.25, 1.95),
-                 (math.cos(a1) * 1.25, math.sin(a1) * 1.25, 1.95)]
-        parts.append(mesh_object("Canopy", verts, [(0, 2, 1)], color if i % 2 == 0 else "White", double_sided=True))
+        am = (a0 + a1) / 2
+        verts = [(0, 0, 2.5),
+                 (math.cos(a0) * 0.75, math.sin(a0) * 0.75, 2.24), (math.cos(a1) * 0.75, math.sin(a1) * 0.75, 2.24),
+                 (math.cos(a0) * 1.32, math.sin(a0) * 1.32, 1.93), (math.cos(a1) * 1.32, math.sin(a1) * 1.32, 1.93),
+                 (math.cos(am) * 1.24, math.sin(am) * 1.24, 1.86)]
+        faces = [(0, 2, 1), (1, 2, 4, 3), (3, 4, 5)]
+        parts.append(mesh_object("Canopy", verts, faces, color if i % 2 == 0 else "White", double_sided=True))
+    parts.append(ico("Knob", 0.08, (0, 0, 2.56), "White"))
     return join(name, parts)
 
 
 def lounge_chair(name="LoungeChair"):
-    parts = [box("Frame", (0.62, 1.7, 0.06), (0, 0, 0.32), "White")]
-    for x in (-0.27, 0.27):
-        for y in (-0.7, 0.7):
-            parts.append(box("Leg", (0.05, 0.05, 0.3), (x, y, 0.15), "White"))
-    parts.append(box("Back", (0.62, 0.7, 0.06), (0, 0.95, 0.62), "White", rotation=(math.radians(50), 0, 0)))
-    parts.append(box("Cushion", (0.56, 1.6, 0.06), (0, -0.05, 0.38), "Coral"))
+    """Chunky white frame, armrests, a thick coral cushion that follows the raised back."""
+    parts = [box("Frame", (0.66, 1.75, 0.08), (0, 0, 0.32), "White")]
+    for x in (-0.29, 0.29):
+        for y in (-0.72, 0.72):
+            parts.append(box("Leg", (0.07, 0.07, 0.3), (x, y, 0.15), "White"))
+        parts.append(box("Armrest", (0.06, 0.6, 0.06), (x, 0.35, 0.52), "White"))
+    parts.append(box("Back", (0.66, 0.72, 0.08), (0, 0.97, 0.62), "White", rotation=(math.radians(50), 0, 0)))
+    parts.append(box("Cushion", (0.58, 1.6, 0.1), (0, -0.05, 0.41), "Coral"))
+    parts.append(box("Back Cushion", (0.58, 0.66, 0.1), (0, 0.93, 0.7), "Coral", rotation=(math.radians(50), 0, 0)))
+    parts.append(box("Pillow", (0.4, 0.2, 0.12), (0, 1.12, 0.92), "White", rotation=(math.radians(50), 0, 0)))
     return join(name, parts)
 
 
 def rock(name="Rock", seed=3):
+    """A chunky boulder that sits flat on the ground, with two smaller stones tucked against it."""
     rng = random.Random(seed)
-    obj = ico(name, 0.7, (0, 0, 0.35), "Rock", subdivisions=1)
-    for v in obj.data.vertices:
-        v.co *= rng.uniform(0.75, 1.2)
-        v.co.z *= 0.65
-    return obj
-
-
-# ---------------------------------------------------------------- character parts
-# Each part is its own FBX with its pivot at the joint, so Unity can rotate it to animate.
-# Front of the character = Blender -Y (Unity +Z). Tintable parts use plain white materials.
-
-PALETTE.update({"Skin": (1.0, 1.0, 1.0), "Shirt": (1.0, 1.0, 1.0), "Shorts": (1.0, 1.0, 1.0), "Hair": (1.0, 1.0, 1.0), "Eyes": (0.05, 0.08, 0.1)})
+    parts = []
+    for i, (radius, offset) in enumerate(((0.75, (0, 0)), (0.32, (0.75, -0.25)), (0.24, (-0.6, 0.35)))):
+        stone = ico(f"Stone{i}", radius, (offset[0], offset[1], radius * 0.45), "Rock", subdivisions=2)
+        for v in stone.data.vertices:
+            v.co *= rng.uniform(0.86, 1.12)
+            v.co.z = max(v.co.z * 0.62, -radius * 0.42)  # squat, with a flat bottom
+        parts.append(stone)
+    return join(name, parts)
 
 
 def taper(name, radius_top, radius_bottom, length, mat, vertices=7, scale_x=1.0, scale_y=1.0):

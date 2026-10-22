@@ -94,6 +94,8 @@ namespace SurfPool
     {
         public static readonly List<PoolDebris> All = new();
 
+        const float WallDrift = 0.35f; // m/s toward the nearest side wall
+
         PoolArea pool;
         WaveWater water;
         bool duck;
@@ -163,16 +165,19 @@ namespace SurfPool
         void Update()
         {
             if (water == null) return;
-            // Bob on the surface, turn slowly, and drift toward the beach, pushed harder as a wave lifts it.
+            // Bob on the surface, turn slowly, and drift toward the beach, pushed harder as a wave lifts it. Like in a
+            // real pool, the breeze and the circulation also push floating junk out to the nearest wall, where it
+            // collects in a line you can reach from the deck with the net (and it washes up close to the beach).
             var p = transform.position;
             float surface = water.SurfaceHeightAt(p);
             float rise = Mathf.Max(0f, surface - lastSurface) / Mathf.Max(Time.deltaTime, 0.001f);
             lastSurface = surface;
             var local = water.transform.InverseTransformPoint(p);
             local.x += (0.05f + rise * 0.9f) * Time.deltaTime;
-            local.x = Mathf.Clamp(local.x, 1.5f, water.Length - 9.5f);
+            local.x = Mathf.Clamp(local.x, 1.5f, water.Length - 3.5f);
             float limit = water.Width * 0.5f - 0.8f;
-            local.z = Mathf.Clamp(local.z, -limit, limit);
+            float side = local.z >= 0f ? 1f : -1f;
+            local.z = Mathf.Clamp(local.z + side * WallDrift * Time.deltaTime, -limit, limit);
             p = water.transform.TransformPoint(local);
             p.y = surface + 0.01f;
             transform.position = p;
@@ -182,7 +187,7 @@ namespace SurfPool
 
     /// <summary>
     /// The skimmer net's rack on the main pool deck. E takes the net (or puts it back). With the net, aim at
-    /// floating junk up to 7 m away and press E to scoop it.
+    /// floating junk up to 9 m away and press E to scoop it (junk drifts to the walls, so it ends up in reach).
     /// </summary>
     public class SkimmerRack : MonoBehaviour, IInteractable
     {

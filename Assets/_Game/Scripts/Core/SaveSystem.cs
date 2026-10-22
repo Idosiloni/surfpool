@@ -22,7 +22,8 @@ namespace SurfPool
             public List<string> upgrades = new();
             public int ticketPrice;
             public float rating;
-            public int missionIndex;
+            public int missionIndex; // saves from before mission ids
+            public string missionId = "";
             public bool missionStarted;
             public int served, lost;
             public int ticketsSold, wavesSent, surfersServed, boardsRented, tubeRides, tricksLanded, wipeouts, playerRides;
@@ -42,6 +43,7 @@ namespace SurfPool
             public string parkName = "";
             public float bestJudgeScore;
             public int bestDayIncome;
+            public List<string> seenTips = new();
             public string playerBoard = "";
             public bool boardsSaved; // false in saves from before boards were sold
             public string[] ownedBoards = new string[0];
@@ -72,6 +74,7 @@ namespace SurfPool
         void Start()
         {
             if (HasSave) Load();
+            else TutorialTips.Restore(null); // a new game shows every tip again
         }
 
         void OnApplicationQuit()
@@ -90,12 +93,14 @@ namespace SurfPool
                 parkName = ParkName.Saved,
                 bestJudgeScore = GameStats.BestJudgeScore,
                 bestDayIncome = GameStats.BestDayIncome,
+                seenTips = new List<string>(TutorialTips.Seen),
                 playerBoard = SurfQuiver.Current.ToString(),
                 boardsSaved = true,
                 ownedBoards = SurfQuiver.SaveOwned(),
                 ticketPrice = pricing.Price,
                 rating = ParkReputation.Instance != null ? ParkReputation.Instance.Score : 0.6f,
                 missionIndex = MissionManager.Instance != null ? MissionManager.Instance.Index : 0,
+                missionId = MissionManager.Instance != null ? MissionManager.Instance.CurrentId : "",
                 missionStarted = MissionManager.Instance != null && MissionManager.Instance.Started,
                 served = spawner.Served,
                 lost = spawner.Lost,
@@ -158,7 +163,7 @@ namespace SurfPool
             Wallet.Instance.Restore(data.money);
             if (ParkReputation.Instance != null) ParkReputation.Instance.Restore(data.rating);
             if (DayCycle.Instance != null) DayCycle.Instance.Restore(data.day);
-            if (MissionManager.Instance != null) MissionManager.Instance.Restore(data.missionIndex, data.missionStarted);
+            if (MissionManager.Instance != null) MissionManager.Instance.Restore(data.missionId, data.missionIndex, data.missionStarted);
             spawner.RestoreCounts(data.served, data.lost);
             if (data.staffExperience != null)
                 foreach (var entry in data.staffExperience)
@@ -181,6 +186,7 @@ namespace SurfPool
             GameStats.PlayerRides = data.playerRides;
             GameStats.BestJudgeScore = data.bestJudgeScore;
             GameStats.BestDayIncome = data.bestDayIncome;
+            TutorialTips.Restore(data.seenTips);
             SurfQuiver.Load(data.playerBoard, data.boardsSaved ? data.ownedBoards : null);
             GameStats.TotalEarned = data.totalEarned;
             GameStats.SnacksSold = data.snacksSold;

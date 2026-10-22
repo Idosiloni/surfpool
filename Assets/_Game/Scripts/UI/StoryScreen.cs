@@ -10,15 +10,17 @@ namespace SurfPool
     [RequireComponent(typeof(UIDocument))]
     public class StoryScreen : MonoBehaviour
     {
-        [TextArea(6, 14)]
-        [SerializeField] string letter =
+        // Kai is retired and travelling (docs/research/story-and-tutorial.md, option A): he sends postcards as the
+        // park grows (TutorialTips) and comes home at the end. The text lives here only (not saved in the scene).
+        const string Letter =
             "Hey kiddo,\n\n" +
-            "If you're reading this, the wave pool is yours now. I built it with my own hands thirty years ago. " +
+            "I'm finally retiring. By the time you read this I'll be on a slow boat around the islands, chasing all the " +
+            "waves I never had time for. So the wave pool is yours now. I built it with my own hands thirty years ago. " +
             "It's a bit run-down these days, the paint is peeling and the machine only makes little whitewater waves... " +
             "but the magic is still there.\n\n" +
             "Start small: sell sessions at the ticket desk and send waves for the beginners. Save every dollar, " +
             "fix the place up, and one day this could be the best surf park in the world.\n\n" +
-            "I left you some notes along the way. Follow them.\n\n" +
+            "I left you some notes along the way, and I'll send you postcards. Follow them.\n\n" +
             "P.S. Over the years I lost 12 of my treasures around the island. Look for the glowing lights on the sand!";
 
         VisualElement root;
@@ -30,7 +32,7 @@ namespace SurfPool
         {
             var doc = GetComponent<UIDocument>().rootVisualElement;
             root = doc.Q("storyRoot");
-            doc.Q<Label>("storyBody").text = letter;
+            doc.Q<Label>("storyBody").text = Letter;
             doc.Q<Button>("storyButton").clicked += Close;
         }
 
