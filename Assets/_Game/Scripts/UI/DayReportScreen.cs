@@ -126,7 +126,7 @@ namespace SurfPool
             if (counting && now >= nextTick)
             {
                 nextTick = now + 0.06f;
-                Sfx.Play(Sound.Click, null, 0.25f, 1.3f + 0.4f * Mathf.PingPong(now * 2f, 1f));
+                Sfx.Play(Sound.UiTick, null, 1f, 0.9f + 0.4f * Mathf.PingPong(now * 2f, 1f));
             }
             if (!left) revealing = false;
         }

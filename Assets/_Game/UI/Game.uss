@@ -1087,6 +1087,16 @@
     background-color: #C9578C;
 }
 
+/* Mail sits apart at the end of the row (it's a log, not a shop aisle). */
+.tab--mail {
+    margin-left: auto;
+    margin-right: 0;
+}
+
+.tab--mail.tab--active {
+    background-color: var(--ink-soft);
+}
+
 /* "2" = upgrades you can buy right now in that tab. */
 .tab-badge {
     position: absolute;
@@ -2291,6 +2301,14 @@
     background-image: url("project://database/Assets/_Game/UI/Icons/pin.png");
 }
 
+.icon--mail {
+    background-image: url("project://database/Assets/_Game/UI/Icons/mail.png");
+}
+
+.icon--meh {
+    background-image: url("project://database/Assets/_Game/UI/Icons/meh.png");
+}
+
 .icon--flag {
     background-image: url("project://database/Assets/_Game/UI/Icons/flag.png");
 }
@@ -3462,4 +3480,63 @@
 .water-line--choppy {
     color: var(--coral);
     -unity-font-style: bold;
+}
+
+/* ---------- Tooltips (UI/Tooltip.cs): a small ink pill above the cursor ---------- */
+.tooltip {
+    position: absolute;
+    max-width: 320px;
+    padding: 7px 12px 8px 12px;
+    background-color: var(--ink);
+    color: var(--cream);
+    font-size: 16px;
+    white-space: normal;
+    border-radius: 10px;
+    border-width: 2px;
+    border-color: var(--sun);
+    -unity-font-definition: url("project://database/Assets/_Game/UI/Fonts/Fredoka%20SDF.asset");
+}
+
+/* ---------- Mail tab (UpgradeScreen): recent messages, newest first ---------- */
+.mail-row {
+    margin: 0 4px 8px 4px;
+    padding: 8px 14px 10px 14px;
+    background-color: var(--paper);
+    border-radius: 12px;
+    border-width: 2px 2px 4px 8px;
+    border-color: var(--sand-dark);
+    transition-property: opacity, translate;
+    transition-duration: 0.22s, 0.22s;
+    transition-timing-function: ease-out, ease-out;
+}
+
+.mail-row--good {
+    border-left-color: var(--teal);
+}
+
+.mail-row--reward {
+    border-left-color: var(--sun);
+}
+
+.mail-row--bad {
+    border-left-color: var(--coral);
+}
+
+.mail-when {
+    font-size: 14px;
+    color: var(--muted);
+}
+
+.mail-text {
+    font-size: 17px;
+    color: var(--ink);
+    white-space: normal;
+}
+
+.mail-empty {
+    margin: 24px;
+    font-size: 18px;
+    color: var(--muted);
+    white-space: normal;
+    -unity-text-align: middle-center;
 }

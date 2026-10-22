@@ -17,6 +17,9 @@ namespace SurfPool
         ScrollView cards;
         Label money, message, subtitle;
         UpgradeCategory tab;
+        bool mailOpen;
+        Button mailTab;
+        int shownUnread = -1;
         bool shown;
         int shownMoney = int.MinValue;
         int shownOwned = -1;
@@ -41,6 +44,7 @@ namespace SurfPool
             UpgradeShop.Bought += OnBought;
             var root = GetComponent<UIDocument>().rootVisualElement;
             screenRoot = root.Q("screenRoot");
+            Tooltip.Attach(root);
             tabs = root.Q("tabs");
             cards = root.Q<ScrollView>("cards");
             money = root.Q<Label>("screenMoney");
@@ -68,6 +72,22 @@ namespace SurfPool
                 button.Add(badge);
                 tabs.Add(button);
             }
+            mailTab = new Button(SelectMail) { name = "mailTab" };
+            mailTab.AddToClassList("tab");
+            mailTab.AddToClassList("tab--mail");
+            var mailIcon = new VisualElement();
+            mailIcon.AddToClassList("icon");
+            mailIcon.AddToClassList("tab-icon");
+            mailIcon.AddToClassList("icon--mail");
+            mailTab.Add(mailIcon);
+            var mailLabel = new Label("Mail");
+            mailLabel.AddToClassList("tab-label");
+            mailTab.Add(mailLabel);
+            var mailBadge = new Label { name = "tabBadge" };
+            mailBadge.AddToClassList("tab-badge");
+            mailBadge.AddToClassList("hidden");
+            mailTab.Add(mailBadge);
+            tabs.Add(mailTab);
             SelectTab(UpgradeCategory.Waves);
         }
 
@@ -95,21 +115,77 @@ namespace SurfPool
                 BuildCards();
             }
             message.text = shop.Message ?? "";
+            // New mail while reading it: show it (and it's read). Otherwise keep the Mail badge current.
+            if (mailOpen && Notifications.Unread > 0) BuildCards();
+            else if (Notifications.Unread != shownUnread)
+            {
+                shownUnread = Notifications.Unread;
+                UpdateTabBadges(cash);
+            }
         }
 
         void SelectTab(UpgradeCategory category)
         {
             staggerNext = true;
             tab = category;
+            mailOpen = false;
             int i = 0;
             foreach (var child in tabs.Children())
-                child.EnableInClassList("tab--active", i++ == (int)category);
+                child.EnableInClassList("tab--active", child != mailTab && i++ == (int)category);
             BuildCards();
+        }
+
+        void SelectMail()
+        {
+            staggerNext = true;
+            mailOpen = true;
+            foreach (var child in tabs.Children())
+                child.EnableInClassList("tab--active", child == mailTab);
+            BuildCards();
+        }
+
+        /// <summary>The Mail tab: every recent message (toasts you may have missed), newest first.</summary>
+        void BuildMail()
+        {
+            Notifications.MarkRead();
+            var log = Notifications.Log;
+            if (log.Count == 0)
+            {
+                var empty = new Label("No mail yet. Messages from the park land here, so you never miss one.");
+                empty.AddToClassList("mail-empty");
+                cards.Add(empty);
+            }
+            for (int i = log.Count - 1; i >= 0; i--)
+            {
+                var mail = log[i];
+                var row = new VisualElement();
+                row.AddToClassList("mail-row");
+                row.AddToClassList("mail-row--" + mail.kind.ToString().ToLowerInvariant());
+                if (staggerNext && log.Count - 1 - i < 6)
+                {
+                    row.AddToClassList("upgrade-card--enter");
+                    row.schedule.Execute(() => row.RemoveFromClassList("upgrade-card--enter")).StartingIn(30 + 40 * (log.Count - 1 - i));
+                }
+                var when = new Label(mail.when);
+                when.AddToClassList("mail-when");
+                var text = new Label(mail.message);
+                text.AddToClassList("mail-text");
+                row.Add(when);
+                row.Add(text);
+                cards.Add(row);
+            }
+            staggerNext = false;
+            UpdateTabBadges(Wallet.Instance != null ? Wallet.Instance.Money : 0);
         }
 
         void BuildCards()
         {
             cards.Clear();
+            if (mailOpen)
+            {
+                BuildMail();
+                return;
+            }
             int cash = Wallet.Instance != null ? Wallet.Instance.Money : 0;
             VisualElement row = null;
             // Buyable first, then too expensive, then locked, owned last (list order within each group).
@@ -135,7 +211,7 @@ namespace SurfPool
                 }
                 bool unlocked = shop.RequirementMet(upgrade);
 
-                var card = new VisualElement();
+                var card = new VisualElement { tooltip = TooltipFor(upgrade, cash) };
                 card.AddToClassList("upgrade-card");
                 card.AddToClassList("upgrade-card--" + upgrade.category.ToString().ToLowerInvariant());
                 card.EnableInClassList("upgrade-card--owned", upgrade.owned);
@@ -257,12 +333,36 @@ namespace SurfPool
                     card.schedule.Execute(() =>
                     {
                         UiMotion.Bump(card, "upgrade-card--bought", 160);
-                        Sfx.Play(Sound.Plop, null, 0.9f, 0.55f);
+                        Sfx.Play(Sound.UiStamp);
                     }).StartingIn(190);
                 }
                 row.Add(card);
             }
             UpdateTabBadges(cash);
+        }
+
+        /// <summary>Hover text: how long it takes to afford at today's pace, and what buying it opens up.</summary>
+        string TooltipFor(Upgrade upgrade, int cash)
+        {
+            var lines = new System.Collections.Generic.List<string>();
+            if (!upgrade.owned)
+            {
+                int rate = GameHud.IncomePerMinute;
+                if (cash >= upgrade.cost) lines.Add($"You can buy it now ({MoneyText.Format(upgrade.cost)}).");
+                else if (rate > 0)
+                {
+                    float minutes = (upgrade.cost - cash) / (float)rate;
+                    lines.Add(minutes < 1f ? "Under a minute of income away."
+                        : minutes > 120f ? $"Over two hours of income away at {MoneyText.Format(rate)}/min."
+                        : $"About {Mathf.CeilToInt(minutes)} min of income away at {MoneyText.Format(rate)}/min.");
+                }
+                else lines.Add($"Costs {MoneyText.Format(upgrade.cost)}.");
+            }
+            var opens = new System.Collections.Generic.List<string>();
+            foreach (var other in shop.Upgrades)
+                if (other.requires == upgrade.id && !other.owned) opens.Add(other.title);
+            if (opens.Count > 0) lines.Add("Opens up: " + string.Join(", ", opens));
+            return string.Join("\n", lines);
         }
 
         /// <summary>The little coral number on each tab: upgrades you can buy right now.</summary>
@@ -271,6 +371,13 @@ namespace SurfPool
             int i = 0;
             foreach (var button in tabs.Children())
             {
+                if (button == mailTab)
+                {
+                    var mailBadge = button.Q<Label>("tabBadge");
+                    mailBadge.text = Notifications.Unread.ToString();
+                    mailBadge.EnableInClassList("hidden", Notifications.Unread == 0 || mailOpen);
+                    continue;
+                }
                 var category = (UpgradeCategory)i++;
                 int count = 0;
                 foreach (var upgrade in shop.Upgrades)

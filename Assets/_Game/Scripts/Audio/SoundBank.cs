@@ -14,6 +14,7 @@ namespace SurfPool
         StepSand, StepDeck, StepWood,
         VoiceBabble, VoiceYew, VoiceWoo, VoiceAah, VoiceOoh, VoiceHmm,
         WaveBoom, SectionWall, TubeRoar,
+        UiOpen, UiClose, UiTab, UiToggle, UiTick, UiStamp,
     }
 
     /// <summary>

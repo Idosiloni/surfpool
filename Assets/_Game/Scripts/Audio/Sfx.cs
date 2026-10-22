@@ -117,6 +117,7 @@ namespace SurfPool
             {
                 doc.rootVisualElement?.RegisterCallback<ClickEvent>(OnUiClick, TrickleDown.TrickleDown);
                 doc.rootVisualElement?.RegisterCallback<PointerOverEvent>(OnUiHover, TrickleDown.TrickleDown);
+                doc.rootVisualElement?.RegisterCallback<ChangeEvent<bool>>(OnUiToggle, TrickleDown.TrickleDown);
             }
         }
 
@@ -132,11 +133,20 @@ namespace SurfPool
         {
             var button = ButtonOf(evt.target);
             if (button == null) return;
-            // Confirm clicks sound bright, closing / going back sounds lower.
+            // Confirm clicks sound bright; closing / going back is left to the window's falling close swish
+            // (UiMotion.Hide), tabs get their own droplet.
             bool back = button.name.Contains("Close") || button.name.Contains("Cancel") || button.name.Contains("Back");
-            Play(Sound.Click, null, 1f, back ? 0.8f : 1f);
+            if (button.ClassListContains("tab")) Play(Sound.UiTab);
+            else if (back) Play(Sound.Click, null, 0.5f, 0.8f);
+            else Play(Sound.Click);
             // A mouse click shouldn't leave the keyboard focus ring stuck on the button.
             button.schedule.Execute(button.Blur);
+        }
+
+        /// <summary>Toggles click up when switched on and down when switched off.</summary>
+        static void OnUiToggle(ChangeEvent<bool> evt)
+        {
+            if (evt.target is Toggle) Play(Sound.UiToggle, null, 1f, evt.newValue ? 1f : 0.82f);
         }
 
         static Button hovered;
@@ -331,7 +341,7 @@ namespace SurfPool
             Play(Sound.PaChime, announcementAt);
             pendingVoiceAt = now + 1.2f;
             announcementIndex = (announcementIndex + 1 + Random.Range(0, Announcements.Length - 1)) % Announcements.Length;
-            Notifications.Post("PA: " + Announcements[announcementIndex]);
+            Notifications.Post("PA: " + Announcements[announcementIndex], Notice.Info, false);
         }
 
         void LateUpdate()

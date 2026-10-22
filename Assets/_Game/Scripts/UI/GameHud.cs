@@ -64,6 +64,9 @@ namespace SurfPool
         readonly Queue<(float time, int amount)> recentIncome = new();
         int incomeLastMinute;
 
+        /// <summary>Park earnings over the last minute (the "+$/min" readout).</summary>
+        public static int IncomePerMinute { get; private set; }
+
         void OnEnable()
         {
             root = GetComponent<UIDocument>().rootVisualElement;
@@ -344,6 +347,7 @@ namespace SurfPool
 
                 while (recentIncome.Count > 0 && Time.time - recentIncome.Peek().time > 60f)
                     incomeLastMinute -= recentIncome.Dequeue().amount;
+                IncomePerMinute = incomeLastMinute;
                 SetText(incomeRate, (incomeLastMinute >= 0 ? "+" : "") + MoneyText.Format(incomeLastMinute) + " / min");
             }
             if (DayCycle.Instance != null)

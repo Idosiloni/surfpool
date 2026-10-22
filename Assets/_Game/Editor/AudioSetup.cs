@@ -33,6 +33,12 @@ namespace SurfPool.EditorTools
                 Ui(Sound.CashBig, 0.6f, "cash_big"),
                 Ui(Sound.Mission, 0.8f, "mission_complete"),
                 Ui(Sound.DayEnd, 0.7f, "day_end"),
+                Ui(Sound.UiOpen, 0.4f, "ui_open"),
+                Ui(Sound.UiClose, 0.35f, "ui_close"),
+                Ui(Sound.UiTab, 0.4f, "ui_tab"),
+                Ui(Sound.UiToggle, 0.45f, "ui_toggle"),
+                Gap(Ui(Sound.UiTick, 0.3f, "ui_tick"), 0.03f),
+                Ui(Sound.UiStamp, 0.75f, "ui_stamp"),
                 World(Sound.WaveMachine, 0.8f, 6f, 45f, 0.08f, "wave_machine"),
                 World(Sound.CrashSmall, 0.75f, 8f, 55f, 0.08f, "wave_crash_small"),
                 World(Sound.CrashMedium, 0.85f, 10f, 65f, 0.08f, "wave_crash_medium"),
@@ -80,6 +86,12 @@ namespace SurfPool.EditorTools
             EditorUtility.SetDirty(bank);
             AssetDatabase.SaveAssets();
             return bank;
+        }
+
+        static SoundBank.Entry Gap(SoundBank.Entry entry, float minGap)
+        {
+            entry.minGap = minGap;
+            return entry;
         }
 
         static SoundBank.Entry Ui(Sound id, float volume, params string[] names) =>

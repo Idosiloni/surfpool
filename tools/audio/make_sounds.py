@@ -733,6 +733,66 @@ def plop(name, seed, f0):
     save(name, fade(x, 0.001, 0.03), peak_db=-4)
 
 
+# ---------- UI family (docs/research/game-ui-craft.md #4): all built from one water-droplet "bloop", so the menus
+# sound like a pool. Hover near silent, confirm rises, back/close falls. ----------
+
+def droplet(f0, f1, length, decay):
+    t = secs(length)
+    f = f1 + (f0 - f1) * np.exp(-t * 30)
+    return tone(f, length, ((1, 1), (2, 0.12))) * np.exp(-t / decay)
+
+
+def ui_open():
+    """A window opens: a soft airy swish up into a rising droplet."""
+    length = 0.2
+    t = secs(length)
+    swish = sweep_lowpass(white(len(t), 1201), 600, 3200) * np.sin(np.pi * t / length) ** 2
+    x = swish / np.std(swish) * 0.12
+    place(x, droplet(520, 980, 0.12, 0.035), 0.06, 0.8)
+    save("ui_open", fade(x, 0.003, 0.03), peak_db=-5)
+
+
+def ui_close():
+    """A window closes: a shorter swish down and a falling droplet."""
+    length = 0.14
+    t = secs(length)
+    swish = sweep_lowpass(white(len(t), 1202), 2600, 500) * np.sin(np.pi * t / length) ** 2
+    x = swish / np.std(swish) * 0.1
+    place(x, droplet(900, 420, 0.1, 0.03), 0.02, 0.8)
+    save("ui_close", fade(x, 0.003, 0.03), peak_db=-6)
+
+
+def ui_tab():
+    """Switching tabs: one bright droplet."""
+    x = droplet(700, 1250, 0.09, 0.022)
+    place(x, highpass(white(int(SR * 0.002), 1203), 3000), 0, 0.15)
+    save("ui_tab", fade(x, 0.001, 0.02), peak_db=-5)
+
+
+def ui_toggle():
+    """A switch: two quick droplets, low then high (played lower for "off")."""
+    x = np.zeros(int(SR * 0.13))
+    place(x, droplet(500, 640, 0.05, 0.015), 0, 0.8)
+    place(x, droplet(760, 1020, 0.07, 0.018), 0.045, 1.0)
+    save("ui_toggle", fade(x, 0.001, 0.02), peak_db=-5)
+
+
+def ui_tick():
+    """Count-up tick: a tiny droplet (the game raises its pitch with each step)."""
+    x = droplet(1500, 1900, 0.03, 0.007)
+    save("ui_tick", fade(x, 0.0005, 0.008), peak_db=-6)
+
+
+def ui_stamp():
+    """A rubber stamp on a receipt: a low thud, a paper slap and a little wobble."""
+    length = 0.3
+    t = secs(length)
+    thud = tone(140 * np.exp(-t * 9) + 55, length, ((1, 1), (2, 0.3)), decay=0.07)
+    slap = bandpass(white(len(t), 1206), 700, 4500) * np.exp(-t / 0.018)
+    x = thud + slap / np.std(slap) * 0.35
+    save("ui_stamp", fade(x, 0.0005, 0.05), peak_db=-3)
+
+
 def blender_whirr():
     # Motor whine that spins up, chops through fruit (wobble), then spins down.
     length = 1.4
@@ -951,6 +1011,12 @@ def main():
     planer()
     spray_hiss()
     air_blast()
+    ui_open()
+    ui_close()
+    ui_tab()
+    ui_toggle()
+    ui_tick()
+    ui_stamp()
     babble = [("a", "b"), ("e", "t"), ("i", "s"), ("o", "b"), ("u", "t"), ("a", "t"), ("e", "b"), ("o", "s"), ("i", "t"), ("a", "s"), ("u", "b"), ("e", "s")]
     for i, (v, c) in enumerate(babble):
         syllable(f"voice_babble_{i + 1}", 1000 + i, v, c)

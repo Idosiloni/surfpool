@@ -24,6 +24,7 @@ namespace SurfPool
             overlay.pickingMode = PickingMode.Position;
             if (!overlay.ClassListContains("hidden")) return;
             Enter(overlay, OverlayEnter);
+            Sfx.Play(Sound.UiOpen);
         }
 
         /// <summary>
@@ -35,6 +36,7 @@ namespace SurfPool
             if (overlay == null || overlay.ClassListContains("hidden") || overlay.ClassListContains(OverlayLeave)) return;
             overlay.AddToClassList(OverlayLeave);
             overlay.pickingMode = PickingMode.Ignore; // fading out: clicks go through to the game
+            Sfx.Play(Sound.UiClose);
             overlay.schedule.Execute(() =>
             {
                 if (!overlay.ClassListContains(OverlayLeave)) return; // reopened meanwhile

@@ -186,10 +186,25 @@ def coin():
     return union(cut(circle(0.5, 0.5, 0.43), circle(0.5, 0.5, 0.34)), s, stubs)
 
 
+def mail():
+    """An envelope: a rounded card with the flap's V cut into it."""
+    body = rounded_rect(0.5, 0.5, 0.38, 0.27, 0.06)
+    flap = polyline([(0.16, 0.72), (0.5, 0.45), (0.84, 0.72)], 0.08)
+    return cut(body, flap)
+
+
+def meh():
+    """A straight-mouthed face, between smile and frown (patience marks for colorblind players)."""
+    face = cut(circle(0.5, 0.5, 0.4), circle(0.5, 0.5, 0.31))
+    eyes = union(circle(0.38, 0.58, 0.05), circle(0.62, 0.58, 0.05))
+    return union(face, eyes, segment(0.37, 0.36, 0.63, 0.36, 0.06))
+
+
 def main():
     for name, fn in [("wave", wave), ("palm", palm), ("target", target), ("pin", pin), ("flag", flag), ("pool", pool),
                      ("board", board), ("person", person), ("tag", tag), ("smile", smile), ("frown", frown),
-                     ("trash", trash), ("bolt", bolt), ("star", star), ("clock", clock), ("coin", coin)]:
+                     ("trash", trash), ("bolt", bolt), ("star", star), ("clock", clock), ("coin", coin),
+                     ("mail", mail), ("meh", meh)]:
         save(name, fn())
         print("icon", name)
 
