@@ -102,10 +102,21 @@ namespace SurfPool
             AddStat("Your own rides", GameStats.PlayerRides.ToString());
             if (GameStats.BestJudgeScore > 0f) AddStat("Best judged ride", GameStats.BestJudgeScore.ToString("0.00"));
             AddStat("Total earned", MoneyText.Format(GameStats.TotalEarned));
+            AddStat("Park style", ParkStyle());
             if (ParkLevel.Instance != null) AddStat("Park level", $"{ParkLevel.Instance.Level}  ({ParkLevel.Instance.XpToNext:#,0} XP to next)");
             foreach (var worker in StaffMember.Active)
                 AddStat(worker.JobTitle, StaffMember.StarText(worker.Stars));
             UiMotion.Show(root);
+        }
+
+        /// <summary>The luxury tier and how much more to earn for the next one.</summary>
+        static string ParkStyle()
+        {
+            int tier = ParkGlowUp.TierFor(GameStats.TotalEarned);
+            string name = ParkGlowUp.TierNames[tier];
+            if (tier + 1 >= ParkGlowUp.TierEarnings.Length) return name;
+            long left = ParkGlowUp.TierEarnings[tier + 1] - GameStats.TotalEarned;
+            return $"{name}  ({ParkGlowUp.TierNames[tier + 1]} after {MoneyText.Format(left)} more earned)";
         }
 
         void AddStat(string name, string value)

@@ -36,6 +36,8 @@ namespace SurfPool.EditorTools
                 GreyboxBuilder.Mat("DeckWorn", new Color(0.68f, 0.64f, 0.56f)),
                 GreyboxBuilder.Mat("CopingWorn", new Color(0.7f, 0.68f, 0.6f), 0.1f),
                 GreyboxBuilder.Mat("PoolTileWorn", new Color(0.46f, 0.62f, 0.52f)));
+            // Luxury tiers by money earned: boardwalk, sandstone, marble.
+            LuxuryBuilder.Paint(glow);
 
             RunDown();
             Festivities();

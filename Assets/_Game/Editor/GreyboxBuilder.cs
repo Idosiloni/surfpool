@@ -1426,7 +1426,29 @@ namespace SurfPool.EditorTools
             go.transform.position = center;
             go.transform.localScale = size;
             go.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            // Deck and coping get UVs in meters, lined up across boxes, so the luxury tiers' planks and stone tiles
+            // (ParkGlowUp paint swaps) keep their size instead of stretching over a whole slab.
+            if (mats != null && mat != null && (mat == mats.deck || mat == mats.coping)) WorldUVs(go, center, size);
             return go;
+        }
+
+        /// <summary>Gives a box (not rotated) UVs in world meters: top faces by (x, z), sides by their two axes.</summary>
+        static void WorldUVs(GameObject go, Vector3 center, Vector3 size)
+        {
+            var filter = go.GetComponent<MeshFilter>();
+            var mesh = Object.Instantiate(filter.sharedMesh);
+            mesh.name = go.name + " (world uv)";
+            var vertices = mesh.vertices;
+            var normals = mesh.normals;
+            var uv = new Vector2[vertices.Length];
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                Vector3 p = center + Vector3.Scale(vertices[i], size);
+                Vector3 n = normals[i];
+                uv[i] = Mathf.Abs(n.x) > 0.5f ? new Vector2(p.z, p.y) : Mathf.Abs(n.y) > 0.5f ? new Vector2(p.x, p.z) : new Vector2(p.x, p.y);
+            }
+            mesh.uv = uv;
+            filter.sharedMesh = mesh;
         }
 
         /// <summary>A surfboard model (no collider).</summary>
