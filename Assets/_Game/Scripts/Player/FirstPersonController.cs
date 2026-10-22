@@ -17,6 +17,7 @@ namespace SurfPool
         CharacterController controller;
         float pitch;
         float verticalVelocity;
+        Vector3 shakeApplied;
 
         public bool CursorLocked => Cursor.lockState == CursorLockMode.Locked;
 
@@ -41,6 +42,24 @@ namespace SurfPool
 
             if (CursorLocked) Look(mouse.delta.ReadValue());
             Move(keyboard);
+        }
+
+        /// <summary>Camera shake on top of wherever the camera is (as a change, so others can still move it).</summary>
+        void LateUpdate()
+        {
+            CameraShake.Sample(Time.deltaTime, out var offset, out float roll);
+            if (offset == shakeApplied && roll == 0f) return;
+            cameraPivot.localPosition += offset - shakeApplied;
+            shakeApplied = offset;
+            var euler = cameraPivot.localEulerAngles;
+            cameraPivot.localEulerAngles = new Vector3(euler.x, euler.y, roll);
+        }
+
+        void OnDisable()
+        {
+            if (cameraPivot == null) return;
+            cameraPivot.localPosition -= shakeApplied;
+            shakeApplied = Vector3.zero;
         }
 
         void Look(Vector2 delta)

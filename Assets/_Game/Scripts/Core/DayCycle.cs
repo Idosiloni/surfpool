@@ -43,6 +43,8 @@ namespace SurfPool
         [SerializeField] Color noonLight = new(1f, 0.95f, 0.85f);
         [SerializeField] Color eveningLight = new(1f, 0.62f, 0.4f);
         [SerializeField] Color duskLight = new(0.55f, 0.45f, 0.8f);
+        [Tooltip("The low afternoon sun on a Golden Hour day.")]
+        [SerializeField] Color goldenLight = new(1f, 0.8f, 0.58f);
         [Tooltip("Real seconds the sun takes to set after closing time.")]
         [SerializeField] float duskLength = 50f;
         [Tooltip("Seconds after closing before surfers still in the water are told to come in right away.")]
@@ -206,9 +208,20 @@ namespace SurfPool
             if (sun == null) return;
             float p = Progress;
             float elevation = Mathf.Lerp(12f, 168f, p);
+            var color = p < 0.5f ? Color.Lerp(morningLight, noonLight, p * 2f) : Color.Lerp(noonLight, eveningLight, (p - 0.5f) * 2f);
+            float intensity = Mathf.Lerp(0.9f, 1.4f, Mathf.Sin(p * Mathf.PI));
+            if (DailyEvents.GoldenHour)
+            {
+                // Golden Hour day: after lunch the sun sinks to about 16 degrees and hangs there, warm, until closing,
+                // so the waves are backlit and glow (StylizedWater's golden-hour lip glow) for hours.
+                float g = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.5f, 0.68f, p));
+                elevation = Mathf.Lerp(elevation, Mathf.Max(elevation, 164f), g);
+                color = Color.Lerp(color, goldenLight, g);
+                intensity = Mathf.Lerp(intensity, Mathf.Lerp(1.05f, 0.9f, Mathf.InverseLerp(0.85f, 1f, p)), g);
+            }
             sun.transform.rotation = Quaternion.Euler(elevation, -35f, 0f);
-            sun.color = p < 0.5f ? Color.Lerp(morningLight, noonLight, p * 2f) : Color.Lerp(noonLight, eveningLight, (p - 0.5f) * 2f);
-            sun.intensity = Mathf.Lerp(0.9f, 1.4f, Mathf.Sin(p * Mathf.PI)) * DailyEvents.SunMultiplier;
+            sun.color = color;
+            sun.intensity = intensity * DailyEvents.SunMultiplier;
         }
 
         void BeginDay()

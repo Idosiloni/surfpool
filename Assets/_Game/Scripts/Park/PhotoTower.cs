@@ -243,7 +243,7 @@ namespace SurfPool
         {
             int grade = Mathf.Clamp(surfer.PhotoGrade, 0, 3);
             float skill = surfer.Famous != null ? 3f : surfer.Skill switch { WaveLevel.Pro => 2.5f, WaveLevel.Intermediate => 1.5f, _ => 1f };
-            int price = Mathf.RoundToInt(PrintPrices[grade] * skill);
+            int price = Mathf.RoundToInt(PrintPrices[grade] * skill * DailyEvents.PhotoPrintMultiplier);
             if (price <= 0) return;
             Wallet.Instance.Add(price, "photo prints");
             PrintsSold++;

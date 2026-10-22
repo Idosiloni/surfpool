@@ -449,7 +449,7 @@ namespace SurfPool
             UpdateSurface(t, Dt / Mathf.Max(0.1f, foamLinger));
             mesh.vertices = vertices;
             mesh.colors = colors;
-            mesh.uv2 = tubeShade; // tube shadow for the shader (TEXCOORD1)
+            mesh.uv2 = tubeShade; // tube shadow + foam lines down the face for the shader (TEXCOORD1)
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
 
@@ -518,22 +518,23 @@ namespace SurfPool
                 {
                     int i = iz * nx + ix;
                     Vector3 v = baseVertices[i];
-                    float h = colSin[ix] * zSin + colBackwash[ix], foam = 0f, face = 0f, shade = 0f;
+                    float h = colSin[ix] * zSin + colBackwash[ix], foam = 0f, face = 0f, shade = 0f, drip = 0f;
                     for (int k = 0; k < colCount[ix]; k++)
                     {
                         int c = ix * count + k, s = colStates[c];
-                        Sample(stateArray[s], rowTerms[s * nz + iz], colTerms[c], v.x, v.z, t, edgeScale, out float height, out float f, out float g, out float sh);
+                        Sample(stateArray[s], rowTerms[s * nz + iz], colTerms[c], v.x, v.z, t, edgeScale, out float height, out float f, out float g, out float sh, out float dr);
                         h += height;
                         foam = Mathf.Max(foam, f);
                         face = Mathf.Max(face, g);
                         shade = Mathf.Max(shade, sh);
+                        drip = Mathf.Max(drip, dr);
                     }
                     v.y = h;
                     vertices[i] = v;
                     float fresh = Mathf.Clamp01(foam);
                     float memory = foamMemory[i] = Mathf.Max(fresh, foamMemory[i] - fade);
                     colors[i] = new Color(memory, face, colShallow[ix], memory > 0.001f ? fresh / memory : 1f);
-                    tubeShade[i] = new Vector2(shade, 0f);
+                    tubeShade[i] = new Vector2(shade, drip);
                 }
             }
         }
@@ -551,7 +552,7 @@ namespace SurfPool
 
                 float breakTime = wave.start + (type.breakAt * length + type.backWidth) / type.speed;
                 bool breaking = t >= breakTime;
-                if (breaking && crashed.Add(wave.start)) PlayCrash(type, center, wave.direction);
+                if (breaking && crashed.Add(wave.start)) PlayCrash(type, center, wave.direction, wave.size);
                 states.Add(new WaveState
                 {
                     id = wave.start,
@@ -573,10 +574,39 @@ namespace SurfPool
                     seedA = -HalfWidth * (0.5f + 0.3f * (Hash(wave.start) - 0.5f)),
                     seedB = HalfWidth * (0.5f + 0.3f * (Hash(wave.start + 17.3f) - 0.5f)),
                 });
+                SoundSection(states[^1], wave.size);
             }
         }
 
-        void PlayCrash(WaveType type, float center, WaveDirection direction)
+        readonly Dictionary<float, WaveSection> sectionHeard = new();
+
+        /// <summary>
+        /// Each new section of a breaking wave sounds different, from where it's breaking: the wall stands up with a
+        /// rising whoosh, the barrel roars hollow, the closeout lands with a boom (a Giant one shakes the ground).
+        /// </summary>
+        void SoundSection(in WaveState state, float size)
+        {
+            if (state.type.level == WaveLevel.Beginner) return;
+            var section = SectionFrom(state);
+            // Sections only move forward (a wave can flicker between wall and barrel as it hollows out).
+            if (section == WaveSection.Takeoff || (sectionHeard.TryGetValue(state.id, out var last) && last >= section)) return;
+            sectionHeard[state.id] = section;
+            if (sectionHeard.Count > 64) sectionHeard.Clear();
+            float z = Mathf.Clamp(BreakPoint(state, state.direction == WaveDirection.Right ? -1 : 1), -HalfWidth, HalfWidth);
+            var at = transform.TransformPoint(new Vector3(state.center, state.amplitude * 0.5f, z));
+            float big = Mathf.Clamp(state.amplitude / 2.5f, 0.35f, 1f);
+            switch (section)
+            {
+                case WaveSection.Wall: Sfx.Play(Sound.SectionWall, at, 0.5f + 0.5f * big); break;
+                case WaveSection.Barrel: Sfx.Play(Sound.TubeRoar, at, 0.6f + 0.4f * big); break;
+                case WaveSection.Closeout:
+                    Sfx.Play(Sound.WaveBoom, at, 0.4f + 0.6f * big, Mathf.Lerp(1.35f, 0.9f, big));
+                    if (size > 1.2f) CameraShake.From(at, 0.35f, 12f, 60f);
+                    break;
+            }
+        }
+
+        void PlayCrash(WaveType type, float center, WaveDirection direction, float size)
         {
             var sound = type.level switch
             {
@@ -585,7 +615,15 @@ namespace SurfPool
                 _ => Sound.CrashBig,
             };
             float z = direction switch { WaveDirection.Left => -HalfWidth * 0.5f, WaveDirection.Right => HalfWidth * 0.5f, _ => 0f };
-            Sfx.Play(sound, transform.TransformPoint(new Vector3(center, 0f, z)), Mathf.Clamp(type.height / 1.5f, 0.6f, 1f));
+            var at = transform.TransformPoint(new Vector3(center, 0f, z));
+            Sfx.Play(sound, at, Mathf.Clamp(type.height / 1.5f, 0.6f, 1f));
+            // XL waves: a deep boom and the ground shakes (Giant more than Big), felt across the park.
+            if (size > 1.01f)
+            {
+                bool giant = size >= 1.25f;
+                Sfx.Play(Sound.WaveBoom, at, giant ? 1f : 0.75f, giant ? 0.85f : 1f);
+                CameraShake.From(at, giant ? 0.65f : 0.35f, 15f, 75f);
+            }
             if (crashed.Count > 64) crashed.Clear();
         }
 
@@ -655,14 +693,14 @@ namespace SurfPool
         /// <summary>What one wave does at one row (z) this frame.</summary>
         struct RowTerms
         {
-            public float broken, hb, boreMult, lumps, ball, frontFoam, trailFoam, shoulder, frontG, pocket, mask;
+            public float broken, hb, boreMult, lumps, ball, frontFoam, trailFoam, shoulder, frontG, pocket, mask, drip;
             public float tube, tubeReach; // under a thrown lip here (0..1) and how far out the lip reaches (m)
         }
 
         /// <summary>What one wave does at one column (x) this frame: the shapes that only need the distance to the crest.</summary>
         struct ColTerms
         {
-            public float d, backG, tail, boreFront, ballShape, bandShape, spillShape, trailShape, lip, faceShape;
+            public float d, backG, tail, boreFront, ballShape, bandShape, spillShape, trailShape, lip, faceShape, dripShape;
         }
 
         RowTerms Row(in WaveState state, float z)
@@ -678,6 +716,8 @@ namespace SurfPool
             r.ball = 1f - Smooth(0.8f, 1.6f, tau);
             r.frontFoam = 0.85f * (0.4f + 0.6f * Mathf.Exp(-age / 4f));
             r.trailFoam = 0.45f * Mathf.Exp(-age / 3f);
+            // Spilling foam runs down the face in lines: strongest just after a spot breaks, none on hollow (barrel) parts.
+            r.drip = state.breaking ? (1f - state.hollow) * Mathf.Exp(-age / 2.5f) * (state.type.closeout ? 0.8f : 0.6f) : 0f;
             float far = 0f;
             if (state.breaking && !state.type.closeout)
             {
@@ -744,6 +784,8 @@ namespace SurfPool
             c.spillShape = Mathf.Exp(-sd * sd);
             c.lip = Mathf.Exp(-(d / 1.2f) * (d / 1.2f)) * 0.7f;
             c.faceShape = Mathf.Exp(-face * face) * 0.35f;
+            float dd = (d - 1f) / 0.9f;
+            c.dripShape = d > 0f ? Mathf.Exp(-dd * dd) : 0f; // the front face below the crest
             return c;
         }
 
@@ -752,7 +794,7 @@ namespace SurfPool
         /// is there. LocalHeight/Foam and the fast UpdateSurface both use this, so riders and the mesh always agree.
         /// </summary>
         void Sample(in WaveState state, in RowTerms r, in ColTerms c, float x, float z, float t, float edgeScale,
-            out float height, out float foam, out float face, out float shade)
+            out float height, out float foam, out float face, out float shade, out float drip)
         {
             float d = c.d;
             float shapeG = d <= 0f ? c.backG : Mathf.Exp(-(d / r.frontG) * (d / r.frontG));
@@ -786,6 +828,7 @@ namespace SurfPool
                 height += boil * 0.22f * state.amplitude * edgeScale * (0.6f + 0.4f * Mathf.PerlinNoise(z * 0.6f, t * 3f));
             }
             foam = Mathf.Max(fresh, r.mask * c.lip);
+            drip = r.broken * r.drip * c.dripShape * Mathf.Clamp01(state.amplitude);
             // Height up the wave (vertex G, 0 = trough, 1 = crest): the shader colors the face by it, dark low down
             // (deep water seen through) to bright aqua at the thin top lit from behind (docs/research/wave-look-2.md).
             // Tiny swells stay plain water.
@@ -804,7 +847,7 @@ namespace SurfPool
             float edgeScale = 1f - edgeDrop * edge * edge;
             foreach (var state in states)
             {
-                Sample(state, Row(state, z), Col(state, x), x, z, t, edgeScale, out float height, out _, out _, out _);
+                Sample(state, Row(state, z), Col(state, x), x, z, t, edgeScale, out float height, out _, out _, out _, out _);
                 h += height;
             }
             return h;
@@ -828,7 +871,7 @@ namespace SurfPool
             float edge = z / HalfWidth, edgeScale = 1f - edgeDrop * edge * edge;
             foreach (var state in states)
             {
-                Sample(state, Row(state, z), Col(state, x), x, z, Now, edgeScale, out _, out float f, out float g, out _);
+                Sample(state, Row(state, z), Col(state, x), x, z, Now, edgeScale, out _, out float f, out float g, out _, out _);
                 foam = Mathf.Max(foam, f);
                 face = Mathf.Max(face, g);
             }
@@ -915,8 +958,8 @@ namespace SurfPool
                     var under = p + new Vector3(-Mathf.Sin(theta), -Mathf.Cos(theta), 0f) * thick;
                     lipVertices.Add(p);
                     innerVerts.Add(under);
-                    lipShade.Add(new Vector2(0.15f * u, 1f)); // y = 1: lip (the shader can see through it near the chase cam)
-                    innerShade.Add(new Vector2(0.9f - 0.4f * u, 1f)); // the roof of the tube, in its own shadow
+                    lipShade.Add(new Vector2(0.15f * u, 2f)); // y = 2: lip (the shader can see through it near the chase cam)
+                    innerShade.Add(new Vector2(0.9f - 0.4f * u, 2f)); // the roof of the tube, in its own shadow
                     // Foam feathers off the thrown tip; the outer sheet is the thinnest, brightest water on the wave.
                     float foam = k == across ? 0.95f : k == across - 1 ? 0.45f * tau : 0.1f * tau;
                     lipColors.Add(new Color(foam, 0.92f + 0.08f * u, 0f, 1f));
@@ -1166,14 +1209,16 @@ namespace SurfPool
         public WaveSection SectionOf(float waveId)
         {
             foreach (var state in states)
-            {
-                if (state.id != waveId) continue;
-                if (state.type.closeout || !state.breaking) return WaveSection.Takeoff;
-                if (state.peel >= 0.8f) return WaveSection.Closeout;
-                if (state.hollow > 0.5f || (state.type.barrel && state.peel >= 0.4f)) return WaveSection.Barrel;
-                return state.peel < 0.15f ? WaveSection.Takeoff : WaveSection.Wall;
-            }
+                if (state.id == waveId) return SectionFrom(state);
             return WaveSection.Takeoff;
+        }
+
+        static WaveSection SectionFrom(in WaveState state)
+        {
+            if (state.type.closeout || !state.breaking) return WaveSection.Takeoff;
+            if (state.peel >= 0.8f) return WaveSection.Closeout;
+            if (state.hollow > 0.5f || (state.type.barrel && state.peel >= 0.4f)) return WaveSection.Barrel;
+            return state.peel < 0.15f ? WaveSection.Takeoff : WaveSection.Wall;
         }
 
         void BuildMesh()

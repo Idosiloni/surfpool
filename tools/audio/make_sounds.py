@@ -227,6 +227,48 @@ def wave_machine():
     save("wave_machine", fade(x, 0.005, 0.3))
 
 
+def wave_boom():
+    """A Giant wave's lip landing: a deep thump you feel more than hear, then a long rolling rumble."""
+    length = 3.6
+    t = secs(length)
+    thump = tone(62 * np.exp(-t * 1.6) + 30, length, ((1, 1), (2, 0.25)), decay=0.45)
+    rumble = lowpass(pink(len(t), 141), 220, order=3)
+    rumble = rumble / np.std(rumble) * np.where(t < 0.08, t / 0.08, np.exp(-(t - 0.08) / 1.3))
+    rumble *= 0.8 + 0.2 * np.sin(2 * np.pi * 2.3 * t)  # the roll of water tumbling
+    crack = bandpass(white(len(t), 142), 500, 3500) * np.exp(-t / 0.18)
+    hiss = highpass(white(len(t), 143), 2500) * np.where(t < 0.3, t / 0.3, np.exp(-(t - 0.3) / 0.9))
+    x = thump * 1.0 + rumble * 0.45 + crack / np.std(crack) * 0.15 + hiss / np.std(hiss) * 0.06
+    save("wave_boom", fade(x, 0.002, 0.5))
+
+
+def section_wall():
+    """The wall standing up ahead of you: water sucked up the face, a rising airy whoosh over a low swell."""
+    length = 1.8
+    t = secs(length)
+    env = np.sin(np.pi * np.clip(t / length, 0, 1)) ** 1.5
+    whoosh = sweep_lowpass(highpass(pink(len(t), 151), 200), 400, 2600) * env
+    swell = lowpass(pink(len(t), 152), 160) * env
+    x = whoosh / np.std(whoosh) * 0.6 + swell / np.std(swell) * 0.35
+    save("section_wall", fade(x, 0.05, 0.3))
+
+
+def tube_roar():
+    """Inside the barrel: a hollow roar, the noise of the breaking lip ringing in a tube of water (comb resonance)."""
+    length = 3.0
+    t = secs(length)
+    noise = lowpass(pink(len(t), 161), 2400)
+    roar = noise.copy()
+    for delay_ms, gain in ((4.1, 0.7), (6.3, 0.5), (9.7, 0.35)):  # a tube rings at a few low pitches
+        d = int(SR * delay_ms / 1000)
+        roar[d:] += noise[:-d] * gain
+    roar = bandpass(roar, 90, 1800)
+    env = np.minimum(1, t / 0.5) * np.where(t > length - 0.9, (length - t) / 0.9, 1)
+    swirl = 0.75 + 0.25 * np.sin(2 * np.pi * 0.9 * t + 1.3 * np.sin(2 * np.pi * 0.37 * t))
+    low = lowpass(pink(len(t), 162), 120)
+    x = roar / np.std(roar) * 0.6 * env * swirl + low / np.std(low) * 0.3 * env
+    save("tube_roar", fade(x, 0.02, 0.3))
+
+
 def splash(name, seed, big):
     length = 1.1 if big else 0.7
     t = secs(length)
@@ -860,6 +902,9 @@ def main():
     wave_crash("wave_crash_small", 101, 2.6, 1800, 700, 0.6, 0.15)
     wave_crash("wave_crash_medium", 102, 3.6, 1500, 500, 0.95, 0.3)
     wave_crash("wave_crash_big", 103, 5.0, 1200, 300, 1.5, 0.55)
+    wave_boom()
+    section_wall()
+    tube_roar()
     splash("splash_1", 201, False)
     splash("splash_2", 202, False)
     splash("splash_big", 203, True)

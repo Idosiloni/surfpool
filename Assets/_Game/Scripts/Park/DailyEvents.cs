@@ -2,14 +2,15 @@ using UnityEngine;
 
 namespace SurfPool
 {
-    public enum DayEvent { None, HeatWave, RainyDay, SurfContest, Influencer, PowerPrices, Inspector }
+    public enum DayEvent { None, HeatWave, RainyDay, SurfContest, Influencer, PowerPrices, Inspector, GoldenHour }
 
     /// <summary>Today's wind (docs/research/wave-pools-and-ocean-waves.md): offshore grooms waves, onshore makes them mushy.</summary>
     public enum Wind { Calm, Offshore, Onshore }
 
     /// <summary>
     /// Something different most days (never on day 1): a heat wave, a rainy day, a surf contest, an influencer
-    /// visit, expensive power, or a health inspector who checks how clean the park is in the afternoon.
+    /// visit, expensive power, a health inspector who checks how clean the park is in the afternoon, or a golden-hour
+    /// day when the sun hangs low all afternoon and the waves glow.
     /// Each event only changes its own multipliers (read where they're used), so upgrades stay untouched.
     /// </summary>
     public class DailyEvents : MonoBehaviour
@@ -30,7 +31,10 @@ namespace SurfPool
         public static float XpMultiplier = 1f;
         public static float RatingSpeedMultiplier = 1f;
         public static float SkilledPriceMultiplier = 1f; // Intermediate and Pro sessions
+        public static float PhotoPrintMultiplier = 1f;
         public static bool ContestDay;
+        /// <summary>The sun sinks low early and stays there, golden, all afternoon (read by the day cycle).</summary>
+        public static bool GoldenHour;
 
         // Wind, picked separately from the event (both can happen on the same day).
         public static Wind TodayWind = Wind.Calm;
@@ -46,8 +50,8 @@ namespace SurfPool
         public static void ResetStatics()
         {
             ArrivalMultiplier = LitterMultiplier = ElectricityMultiplier = WaterMultiplier = SunMultiplier = 1f;
-            XpMultiplier = RatingSpeedMultiplier = SkilledPriceMultiplier = 1f;
-            ContestDay = false;
+            XpMultiplier = RatingSpeedMultiplier = SkilledPriceMultiplier = PhotoPrintMultiplier = 1f;
+            ContestDay = GoldenHour = false;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -63,6 +67,7 @@ namespace SurfPool
             DayEvent.Influencer => "Influencer Visit",
             DayEvent.PowerPrices => "Power Price Spike",
             DayEvent.Inspector => "Health Inspector",
+            DayEvent.GoldenHour => "Golden Hour",
             _ => "",
         };
 
@@ -74,6 +79,7 @@ namespace SurfPool
             DayEvent.Influencer => "A famous surf influencer is filming here. Your rating moves twice as fast and XP is +50%.",
             DayEvent.PowerPrices => "Power prices spiked: every wave costs double electricity today.",
             DayEvent.Inspector => "A health inspector visits at 3 PM. A clean park earns a bonus, trash earns a fine!",
+            DayEvent.GoldenHour => "The sun hangs low and golden all afternoon: glowing waves, 15% more surfers, +25% XP, and photo prints sell for double.",
             _ => "",
         };
 
@@ -105,7 +111,7 @@ namespace SurfPool
             var pick = DayEvent.None;
             if (day > 1 && Random.value > quietDayChance)
             {
-                pick = (DayEvent)Random.Range(1, 7);
+                pick = (DayEvent)Random.Range(1, 8);
                 // Contests need skilled surfers; the inspector needs litter to matter.
                 if (pick == DayEvent.SurfContest && UnityEngine.Object.FindAnyObjectByType<SurferSpawner>()?.BestSkillComing == WaveLevel.Beginner)
                     pick = DayEvent.HeatWave;
@@ -126,6 +132,7 @@ namespace SurfPool
                 case DayEvent.SurfContest: SkilledPriceMultiplier = 1.5f; ContestDay = true; break;
                 case DayEvent.Influencer: RatingSpeedMultiplier = 2f; XpMultiplier = 1.5f; break;
                 case DayEvent.PowerPrices: ElectricityMultiplier = 2f; break;
+                case DayEvent.GoldenHour: GoldenHour = true; ArrivalMultiplier = 1.15f; XpMultiplier = 1.25f; PhotoPrintMultiplier = 2f; break;
             }
             if (rain != null)
             {

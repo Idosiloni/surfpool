@@ -13,6 +13,7 @@ namespace SurfPool
         Plop, Blender, ShopBell, ScanBeep, Planer, SprayHiss, AirBlast,
         StepSand, StepDeck, StepWood,
         VoiceBabble, VoiceYew, VoiceWoo, VoiceAah, VoiceOoh, VoiceHmm,
+        WaveBoom, SectionWall, TubeRoar,
     }
 
     /// <summary>

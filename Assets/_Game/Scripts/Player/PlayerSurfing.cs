@@ -452,8 +452,12 @@ namespace SurfPool
             // Speed: a fine shake and a wider view; flow keeps them up between bursts of speed.
             float speed = state == State.Riding ? Mathf.Max(Mathf.InverseLerp(2f, 9f, feel.Speed), flow * 0.8f) : 0f;
             float t = Time.time * 9f;
-            Vector3 shake = new Vector3(Mathf.PerlinNoise(t, 0.3f) - 0.5f, Mathf.PerlinNoise(0.7f, t) - 0.5f, 0f) * (2f * speedShake.x * speed);
-            float shakeRoll = (Mathf.PerlinNoise(t, 5.1f) - 0.5f) * 2f * speedShake.y * speed;
+            float shakeAmount = speed * GameSettings.Shake;
+            Vector3 shake = new Vector3(Mathf.PerlinNoise(t, 0.3f) - 0.5f, Mathf.PerlinNoise(0.7f, t) - 0.5f, 0f) * (2f * speedShake.x * shakeAmount);
+            float shakeRoll = (Mathf.PerlinNoise(t, 5.1f) - 0.5f) * 2f * speedShake.y * shakeAmount;
+            CameraShake.Sample(dt, out var bigShake, out float bigRoll); // a Giant wave crashing nearby
+            shake += bigShake;
+            shakeRoll += bigRoll;
             kick = Mathf.MoveTowards(kick, 0f, 30f * dt);
 
             if (GameSettings.ChaseCam) ChaseCamera(dt, shake, shakeRoll);

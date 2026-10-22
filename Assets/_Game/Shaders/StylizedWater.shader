@@ -2,8 +2,8 @@
 // Vertex color (written by WaveWater every frame): R = foam amount, G = height up the wave (0 trough .. 1 crest),
 // B = shallowness (pale aqua over the shallow beach end), A = foam freshness (old foam breaks into lace).
 // UV2.x (TEXCOORD1) = tube shadow: the face under a thrown lip and the lip's underside, dark like the inside of a barrel.
-// UV2.y = 1 on the barrel lip: with the chase cam (global _LipSeeThrough) the lip dissolves within ~6 m of the camera
-// so it never hides your own surfer.
+// UV2.y = 2 on the barrel lip: with the chase cam (global _LipSeeThrough) the lip dissolves within ~6 m of the camera
+// so it never hides your own surfer. On the water itself UV2.y (0..1) = spilling foam running down the face in lines.
 // Steep faces turn a lighter teal and glow when the sun shines through them from behind (like real pool waves),
 // foam is broken up by moving noise, lighting is soft-stepped like a toon shader.
 Shader "SurfPool/StylizedWater"
@@ -28,6 +28,7 @@ Shader "SurfPool/StylizedWater"
         _SparkleSize ("Sparkle size", Range(10, 400)) = 140
         _RippleNormal ("Ripple detail (lighting only)", Range(0, 1)) = 0.6
         _StreakStrength ("Face streaks", Range(0, 0.5)) = 0.18
+        _DripScale ("Foam lines down the face: spacing", Float) = 2.2
     }
 
     SubShader
@@ -65,6 +66,7 @@ Shader "SurfPool/StylizedWater"
                 half _SparkleSize;
                 half _RippleNormal;
                 half _StreakStrength;
+                float _DripScale;
             CBUFFER_END
             float _LipSeeThrough; // global, set by PlayerSurfing
 
@@ -84,6 +86,7 @@ Shader "SurfPool/StylizedWater"
                 half4 color : COLOR;
                 half fogFactor : TEXCOORD2;
                 half2 tubeLip : TEXCOORD3;
+                float2 crest : TEXCOORD4; // the water's own frame: x = along the crest (pools can face any way), y = up
             };
 
             float Hash(float2 p)
@@ -113,6 +116,7 @@ Shader "SurfPool/StylizedWater"
                 output.positionCS = TransformWorldToHClip(output.positionWS);
                 output.color = input.color;
                 output.tubeLip = input.uv1;
+                output.crest = input.positionOS.zy;
                 output.fogFactor = ComputeFogFactor(output.positionCS.z);
                 return output;
             }
@@ -120,7 +124,7 @@ Shader "SurfPool/StylizedWater"
             half4 Frag(Varyings input, FRONT_FACE_TYPE face : FRONT_FACE_SEMANTIC) : SV_Target
             {
                 // Chase cam: the lip near the camera dissolves (dithered) so it doesn't block the view of the surfer.
-                if (input.tubeLip.y > 0.5 && _LipSeeThrough > 0.5)
+                if (input.tubeLip.y > 1.5 && _LipSeeThrough > 0.5)
                 {
                     half fade = saturate((6.0 - distance(input.positionWS, _WorldSpaceCameraPos)) / 3.0);
                     clip(Hash(floor(input.positionCS.xy)) - fade);
@@ -143,7 +147,7 @@ Shader "SurfPool/StylizedWater"
                 half lip = smoothstep(0.9, 1.0, hf) * saturate(steep * 2.5); // only a steep, thin crest glows
                 water = lerp(water, _LipBright.rgb, lip * 0.85);
                 // Streaks down the face: water being drawn up the wave leaves faint lines running down it.
-                float streak = ValueNoise(float2(input.positionWS.z * 2.6, input.positionWS.y * 0.4 + 7.0));
+                float streak = ValueNoise(float2(input.crest.x * 2.6, input.crest.y * 0.4 + 7.0));
                 half streakMask = smoothstep(0.62, 0.72, streak) * onWave * smoothstep(0.15, 0.4, hf) * (1.0 - smoothstep(0.85, 0.95, hf));
                 water = lerp(water, _FaceTop.rgb, streakMask * _StreakStrength);
                 water = lerp(water, _TubeColor.rgb, inside * 0.7);
@@ -163,6 +167,17 @@ Shader "SurfPool/StylizedWater"
                 float lace = ValueNoise(input.positionWS.xz * 3.1 + 17.0) * 0.6 + ValueNoise(input.positionWS.xz * 7.3) * 0.4;
                 half vein = 1.0 - smoothstep(0.06, 0.14 + (1.0 - age) * 0.4, abs(lace - 0.5));
                 foam *= lerp(1.0, vein, saturate(age * 1.3));
+                // Spilling foam falls down the face in lines: thin vertical streaks that slide down the slope, thinning
+                // out toward the bottom of the face (docs/research/wave-look-2.md, "foam lines down the face").
+                half drip = input.tubeLip.y < 1.5 ? saturate(input.tubeLip.y) : 0.0;
+                if (drip > 0.01)
+                {
+                    float line1 = ValueNoise(float2(input.crest.x * _DripScale, input.crest.y * 0.7 + _Time.y * 1.1));
+                    float line2 = ValueNoise(float2(input.crest.x * _DripScale * 2.3 + 31.0, input.crest.y * 1.1 + _Time.y * 1.6));
+                    float lines = line1 * 0.65 + line2 * 0.35;
+                    half dripFoam = smoothstep(0.66 - 0.12 * drip, 0.72 - 0.08 * drip, lines) * saturate(drip * 1.6); // fresher = fatter
+                    foam = max(foam, dripFoam * 0.85);
+                }
                 half3 albedo = lerp(water, _FoamColor.rgb, foam);
 
                 // Small moving ripples for the lighting only (the mesh stays smooth): calm water shades and sparkles

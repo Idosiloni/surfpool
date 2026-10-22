@@ -114,6 +114,33 @@ MonoBehaviour:
     maxDistance: 80
     pitchJitter: 0.06
     minGap: 0.08
+  - id: 38
+    clips:
+    - {fileID: 8300000, guid: e7ca1e71aa86e48288932ef5498d7e7d, type: 3}
+    volume: 1
+    spatial: 1
+    minDistance: 15
+    maxDistance: 120
+    pitchJitter: 0.06
+    minGap: 0.3
+  - id: 39
+    clips:
+    - {fileID: 8300000, guid: f8a9837129dc24772863c2d1d9073a1c, type: 3}
+    volume: 0.45
+    spatial: 1
+    minDistance: 6
+    maxDistance: 45
+    pitchJitter: 0.06
+    minGap: 0.5
+  - id: 40
+    clips:
+    - {fileID: 8300000, guid: 7f8839d245f364dc28747b41a412c6c6, type: 3}
+    volume: 0.6
+    spatial: 1
+    minDistance: 5
+    maxDistance: 40
+    pitchJitter: 0.06
+    minGap: 0.5
   - id: 11
     clips:
     - {fileID: 8300000, guid: 7c67a7fd4ccad42988eaca22f72f1b97, type: 3}

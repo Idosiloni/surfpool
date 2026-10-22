@@ -15,6 +15,9 @@ namespace SurfPool
         /// <summary>Surfing camera: true = chase cam behind your surfer (see your moves), false = first person.</summary>
         public static bool ChaseCam { get; private set; } = true;
 
+        /// <summary>Camera shake strength (0 = off, 1 = full): big waves crashing, wipeouts.</summary>
+        public static float Shake { get; private set; } = 1f;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Load()
         {
@@ -22,6 +25,7 @@ namespace SurfPool
             InvertY = PlayerPrefs.GetInt("invert_y", 0) == 1;
             Quality = PlayerPrefs.GetInt("quality_tier", 2);
             ChaseCam = PlayerPrefs.GetInt("surf_chase_cam", 1) == 1;
+            Shake = PlayerPrefs.GetFloat("camera_shake", 1f);
             ApplyQuality();
         }
 
@@ -29,6 +33,12 @@ namespace SurfPool
         {
             ChaseCam = chase;
             PlayerPrefs.SetInt("surf_chase_cam", chase ? 1 : 0);
+        }
+
+        public static void SetShake(float amount)
+        {
+            Shake = Mathf.Clamp01(amount);
+            PlayerPrefs.SetFloat("camera_shake", Shake);
         }
 
         public static void SetMouse(float sensitivity, bool invert)
