@@ -72,7 +72,7 @@ namespace SurfPool
         /// <summary>Park earnings over the last minute (the "+$/min" readout).</summary>
         public static int IncomePerMinute { get; private set; }
 
-        VisualElement promptBox, tide, tideCrest, servedRow, missionLine;
+        VisualElement promptBox, tide, tideCrest, servedRow, missionLine, parkPanel;
         Label promptKey, missionLineText;
         bool promptUp;
         string promptKeyName;
@@ -84,7 +84,7 @@ namespace SurfPool
         public static bool PeekOverride;
         bool peek;
         bool lastExpanded;
-        Reveal incomeReveal, levelReveal, ratingReveal, eventReveal, challengeReveal, goalReveal, parkReveal;
+        Reveal incomeReveal, levelReveal, ratingReveal, eventReveal, challengeReveal, goalReveal, parkReveal, waveReveal;
         Reveal ticketReveal, servedReveal, lostReveal, trashReveal, billsReveal;
         int lastXpStep = -1, lastHalfStars = -1, eventDay = -1, lostSeen = -1, trashStep;
         string challengeSignature, goalId;
@@ -190,6 +190,7 @@ namespace SurfPool
             challengeReveal = new Reveal(challengeCard);
             goalReveal = new Reveal(goalStrip);
             parkReveal = new Reveal(root.Q("parkPanel"));
+            waveReveal = new Reveal(wavePanel);
             ticketReveal = new Reveal(root.Q("ticketRow"));
             servedReveal = new Reveal(servedRow);
             lostReveal = new Reveal(lostRow);
@@ -209,7 +210,7 @@ namespace SurfPool
             celebrationTitle = root.Q<Label>("celebrationTitle");
             celebrationSubtitle = root.Q<Label>("celebrationSubtitle");
 
-            stars = new StarRating();
+            stars = new StarRating { OnDark = true };
             root.Q("ratingStarsSlot").Add(stars);
             setCall = new SetCallHud(root);
             toastStack = new ToastStack(toasts);
@@ -301,6 +302,7 @@ namespace SurfPool
             // Today's challenges: in the journal, and for a few seconds whenever one moves forward.
             var challenges = DailyChallenges.Instance;
             challengeReveal.Update(challenges != null && challenges.Today.Count > 0, Expanded);
+            challengeCard.EnableInClassList("hud-compact", !Expanded);
             if (challenges == null || Time.unscaledTime < nextChallengeRefresh) return;
             nextChallengeRefresh = Time.unscaledTime + 0.5f;
             int done = 0;
@@ -439,6 +441,7 @@ namespace SurfPool
                 goalId = id;
             }
             goalReveal.Update(!blocked, Expanded, !plan && ready);
+            goalStrip.EnableInClassList("hud-compact", !Expanded);
             if (next == null) return;
             SetText(goalKicker, plan ? "KAI'S PLAN" : "NEXT GOAL");
             goalStrip.EnableInClassList("goal-strip--plan", plan);
@@ -521,17 +524,30 @@ namespace SurfPool
             return best;
         }
 
-        /// <summary>The machine whose panel is on screen (the pool you're at), or null when the panel is hidden.</summary>
+        /// <summary>Within a few steps of one of this machine's console buttons.</summary>
+        bool AtConsole(WaveMachine machine)
+        {
+            foreach (var button in WaveButton.All)
+                if (button.Machine != null && button.Machine.Leader == machine.Leader
+                    && (button.transform.position - player.transform.position).sqrMagnitude < 7f * 7f)
+                    return true;
+            return false;
+        }
+
+        /// <summary>The machine at the pool you're at (the SET INCOMING call follows it), or null away from pools.</summary>
         public WaveMachine ShownMachine { get; private set; }
 
         void UpdateWavePanel()
         {
             var machine = NearestMachine();
             // Only shown near a pool (or while surfing): the rest of the time the HUD stays clear.
-            bool near = machine != null && player != null && machine.Pool != null &&
-                        (DistanceToPool(machine.Pool) < 18f || (PlayerSurfing.Instance != null && PlayerSurfing.Instance.IsSurfing));
-            wavePanel.EnableInClassList("hidden", !near);
-            ShownMachine = near ? machine : null;
+            bool surfing = PlayerSurfing.Instance != null && PlayerSurfing.Instance.IsSurfing;
+            bool near = machine != null && player != null && machine.Pool != null && (DistanceToPool(machine.Pool) < 18f || surfing);
+            ShownMachine = near ? machine : null; // the SET INCOMING call follows the pool you're at
+            // The panel itself only when you stand at the console, surf, need to service the machine, or peek / journal.
+            bool needsService = near && machine.Service != null && machine.Service.NeedsService;
+            waveReveal.Update(near, Expanded, surfing || needsService || AtConsole(machine));
+            wavePanel.EnableInClassList("hud-compact", !Expanded);
             if (!near) return;
             var selected = machine.Selected;
             string direction = selected == WaveLevel.Beginner ? "Whitewater"
@@ -607,6 +623,8 @@ namespace SurfPool
             bool evening = DayCycle.Instance != null && (DayCycle.Instance.Progress >= 10f / 12f || DayCycle.Instance.ParkClosed);
             billsReveal.Update(true, Expanded, evening);
             parkReveal.Update(true, false, ticketReveal.Shown || servedReveal.Shown || lostReveal.Shown || trashReveal.Shown || billsReveal.Shown);
+            parkPanel ??= root.Q("parkPanel");
+            parkPanel.EnableInClassList("hud-compact", !Expanded);
             SetText(trashValue, trash.ToString());
             trashValue.EnableInClassList("stat-value--bad", trash > 5);
             var costs = OperatingCosts.Instance;

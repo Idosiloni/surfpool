@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SurfPool
@@ -23,6 +24,15 @@ namespace SurfPool
             : $"Wave machine charging... {Mathf.CeilToInt(machine.SecondsUntilReady)}";
 
         public bool CanUse => machine.Ready && !machine.Broken;
+
+        /// <summary>Every console button in the park (the HUD shows the wave panel when you stand at one).</summary>
+        public static readonly List<WaveButton> All = new();
+
+        public WaveMachine Machine => machine;
+
+        void OnEnable() => All.Add(this);
+
+        void OnDisable() => All.Remove(this);
 
         void Awake()
         {

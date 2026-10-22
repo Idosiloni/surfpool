@@ -8,9 +8,13 @@ namespace SurfPool
     {
         static readonly Color Gold = new(1f, 0.74f, 0.2f);
         static readonly Color Empty = new(0.04f, 0.18f, 0.23f, 0.15f);
+        static readonly Color EmptyOnDark = new(1f, 0.97f, 0.93f, 0.2f);
         static readonly Color Ink = new(0.04f, 0.18f, 0.23f, 0.85f);
 
         float stars;
+
+        /// <summary>Drawn on a dark (ink) pill: the empty stars are a faint cream instead of a faint ink.</summary>
+        public bool OnDark { get; set; }
 
         public StarRating()
         {
@@ -39,7 +43,7 @@ namespace SurfPool
             {
                 var center = new Vector2(size * (i + 0.5f), contentRect.height / 2f);
                 float radius = size * 0.48f;
-                FillStar(painter, center, radius, Empty, false);
+                FillStar(painter, center, radius, OnDark ? EmptyOnDark : Empty, false);
                 if (stars >= i + 1) FillStar(painter, center, radius, Gold, false);
                 else if (stars >= i + 0.5f) FillStar(painter, center, radius, Gold, true);
                 if (stars >= i + 0.5f) OutlineStar(painter, center, radius);
