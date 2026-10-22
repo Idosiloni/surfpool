@@ -22,13 +22,44 @@ namespace SurfPool.EditorTools
         // Wide, like real long-ride pools: the wave travels 60 m to the beach but peels 50 m sideways, so rides go
         // left or right down the line (docs/research/wave-pools-and-ocean-waves.md).
         const float PoolLength = 60f, PoolWidth = 50f, PoolDepth = 5f, WaterLevel = -3f;
-        internal const float MainSouth = -12f, MainNorth = MainSouth + PoolWidth, MainZ = MainSouth + PoolWidth / 2f, MainNorthDeck = 20f;
+        internal const float MainSouth = -12f, MainNorth = MainSouth + PoolWidth, MainZ = MainSouth + PoolWidth / 2f;
 
-        // Pools stack north along z: main | reef (12 m deck south, 16 north) | lagoon. Both are wide like the main pool,
-        // so their rides go left/right down the line too.
-        internal const float ReefLength = 75f, ReefWidth = 72f, LagoonLength = 75f, LagoonWidth = 90f;
-        internal const float ReefZ = MainNorth + MainNorthDeck + 12f + ReefWidth / 2f;
-        internal const float LagoonZ = ReefZ + ReefWidth / 2f + 16f + 12f + LagoonWidth / 2f;
+        // ONE big lagoon (docs/research/park-layout-and-pool-shapes.md, Ido: "pools so far and so big you can't handle
+        // everything"): the zones sit side by side, split by walkable piers, with a boardwalk sandbar between the beaches
+        // of the west zones (main, Big Wave) and the east zones (Reef, Cove), which face them. The desk and shops stay
+        // south of the main pool; everyone walks east along the south deck and up the sandbar.
+        //   main (0..60, -12..38)    | sandbar |  Reef  (72..132, -12..40), machine on the east
+        //   pier (grandstand) 12 m   |         |  pier 12 m
+        //   Big Wave (0..60, 50..102)|         |  Cove  (72..146, 52..102), pier of machines in the middle
+        // and the Surf Ranch strip along the east side (160..205, -12..138).
+        internal const float Pier = 12f, HalfSandbar = 6f, SandbarWest = PoolLength, SandbarEast = PoolLength + 2f * HalfSandbar;
+        internal const float SandbarX = (SandbarWest + SandbarEast) / 2f, InLane = SandbarX - 1.5f, OutLane = SandbarX + 1.5f;
+        internal const float MainNorthDeck = Pier;
+        // Reef zone: across the sandbar from the main pool, turned to face it (beach on the sandbar).
+        internal const float ReefLength = 60f, ReefWidth = 52f, ReefZ = MainSouth + ReefWidth / 2f, ReefX0 = SandbarEast + ReefLength;
+        // Big Wave zone (pool_lagoon): north of the main pool across the grandstand pier, dug deeper for XL waves.
+        internal const float LagoonLength = 60f, LagoonWidth = 52f, LagoonZ = MainNorth + Pier + LagoonWidth / 2f;
+        /// <summary>North edge of the zones' water; the north decks start here.</summary>
+        internal const float ZonesNorth = LagoonZ + LagoonWidth / 2f;
+        /// <summary>The walk east along the main pool's south deck that every surfer takes toward the sandbar.</summary>
+        internal const float SpineZ = MainSouth - 5f;
+
+        /// <summary>
+        /// Every zone's water at its biggest, on the ground (x, z): the island's sand leaves these open, and nothing may be
+        /// built in them (the overlap check in <see cref="LayoutCheck"/>).
+        /// </summary>
+        internal static Rect[] WaterRects => new[]
+        {
+            Rect.MinMaxRect(0, MainSouth, PoolLength, MainNorth),
+            Rect.MinMaxRect(SandbarEast, MainSouth, ReefX0, MainSouth + ReefWidth),
+            Rect.MinMaxRect(0, LagoonZ - LagoonWidth / 2f, LagoonLength, ZonesNorth),
+            Rect.MinMaxRect(SandbarEast, CoveZ - CoveWidth / 2f, CoveX - CovePierHalf, CoveZ + CoveWidth / 2f),
+            Rect.MinMaxRect(CoveX + CovePierHalf, CoveZ - CoveWidth / 2f, CoveEastBeach, CoveZ + CoveWidth / 2f),
+            RanchBasin,
+        };
+
+        /// <summary>The sand island under the whole park (x, z).</summary>
+        internal static Rect Island => Rect.MinMaxRect(-80f, -100f, RanchX + RanchLength + 40f, ZonesNorth + 70f);
         const float DeckThickness = PoolDepth + 1f;
 
         [MenuItem("Surf Pool/Delete Save Game")]
@@ -77,14 +108,14 @@ namespace SurfPool.EditorTools
             var main = BuildPool(new PoolSpec
             {
                 name = "Main Pool", display = "Main Pool", z = MainZ, open = true, depth = PoolDepth, waterLevel = WaterLevel,
-                size = 1f, mainDeck = true,
+                size = 1f, mainDeck = true, eastDeck = HalfSandbar,
                 // Slower waves that peel fast from near a side wall: ~9 s rides, mostly sideways, at full size.
                 travel = 0.6f, peel = 1.9f, peakFromWall = 3f,
                 // Starts small; Pool Expansion I and II grow it (bigger waves need a bigger pool).
                 stages = new[] { new Vector2(40, 30), new Vector2(50, 40), new Vector2(PoolLength, PoolWidth) },
                 stageNames = new[] { "Starter Pool", "Expanded Pool", "Full-Size Pool" },
                 pathToPool = new[] { new Vector3(24, 0, -14), new Vector3(14, 0, MainSouth - 0.6f) },
-                pathOut = new[] { new Vector3(PoolLength + 3, 0, MainSouth + 6f), new Vector3(PoolLength + 6, 0, -30), new Vector3(45, 0, -40) },
+                pathOut = new[] { new Vector3(PoolLength + 3, 0, MainSouth + 6f), new Vector3(OutLane, 0, MainSouth + 3f), new Vector3(OutLane, 0, -30), new Vector3(45, 0, -40) },
             });
             var water = main.water;
             var machine = main.machine;
@@ -245,28 +276,33 @@ namespace SurfPool.EditorTools
             // Renters return their board past the bin on the way out of the main pool (then west of the gear shop).
             var mainOut = main.area.PathOut;
             var pastShop = Point("Past Gear Shop", route, new Vector3(37f, 0, -37.8f));
-            SetArray(main.area, "returnPathOut", mainOut[0], binSpot, pastShop, mainOut[mainOut.Length - 1]);
+            // Off the beach onto the sandbar and down to the south deck first, so the walk to the bin stays off the water.
+            SetArray(main.area, "returnPathOut", mainOut[0], mainOut[1], Point("Past Main Beach", route, new Vector3(OutLane, 0, MainSouth - 4f)), binSpot, pastShop, mainOut[mainOut.Length - 1]);
 
-            // Two more pools to the north, built later. Surfers walk up the far west edge of the decks, behind the wave
-            // machines (their chambers fill x -6..0 and the blowers, tanks and control cabins sit behind them).
+            // Two more zones of the lagoon, built later: the Reef across the sandbar, the Big Wave zone north of the
+            // grandstand pier. Surfers walk east along the main pool's south deck and turn up the sandbar.
             var reef = BuildPool(new PoolSpec
             {
-                // A long point-break pool: mellow waves that travel slowly and peel ~5 m/s from a side wall (~13 s rides).
-                name = "Reef Pool", display = "Reef Pool", upgradeId = "pool_reef", z = ReefZ, open = false, depth = PoolDepth,
-                waterLevel = WaterLevel, size = 1.08f, peel = 2f, price = 2.5f, water = 60f,
+                // A point-break zone: mellow waves that travel slowly and peel from a side wall (long rides). Turned to
+                // face the main pool, so its machine sits on the east side and its beach on the sandbar.
+                name = "Reef Pool", display = "Reef Zone", upgradeId = "pool_reef", z = ReefZ, open = false, depth = PoolDepth,
+                waterLevel = WaterLevel, size = 1.08f, peel = 1.7f, price = 2.5f, water = 50f,
                 length = ReefLength, width = ReefWidth, travel = 0.5f, peakFromWall = 3f, gridDensity = 2.5f,
-                pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-19.3f, 0, -18.8f), new Vector3(-19.3f, 0, ReefZ - ReefWidth / 2f - 8f), new Vector3(14, 0, ReefZ - ReefWidth / 2f - 8f), new Vector3(14, 0, ReefZ - ReefWidth / 2f - 0.6f) },
-                pathOut = new[] { new Vector3(ReefLength + 3, 0, ReefZ - 6), new Vector3(ReefLength + 40, 0, ReefZ - 6) },
+                x0 = ReefX0, yaw = 180f, eastDeck = HalfSandbar, southDeck = Pier, northDeck = 12f, backDeck = 14.5f,
+                pathToPool = new[] { new Vector3(40, 0, SpineZ), new Vector3(ReefX0 - 12f, 0, SpineZ), new Vector3(ReefX0 - 12f, 0, MainSouth - 0.6f) },
+                pathOut = new[] { new Vector3(SandbarEast - 3f, 0, ReefZ), new Vector3(OutLane, 0, ReefZ - 6f), new Vector3(OutLane, 0, -30), new Vector3(45, 0, -40) },
             });
             var lagoon = BuildPool(new PoolSpec
             {
-                // The biggest pool: heavy waves that peel fast across its whole 90 m width (~12 s rides).
-                name = "Big Wave Lagoon", display = "Big Wave Lagoon", upgradeId = "pool_lagoon", z = LagoonZ, open = false,
+                // The big-wave zone: heavy waves that peel fast across its width.
+                name = "Big Wave Lagoon", display = "Big Wave Zone", upgradeId = "pool_lagoon", z = LagoonZ, open = false,
                 // Extra deep: room for XL waves (Giant ~4.5 m faces) without them spilling over the deck.
-                depth = PoolDepth + 2f, waterLevel = WaterLevel - 1.8f, size = 1.25f, peel = 2.25f, price = 5f, water = 150f,
+                depth = PoolDepth + 2f, waterLevel = WaterLevel - 1.8f, size = 1.25f, peel = 1.9f, price = 5f, water = 110f,
                 length = LagoonLength, width = LagoonWidth, travel = 0.5f, peakFromWall = 3f, gridDensity = 2.5f,
-                pathToPool = new[] { new Vector3(-2, 0, -18), new Vector3(-19.3f, 0, -18.8f), new Vector3(-19.3f, 0, LagoonZ - LagoonWidth / 2f - 8f), new Vector3(14, 0, LagoonZ - LagoonWidth / 2f - 8f), new Vector3(14, 0, LagoonZ - LagoonWidth / 2f - 0.6f) },
-                pathOut = new[] { new Vector3(LagoonLength + 3, 0, LagoonZ - 6), new Vector3(LagoonLength + 40, 0, LagoonZ - 6) },
+                eastDeck = HalfSandbar, southDeck = Pier, northDeck = 16f,
+                pathToPool = new[] { new Vector3(40, 0, SpineZ), new Vector3(InLane, 0, SpineZ), new Vector3(InLane, 0, MainNorth + Pier - 2.5f),
+                    new Vector3(14, 0, MainNorth + Pier - 2.5f), new Vector3(14, 0, MainNorth + Pier - 0.6f) },
+                pathOut = new[] { new Vector3(LagoonLength + 3, 0, LagoonZ), new Vector3(OutLane, 0, LagoonZ - 6f), new Vector3(OutLane, 0, -30), new Vector3(45, 0, -40) },
             });
 
             SetBool(lagoon.machine, "bigWaves", true);
@@ -331,7 +367,7 @@ namespace SurfPool.EditorTools
             Staff(runner, "Board Runner", 6);
 
             var tower = new GameObject("Lifeguard Tower").transform;
-            tower.position = new Vector3(30, 0, MainNorth + 1.8f);
+            tower.position = new Vector3(52, 0, MainNorth + 1.8f); // on the grandstand pier, east of the stands
             WorldArt.Model("LifeguardTower", tower, tower.position);
             var guard = Person("Lifeguard", tower.position + new Vector3(0, 1.96f, 0), 180f, lifeguardMat, skinMat);
             guard.transform.SetParent(tower, true);
@@ -415,9 +451,9 @@ namespace SurfPool.EditorTools
             Vector3[] binSpots =
             {
                 new(12, 0, -16), new(28, 0, -16), new(44, 0, -16), new(26, 0, -29), new(38, 0, -31),
-                new(8, 0, MainNorth + 3f), new(30, 0, MainNorth + 3f), new(52, 0, MainNorth + 3f), new(64, 0, MainSouth + 16f), new(64, 0, MainSouth + 2f),
-                // On the reef's and lagoon's north decks (they used to stand in the water).
-                new(10, 0, ReefZ + ReefWidth / 2f + 3f), new(40, 0, ReefZ + ReefWidth / 2f + 3f), new(10, 0, LagoonZ + LagoonWidth / 2f + 3f), new(40, 0, LagoonZ + LagoonWidth / 2f + 3f),
+                new(8, 0, MainNorth + Pier - 1.5f), new(48, 0, MainNorth + Pier - 1.5f), new(SandbarX, 0, MainSouth + 16f), new(SandbarX, 0, MainSouth + 2f),
+                // On the Big Wave zone's north deck and the Reef's south deck.
+                new(10, 0, ZonesNorth + 3f), new(40, 0, ZonesNorth + 3f), new(ReefX0 - 20f, 0, MainSouth - 3f), new(ReefX0 - 45f, 0, MainSouth - 3f),
             };
             foreach (var spot in binSpots)
             {
@@ -443,7 +479,7 @@ namespace SurfPool.EditorTools
             Set(shop, "waveOperator", operatorGuy);
 
             // The other pools' north decks get umbrellas and loungers when they're built.
-            PoolDeckDressing(reef.built, ReefZ, ReefWidth / 2f, ReefLength);
+            // (The Reef's other long side is the walk along the south deck, so it stays clear.)
             PoolDeckDressing(lagoon.built, LagoonZ, LagoonWidth / 2f, LagoonLength);
 
             // Tiki Garden (Park upgrade): torches and flower beds along every pool, hidden until bought.
@@ -650,6 +686,9 @@ namespace SurfPool.EditorTools
             public float backDeck = 20f, machineDepth = 14.5f, lotBack = 20f;
             public bool airWall = true;
             public float sideDecks; // > 0: the same deck depth on both long sides (the Cove's two halves match up)
+            // > 0: deck depths on each side in the pool's own frame (south = -z, north = +z, east = the beach end; a pool
+            // turned 180 degrees has them the other way round in the world). Zones next to each other share a pier.
+            public float southDeck, northDeck, eastDeck = 20f;
         }
 
         class PoolBuild
@@ -678,12 +717,13 @@ namespace SurfPool.EditorTools
             built.SetParent(root, false);
 
             // Deck. The main pool's deck is wide (desks and sunbathing live on it); the others have narrower strips.
-            float south = spec.mainDeck ? 28 : spec.sideDecks > 0f ? spec.sideDecks : 12, north = spec.mainDeck ? MainNorthDeck : spec.sideDecks > 0f ? spec.sideDecks : 16;
-            float back = spec.backDeck;
-            Box("Deck North", built, new Vector3((poolLength + 20 - back) / 2, -thickness / 2, zc + halfW + north / 2), new Vector3(poolLength + 20 + back, thickness, north), mats.deck);
-            Box("Deck South", built, new Vector3((poolLength + 20 - back) / 2, -thickness / 2, zc - halfW - south / 2), new Vector3(poolLength + 20 + back, thickness, south), mats.deck);
+            float south = spec.southDeck > 0f ? spec.southDeck : spec.mainDeck ? 28 : spec.sideDecks > 0f ? spec.sideDecks : 12;
+            float north = spec.northDeck > 0f ? spec.northDeck : spec.mainDeck ? MainNorthDeck : spec.sideDecks > 0f ? spec.sideDecks : 16;
+            float back = spec.backDeck, east = spec.eastDeck;
+            Box("Deck North", built, new Vector3((poolLength + east - back) / 2, -thickness / 2, zc + halfW + north / 2), new Vector3(poolLength + east + back, thickness, north), mats.deck);
+            Box("Deck South", built, new Vector3((poolLength + east - back) / 2, -thickness / 2, zc - halfW - south / 2), new Vector3(poolLength + east + back, thickness, south), mats.deck);
             if (back > 0f) Box("Deck West", built, new Vector3(-back / 2, -thickness / 2, zc), new Vector3(back, thickness, poolWidth), mats.deck);
-            Box("Deck East", built, new Vector3(poolLength + 10, -thickness / 2, zc), new Vector3(20, thickness, poolWidth), mats.deck);
+            Box("Deck East", built, new Vector3(poolLength + east / 2, -thickness / 2, zc), new Vector3(east, thickness, poolWidth), mats.deck);
 
             // The basin (walls, floor, beach, coping, edge blockers). A pool with size stages gets one basin per stage;
             // smaller stages fill the not-yet-dug part with deck and an "expansion site" sign.
@@ -920,20 +960,29 @@ namespace SurfPool.EditorTools
             return root;
         }
 
+        /// <summary>
+        /// A point given in the frame a pool was built in (machine wall at x = 0, centered on its z) as a world point: pools
+        /// are placed and turned after they're built, so dressing added later goes through the pool's root.
+        /// </summary>
+        internal static Vector3 InPool(Transform built, Vector3 local) => built != null ? built.parent.TransformPoint(local) : local;
+
+        internal static float PoolYaw(Transform built) => built != null ? built.parent.eulerAngles.y : 0f;
+
+        /// <summary>Umbrellas, loungers and palms along a pool's deck on its +z side (in the pool's own frame).</summary>
         static void PoolDeckDressing(Transform parent, float zc, float halfWidth, float length)
         {
             var dressing = new GameObject("Deck Dressing").transform;
             dressing.SetParent(parent, false);
-            float z = zc + halfWidth + 7f;
+            float z = zc + halfWidth + 7f, yaw = PoolYaw(parent);
             for (int i = 0; i < Mathf.RoundToInt(length / 10f); i++)
             {
                 float x = 6 + i * 9f;
-                WorldArt.Model(i % 2 == 0 ? "BeachUmbrellaCoral" : "BeachUmbrellaTeal", dressing, new Vector3(x, 0, z + 0.8f), i * 47f);
-                WorldArt.Model("LoungeChair", dressing, new Vector3(x - 0.8f, 0, z), 180f);
-                WorldArt.Model("LoungeChair", dressing, new Vector3(x + 0.8f, 0, z), 180f);
+                WorldArt.Model(i % 2 == 0 ? "BeachUmbrellaCoral" : "BeachUmbrellaTeal", dressing, InPool(parent, new Vector3(x, 0, z + 0.8f)), i * 47f);
+                WorldArt.Model("LoungeChair", dressing, InPool(parent, new Vector3(x - 0.8f, 0, z)), 180f + yaw);
+                WorldArt.Model("LoungeChair", dressing, InPool(parent, new Vector3(x + 0.8f, 0, z)), 180f + yaw);
             }
             for (int i = 0; i < Mathf.RoundToInt(length / 15f); i++)
-                WorldArt.Model(i % 2 == 0 ? "PalmTreeTall" : "PalmTree", dressing, new Vector3(2 + i * 17f, 0, z + 5f), i * 83f);
+                WorldArt.Model(i % 2 == 0 ? "PalmTreeTall" : "PalmTree", dressing, InPool(parent, new Vector3(2 + i * 17f, 0, z + 5f)), i * 83f);
         }
 
         /// <summary>Tiki torches along the pool's north edge and flower beds behind them (the main pool also gets the east edge).</summary>
@@ -953,6 +1002,7 @@ namespace SurfPool.EditorTools
 
             void Torch(Vector3 at)
             {
+                at = InPool(parent, at);
                 var t = Box("Tiki Torch", garden.transform, at + new Vector3(0, 0.9f, 0), new Vector3(0.14f, 1.8f, 0.14f), pole);
                 Object.DestroyImmediate(t.GetComponent<Collider>());
                 var f = Box("Flame", t.transform.parent, at + new Vector3(0, 1.95f, 0), new Vector3(0.22f, 0.32f, 0.22f), flame);
@@ -960,6 +1010,7 @@ namespace SurfPool.EditorTools
             }
             void Bed(Vector3 at, int seed)
             {
+                at = InPool(parent, at);
                 Box("Flower Bed", garden.transform, at + new Vector3(0, 0.2f, 0), new Vector3(2.4f, 0.4f, 0.9f), planter);
                 for (int i = 0; i < 5; i++)
                 {
@@ -975,18 +1026,18 @@ namespace SurfPool.EditorTools
 
             float edge = zc + halfWidth + 1.4f;
             int torches = Mathf.RoundToInt(length / 8f);
-            for (int i = 0; i < torches; i++) Torch(new Vector3(3 + i * 8f, 0, edge));
-            for (int i = 0; i < torches - 1; i++) Bed(new Vector3(7 + i * 8f, 0, edge + 1.6f), i);
+            // The main pool's +z side is the grandstand pier: torches only beside the stands.
+            bool Free(float x) => !mainPool || x < 8f || x > 48f;
+            for (int i = 0; i < torches; i++)
+                if (Free(3 + i * 8f)) Torch(new Vector3(3 + i * 8f, 0, edge));
+            for (int i = 0; i < torches - 1; i++)
+                if (Free(7 + i * 8f)) Bed(new Vector3(7 + i * 8f, 0, edge + 1.6f), i);
             if (mainPool)
             {
-                // Along the beach end, spread over the pool's whole width.
+                // Torches along the beach end, spread over the pool's whole width (the sandbar stays clear to walk).
                 int rows = Mathf.Max(4, Mathf.RoundToInt(halfWidth * 2f / 6f));
                 float step = (halfWidth * 2f - 8f) / (rows - 1);
-                for (int i = 0; i < rows; i++)
-                {
-                    Torch(new Vector3(PoolLength + 1.6f, 0, zc - halfWidth + 4f + i * step));
-                    if (i < rows - 1) Bed(new Vector3(PoolLength + 4f, 0, zc - halfWidth + 4f + (i + 0.5f) * step), i + 3);
-                }
+                for (int i = 0; i < rows; i++) Torch(new Vector3(PoolLength + 1f, 0, zc - halfWidth + 4f + i * step));
             }
             return garden;
         }
@@ -997,7 +1048,7 @@ namespace SurfPool.EditorTools
             var stand = new GameObject("Grandstand");
             var seatTeal = Mat("SeatTeal", new Color(0.1f, 0.68f, 0.62f), 0.35f);
             var roof = Mat("RoofSail", new Color(1f, 0.96f, 0.88f), 0.2f);
-            const float x0 = 10f, length = 36f, z0 = MainNorth + 12.5f, row = 1.4f, rise = 0.7f;
+            const float x0 = 10f, length = 36f, z0 = MainNorth + 1.6f, row = 1.4f, rise = 0.7f; // on the grandstand pier
             for (int i = 0; i < 3; i++)
             {
                 float top = (i + 1) * rise;

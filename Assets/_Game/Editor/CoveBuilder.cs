@@ -5,36 +5,39 @@ namespace SurfPool.EditorTools
 {
     public static partial class GreyboxBuilder
     {
-        // The Cove (like a Wavegarden Cove): a pier of wave modules runs north-south down the middle of one big lagoon,
-        // east of the main pool. Waves run away from the pier on both sides and peel from the north end to the south:
-        // rights on the east side, lefts on the west side, from one button. Each side is its own PoolArea (own
-        // lineup), built by BuildPool with no back deck; the west side is turned 180 degrees.
-        internal const float CoveLength = 50f, CoveWidth = 80f, CovePierHalf = 4f, CoveX = 160f, CoveZ = 2f;
-
-        /// <summary>World x range the Cove and its decks cover (for the island's sand and the ocean hole).</summary>
-        internal const float CoveWest = CoveX - CovePierHalf - CoveLength - 20f, CoveEast = CoveX + CovePierHalf + CoveLength + 20f;
-        internal const float CoveSouth = CoveZ - CoveWidth / 2f - 16f, CoveNorth = CoveZ + CoveWidth / 2f + 16f;
+        // The Cove (like a Wavegarden Cove): the lagoon's north-east zone, across a pier from the Reef. A pier of wave
+        // modules runs north-south down its middle; waves run away from it on both sides and peel from the north end to
+        // the south: rights on the east side, lefts on the west side (their beach is the sandbar), from one button. Each
+        // side is its own PoolArea (own lineup), built by BuildPool with no back deck; the west side is turned 180 degrees.
+        internal const float CoveLength = 33f, CoveWidth = 50f, CovePierHalf = 4f;
+        internal const float CoveX = SandbarEast + CoveLength + CovePierHalf, CoveZ = MainSouth + ReefWidth + Pier + CoveWidth / 2f;
+        /// <summary>East beach of the Cove's rights, and the walk past it to the Ranch.</summary>
+        internal const float CoveEastBeach = CoveX + CovePierHalf + CoveLength, CoveEastDeck = 8f;
 
         static (PoolBuild east, PoolBuild west) BuildCove()
         {
-            PoolSpec Side(string name, float x0, float yaw, Vector3[] toPool, Vector3[] outPath) => new PoolSpec
+            // Decks in each half's own frame: the pier to the Reef on the south (world), 16 m to the north; the east half's
+            // beach end has a walk past it, the west half's beach end is the sandbar.
+            PoolSpec Side(string name, float x0, float yaw, float southDeck, float northDeck, float eastDeck, Vector3[] toPool, Vector3[] outPath) => new PoolSpec
             {
                 name = name, display = name, upgradeId = "pool_cove", z = CoveZ, open = false, depth = PoolDepth,
-                waterLevel = WaterLevel, size = 1.1f, peel = 2f, price = 4f, water = 70f,
+                waterLevel = WaterLevel, size = 1.1f, peel = 1.7f, price = 4f, water = 50f,
                 length = CoveLength, width = CoveWidth, travel = 0.45f, peakFromWall = 3f, gridDensity = 2.5f,
-                x0 = x0, yaw = yaw, sideDecks = 16f, backDeck = 0f, machineDepth = CovePierHalf, lotBack = CovePierHalf, airWall = false,
+                x0 = x0, yaw = yaw, southDeck = southDeck, northDeck = northDeck, eastDeck = eastDeck,
+                backDeck = 0f, machineDepth = CovePierHalf, lotBack = CovePierHalf, airWall = false,
                 pathToPool = toPool, pathOut = outPath,
             };
-            // Surfers walk east along the main pool's south deck, then along the Cove's south decks to their side.
-            Vector3 a = new(40, 0, -16), b = new(84, 0, -16), c = new(84, 0, CoveZ - CoveWidth / 2f - 8f);
-            float edge = CoveZ - CoveWidth / 2f - 0.6f;
-            float eastIn = CoveX + CovePierHalf + 14f, westIn = CoveX - CovePierHalf - 14f;
-            var east = BuildPool(Side("The Cove (rights)", CoveX + CovePierHalf, 0f,
+            // Surfers walk east along the main pool's south deck, up the sandbar, then along the pier to their side.
+            float pierWalk = CoveZ - CoveWidth / 2f - 2.5f, edge = CoveZ - CoveWidth / 2f - 0.6f;
+            Vector3 a = new(40, 0, SpineZ), b = new(InLane, 0, SpineZ), c = new(InLane, 0, pierWalk);
+            float eastIn = CoveX + CovePierHalf + 12f, westIn = CoveX - CovePierHalf - 12f;
+            var east = BuildPool(Side("The Cove (rights)", CoveX + CovePierHalf, 0f, Pier, 16f, CoveEastDeck,
                 new[] { a, b, c, new Vector3(eastIn, 0, c.z), new Vector3(eastIn, 0, edge) },
-                new[] { new Vector3(CoveEast - 17f, 0, CoveZ - 6f), new Vector3(CoveEast + 2f, 0, CoveZ - 6f) }));
-            var west = BuildPool(Side("The Cove (lefts)", CoveX - CovePierHalf, 180f,
+                // Out over the east beach, south past the Reef's machine, and west along the south deck to the exit.
+                new[] { new Vector3(CoveEastBeach + 3f, 0, CoveZ - 6f), new Vector3(CoveEastBeach + 4f, 0, SpineZ - 3f), new Vector3(OutLane, 0, SpineZ - 3f), new Vector3(OutLane, 0, -30), new Vector3(45, 0, -40) }));
+            var west = BuildPool(Side("The Cove (lefts)", CoveX - CovePierHalf, 180f, 16f, Pier, HalfSandbar,
                 new[] { a, b, c, new Vector3(westIn, 0, c.z), new Vector3(westIn, 0, edge) },
-                new[] { new Vector3(CoveWest + 17f, 0, CoveZ + 6f), new Vector3(83, 0, -30), new Vector3(83, 0, -48) }));
+                new[] { new Vector3(SandbarEast - 3f, 0, CoveZ + 6f), new Vector3(OutLane, 0, CoveZ), new Vector3(OutLane, 0, -30), new Vector3(45, 0, -40) }));
 
             // One console runs both sides: the east machine leads, the west one fires with it.
             SetEnum(east.machine, "fixedDirection", (int)WaveDirection.Right);
@@ -73,8 +76,9 @@ namespace SurfPool.EditorTools
             pier.SetParent(east.built, true); // shown when the Cove is built
             pier.position = new Vector3(CoveX, 0f, CoveZ);
             const float thickness = PoolDepth + 1f;
-            // Runs past the water to the ends of the side decks (they stop at the pier's faces).
-            Box("Pier Deck", pier, new Vector3(CoveX, -thickness / 2f, CoveZ), new Vector3(CovePierHalf * 2f, thickness, CoveWidth + 32f), mats.deck);
+            // Runs past the water to the ends of the side decks (they stop at the pier's faces): the pier to the Reef on the
+            // south, 16 m on the north.
+            Box("Pier Deck", pier, new Vector3(CoveX, -thickness / 2f, CoveZ + (16f - Pier) / 2f), new Vector3(CovePierHalf * 2f, thickness, CoveWidth + Pier + 16f), mats.deck);
 
             var housing = Mat("CoveModule", new Color(0.12f, 0.24f, 0.32f), 0.35f);
             var stripe = Mat("CoveStripe", new Color(0.08f, 0.72f, 0.65f), 0.4f);

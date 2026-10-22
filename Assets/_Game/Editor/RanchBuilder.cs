@@ -4,12 +4,12 @@ namespace SurfPool.EditorTools
 {
     public static partial class GreyboxBuilder
     {
-        // The Surf Ranch (like Kelly Slater's): one very long, narrow strip north of the Cove. A foil on a rail along
-        // its west side makes one long right per pass: the wave crawls slowly away from the rail while the break races
-        // 200 m down the line (~25 s rides). Few surfers, very high price. Same wave code as every pool: a very low
-        // travel speed and a fast peel (docs/research/long-rides.md, "A. straight crest").
-        internal const float RanchLength = 45f, RanchWidth = 200f, RanchX = 118f;
-        internal const float RanchZ = CoveNorth + 2f + 12f + RanchWidth / 2f;
+        // The Surf Ranch (like Kelly Slater's): the lagoon's last stage, one very long, narrow strip along the east side,
+        // past the Cove's east beach. A foil on a rail along its west side makes one long right per pass: the wave
+        // crawls slowly away from the rail while the break races 150 m down the line (~22 s rides). Few surfers, very
+        // high price. Same wave code as every pool: a very low travel speed and a fast peel (docs/research/long-rides.md).
+        internal const float RanchLength = 45f, RanchWidth = 150f, RanchRail = 6f, RanchX = CoveEastBeach + CoveEastDeck + RanchRail;
+        internal const float RanchZ = MainSouth + RanchWidth / 2f;
 
         /// <summary>The Ranch's water (basin) on the ground, for the island's sand (its decks cover the rest).</summary>
         internal static readonly Rect RanchBasin = Rect.MinMaxRect(RanchX, RanchZ - RanchWidth / 2f, RanchX + RanchLength, RanchZ + RanchWidth / 2f);
@@ -20,17 +20,17 @@ namespace SurfPool.EditorTools
             var ranch = BuildPool(new PoolSpec
             {
                 name = "Surf Ranch", display = "Surf Ranch", upgradeId = "pool_ranch", z = RanchZ, open = false,
-                depth = PoolDepth + 2f, waterLevel = WaterLevel - 1.5f, size = 1.15f, peel = 2.6f, price = 10f, water = 200f,
+                depth = PoolDepth + 2f, waterLevel = WaterLevel - 1.5f, size = 1.15f, peel = 2.2f, price = 10f, water = 150f,
                 length = RanchLength, width = RanchWidth, travel = 0.2f, peakFromWall = 4f, gridDensity = 2f,
-                x0 = RanchX, machineDepth = 6f, airWall = false,
-                // East along the main pool's south deck, north up the sand between the main pool and the Cove, then
-                // across the Reef Pool's south deck to the Ranch.
-                pathToPool = new[]
+                x0 = RanchX, machineDepth = RanchRail, backDeck = RanchRail, airWall = false,
+                // East along the south decks (past the Reef's machine) to the Ranch's south end.
+                pathToPool = new[] { new Vector3(40, 0, SpineZ), new Vector3(RanchX + 14f, 0, SpineZ), new Vector3(RanchX + 14f, 0, south - 0.6f) },
+                // Off the east beach, back south and west along the south decks to the exit.
+                pathOut = new[]
                 {
-                    new Vector3(40, 0, -16), new Vector3(84, 0, -16), new Vector3(84, 0, south - 10f),
-                    new Vector3(RanchX + 14f, 0, south - 10f), new Vector3(RanchX + 14f, 0, south - 0.6f),
+                    new Vector3(RanchX + RanchLength + 3f, 0, RanchZ - 6f), new Vector3(RanchX + RanchLength + 4f, 0, SpineZ - 3f),
+                    new Vector3(OutLane, 0, SpineZ - 3f), new Vector3(OutLane, 0, -30), new Vector3(45, 0, -40),
                 },
-                pathOut = new[] { new Vector3(RanchX + RanchLength + 3f, 0, RanchZ - 6f), new Vector3(RanchX + RanchLength + 30f, 0, RanchZ - 6f) },
             });
 
             // One long wave per pass of the foil (no sets), and the water needs time to settle between passes.

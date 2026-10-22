@@ -58,7 +58,7 @@ namespace SurfPool
             new("kai_intermediate", () => Owns("intermediate_waves"), "Peeling waves at {0}? I'm jealous, and I'm sitting in front of Teahupo'o.", "Tahiti"),
             new("kai_level10", () => Level >= 10, "The locals here are talking about {0}. Somebody called it 'the little pool that could'.", "Hawaii"),
             new("kai_pro", () => Owns("pro_waves"), "Pro waves! The pros will ask for barrels next. Give them barrels.", "Portugal"),
-            new("kai_second_pool", () => Owns("pool_reef"), "Two pools?! When I left you could barely patch the old one. I cried a little. Good tears.", "Morocco"),
+            new("kai_second_pool", () => Owns("pool_reef"), "A reef across the sandbar?! When I left you could barely patch the old pool. I cried a little. Good tears.", "Morocco"),
             new("kai_level20", () => Level >= 20, "A surf camp bus stopped me and asked for directions to {0}. ME!", "Australia"),
             new("kai_home", () => Owns("pool_ranch"), "Booked a ticket home. Save me a wave on that long strip of yours, kiddo.", "a plane"),
         };

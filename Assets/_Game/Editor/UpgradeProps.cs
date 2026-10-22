@@ -227,8 +227,9 @@ namespace SurfPool.EditorTools
         static void BuildRescuePosts()
         {
             var root = new GameObject("Rescue Posts").transform;
-            // Two on the south deck (ring facing the walkway), two on the north deck (the pool is 50 m wide).
-            foreach (var (x, z, yaw) in new[] { (9f, MainSouth - 1.2f, 0f), (31f, MainSouth - 1.2f, 0f), (15f, MainNorth + 1.2f, 180f), (45f, MainNorth + 1.2f, 180f) })
+            // Two on the south deck (ring facing the walkway), two on the grandstand pier, either side of the stands (the
+            // pool is 50 m wide).
+            foreach (var (x, z, yaw) in new[] { (9f, MainSouth - 1.2f, 0f), (31f, MainSouth - 1.2f, 0f), (5f, MainNorth + 1.2f, 180f), (57f, MainNorth + 1.2f, 180f) })
             {
                 var at = new Vector3(x, 0f, z);
                 var post = WorldArt.Model("RescuePost", root, at, yaw);

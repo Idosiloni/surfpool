@@ -244,14 +244,14 @@ namespace SurfPool
             });
             missions.Add(new Mission
             {
-                id = "second_pool", chapter = ch3, title = "Second pool", reward = 5000,
-                story = "One pool isn't enough anymore. Build a second pool and double the surf!",
-                hint = "Buy a new pool in the Pools tab.",
+                id = "second_pool", chapter = ch3, title = "A second zone", reward = 5000,
+                story = "One pool isn't enough anymore. Open the water across the sandbar and double the surf!",
+                hint = "Buy a new zone in the Pools tab.",
                 marker = () => upgradeComputer,
                 objectives =
                 {
                     Count("Earn $40,000 in total", () => GameStats.TotalEarned, 40000),
-                    Flag("Build a second pool", () => PoolRegistry.OpenPools >= 2),
+                    Flag("Open a second zone", () => PoolRegistry.OpenPools >= 2),
                 },
             });
 
@@ -259,12 +259,12 @@ namespace SurfPool
             {
                 id = "world_class", chapter = ch4, title = "World-class", reward = 50000,
                 story = "Look at this place! Let's make it the best surf park in the world.",
-                hint = "Serve lots of surfers, keep 5 stars, and build every pool.",
+                hint = "Serve lots of surfers, keep 5 stars, and open more zones.",
                 objectives =
                 {
                     Count("Give 300 full sessions", () => GameStats.SurfersServed, 300),
                     Flag("Reach a 5-star rating", () => ParkReputation.Instance != null && ParkReputation.Instance.Stars >= 5f),
-                    Flag("Open all pools", () => PoolRegistry.OpenPools >= Mathf.Min(3, PoolRegistry.TotalPools) && PoolRegistry.TotalPools > 1), // main, Reef, Lagoon (the Cove and the Ranch come later)
+                    Flag("Open 3 zones", () => PoolRegistry.OpenPools >= Mathf.Min(3, PoolRegistry.TotalPools) && PoolRegistry.TotalPools > 1), // main, Reef, Lagoon (the Cove and the Ranch come later)
                     Count("Earn $500,000 in total", () => GameStats.TotalEarned, 500000),
                 },
             });

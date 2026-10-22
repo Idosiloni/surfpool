@@ -146,19 +146,21 @@ namespace SurfPool.EditorTools
             if (built == null) return;
             var party = Group("Pool Festivities", built);
             string[] flags = { "FlagTeal", "FlagCoral", "FlagYellow" };
-            float north = zc + halfWidth + 1.6f;
+            // Along the pool's +z side, in the pool's own frame (zones are placed and turned after they're built).
+            Vector3 P(float x, float y, float z) => GreyboxBuilder.InPool(built, new Vector3(x, y, z));
+            float north = zc + halfWidth + 1.6f, yaw = GreyboxBuilder.PoolYaw(built);
             int flagCount = Mathf.Max(2, Mathf.RoundToInt(length / 17f));
-            for (int i = 0; i < flagCount; i++) FlagPole(party, new Vector3(4 + i * 17f, 0, north + 2.5f), flags[i % 3], Clean);
+            for (int i = 0; i < flagCount; i++) FlagPole(party, P(4 + i * 17f, 0, north + 2.5f), flags[i % 3], Clean);
             int poles = Mathf.Max(2, Mathf.RoundToInt((length - 4f) / 8f));
             for (int i = 0; i < poles; i++)
             {
                 float x = 4 + i * 8f;
-                var pole = WorldArt.Model("LightPole", party, new Vector3(x, 0, north + 1f));
+                var pole = WorldArt.Model("LightPole", party, P(x, 0, north + 1f), yaw);
                 Collider(pole, new Vector3(0, 2.1f, 0), new Vector3(0.2f, 4.2f, 0.2f));
                 Item(pole, Festive);
                 if (i == poles - 1) continue;
-                Item(Hang("Bunting", party, new Vector3(x + 4f, 3.7f, north + 1f)), Festive);
-                Item(Lights(party, new Vector3(x + 4f, 4.1f, north + 1f)), Lit);
+                Item(Hang("Bunting", party, P(x + 4f, 3.7f, north + 1f)), Festive);
+                Item(Lights(party, P(x + 4f, 4.1f, north + 1f)), Lit);
             }
         }
 

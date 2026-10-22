@@ -46,17 +46,17 @@ namespace SurfPool
         {
             // Pools: the main pool grows first, then whole new pools.
             new Upgrade { id = "pool_expand_1", category = UpgradeCategory.Pools, title = "Pool Expansion I", cost = 500, level = 3,
-                description = "Dig the main pool out to 50 x 19 m. Room for 2 more surfers, and big enough for Intermediate waves." },
+                description = "Dig the main pool out to 50 x 40 m. Room for 2 more surfers, and big enough for Intermediate waves." },
             new Upgrade { id = "pool_expand_2", category = UpgradeCategory.Pools, title = "Pool Expansion II", cost = 4000, level = 10, requires = "intermediate_waves",
-                description = "The main pool's full size: 60 x 24 m. Room for 2 more surfers, and big enough for Pro waves." },
+                description = "The main pool's full size: 60 x 50 m. Room for 2 more surfers, and big enough for Pro waves." },
             new Upgrade { id = "pool_reef", category = UpgradeCategory.Pools, title = "Build the Reef Pool", cost = 18000, level = 15, requires = "pool_expand_2",
-                description = "A second pool north of the main one. Longer peeling waves. Room for 4 more surfers, and every session there costs 2.5x." },
+                description = "Open the water across the sandbar: a reef zone with its own machine, sending long peeling lefts back toward the main pool. Room for 4 more surfers, and every session there costs 2.5x." },
             new Upgrade { id = "pool_lagoon", category = UpgradeCategory.Pools, title = "Build the Big Wave Lagoon", cost = 80000, level = 20, requires = "pool_reef",
-                description = "The biggest, deepest pool in the park. Huge waves. Room for 5 more surfers, and every session there costs 5x." },
+                description = "Dig out the deep end behind the grandstand pier: the park's biggest, heaviest waves. Room for 5 more surfers, and every session there costs 5x." },
             new Upgrade { id = "pool_cove", category = UpgradeCategory.Pools, title = "Build the Cove", cost = 150000, level = 22, requires = "pool_lagoon",
-                description = "A pier of wave paddles down the middle of a lagoon, east of the main pool: every set makes a right on one side and a left on the other at once. Two lineups, room for 6 more surfers, and sessions cost 4x." },
+                description = "A pier of wave paddles splits a new zone behind the reef: every set makes a right on one side and a left on the other at once. Two lineups, room for 6 more surfers, and sessions cost 4x." },
             new Upgrade { id = "pool_ranch", category = UpgradeCategory.Pools, title = "Build the Surf Ranch", cost = 300000, level = 25, requires = "pool_cove",
-                description = "A 200 m strip where a foil on a rail drags one perfect wave down the line: 25-second rides, one wave every 20 seconds. Room for 3 more surfers, and sessions cost 10x." },
+                description = "The final stage: a 150 m strip along the east edge where a foil on a rail drags one perfect wave down the line: 23-second rides, one wave every 20 seconds. Room for 3 more surfers, and sessions cost 10x." },
 
             // Waves
             new Upgrade { id = "faster_machine", category = UpgradeCategory.Waves, title = "Turbo Pump", cost = 75, level = 1,
