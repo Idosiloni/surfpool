@@ -154,6 +154,10 @@ namespace SurfPool
             ? "any wave"
             : $"{(Skill == WaveLevel.Intermediate ? "an" : "a")} {Skill} {PreferredDirection.ToString().ToLowerInvariant()}";
         public bool ShowPatience => state is State.InDeskLine or State.InRentalLine or State.WaitingForWave or State.InTrouble;
+
+        /// <summary>Waiting for you (a line at the desk or the rentals), in trouble in the water, or breaking the rules:
+        /// the HUD always shows this surfer's bubble.</summary>
+        public bool NeedsYou => state is State.InDeskLine or State.InRentalLine or State.InTrouble || IsRuleBreaker;
         public float Patience => patience;
 
         /// <summary>Short text shown above the surfer's head.</summary>

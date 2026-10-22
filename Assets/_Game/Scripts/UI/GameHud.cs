@@ -34,7 +34,12 @@ namespace SurfPool
             public VisualElement patience;
             public VisualElement patienceFill;
             public VisualElement face; // colorblind marks: smile / meh / frown next to the patience bar
+            public bool wanted, shown;
         }
+
+        const int MaxChatter = 3;
+        const float ChatterDistance = 28f;
+        readonly List<(float distance, Surfer surfer)> chatter = new();
 
         VisualElement hudRootElement;
         VisualElement root, bubbleLayer, popupStack, toasts, crosshair, prompt, waveBarFill, rentalRow, wagesRow, billsRow;
@@ -211,6 +216,10 @@ namespace SurfPool
             celebrationSubtitle = root.Q<Label>("celebrationSubtitle");
 
             stars = new StarRating { OnDark = true };
+            // XP fills a ring around the park level badge (no bar on screen).
+            xpRing = new HoldRing { LineWidth = 4f, TrackColor = new Color(1f, 0.97f, 0.93f, 0.18f), FillColor = new Color(1f, 0.78f, 0.34f) };
+            xpRing.AddToClassList("xp-ring");
+            root.Q("levelSlot")?.Insert(0, xpRing);
             root.Q("ratingStarsSlot").Add(stars);
             setCall = new SetCallHud(root);
             toastStack = new ToastStack(toasts);
@@ -354,6 +363,11 @@ namespace SurfPool
             levelReveal.Update(true, Expanded);
             SetText(xpLabel, $"Level {park.Level}  ·  {park.XpToNext:#,0} XP to level {park.Level + 1}");
             xpFill.style.width = Length.Percent(park.Progress * 100f);
+            // The ring eases toward the real XP; on a level-up it runs to full, then starts over from empty.
+            float target = park.Level + park.Progress;
+            if (shownXp < 0f || target < shownXp) shownXp = target;
+            shownXp = Mathf.MoveTowards(shownXp, target, Time.unscaledDeltaTime * 0.8f);
+            xpRing.Progress = shownXp >= park.Level ? shownXp - park.Level : 1f;
             // What's coming: the next level that brings something (an upgrade or a perk pick).
             if (shop == null) shop = FindAnyObjectByType<UpgradeShop>();
             string next = LevelRoadmap.Next(shop, park.Level, out int at, 2);
@@ -363,6 +377,7 @@ namespace SurfPool
         void ShowLevelUp(int level)
         {
             levelReveal.Ping(6f); // with the "next level brings..." line, it's a carrot right after a level-up
+            if (!GameSettings.ReduceMotion) UiMotion.Bump(root.Q("levelSlot"), "level-slot--up", 380);
             if (shop == null) shop = FindAnyObjectByType<UpgradeShop>();
             var unlocked = shop != null ? shop.UnlockedAt(level) : new List<string>();
             // The banner, fanfare and fireworks come from Celebration; the toast keeps a record of what unlocked.
@@ -755,6 +770,9 @@ namespace SurfPool
                 bubbles.Remove(surfer);
             }
 
+            // Only bubbles worth reading: surfers who need you (lines, trouble, rule breakers), legends, and lineup
+            // patience once it gets low always show; the rest of the chatter only for the few nearest surfers.
+            chatter.Clear();
             foreach (var surfer in Surfer.All)
             {
                 if (!bubbles.TryGetValue(surfer, out var bubble))
@@ -762,7 +780,22 @@ namespace SurfPool
                     bubble = CreateBubble(surfer.Skill);
                     bubbles.Add(surfer, bubble);
                 }
+                bubble.wanted = false;
+                if (menuOpen || cam == null) continue;
+                Vector3 view = cam.WorldToViewportPoint(surfer.transform.position + Vector3.up * 2.15f);
+                if (view.z <= 0f || view.z >= bubbleDistance || view.x < -0.05f || view.x > 1.05f) continue;
+                bool patience = surfer.ShowPatience && (surfer.NeedsYou || surfer.Patience < 0.5f);
+                bool important = surfer.NeedsYou || surfer.Famous != null || patience;
+                bool hasText = !string.IsNullOrEmpty(surfer.Status ?? surfer.NameTag);
+                if (important) bubble.wanted = true;
+                else if (hasText && view.z < ChatterDistance) chatter.Add((view.z, surfer));
+            }
+            chatter.Sort((a, b) => a.distance.CompareTo(b.distance));
+            for (int i = 0; i < Mathf.Min(MaxChatter, chatter.Count); i++) bubbles[chatter[i].surfer].wanted = true;
 
+            foreach (var surfer in Surfer.All)
+            {
+                var bubble = bubbles[surfer];
                 string status = surfer.Status ?? surfer.NameTag;
                 bool hasText = !string.IsNullOrEmpty(status);
                 if (surfer.Famous != null && !bubble.famous)
@@ -772,10 +805,13 @@ namespace SurfPool
                     bubble.badge.text = "★";
                 }
                 Vector3 world = surfer.transform.position + Vector3.up * 2.15f;
-                Vector3 view = cam != null ? cam.WorldToViewportPoint(world) : Vector3.back;
-                bool visible = !menuOpen && cam != null && view.z > 0f && view.z < bubbleDistance
-                               && (hasText || surfer.ShowPatience);
-                bubble.root.EnableInClassList("hidden", !visible);
+                bool visible = bubble.wanted;
+                if (visible != bubble.shown)
+                {
+                    bubble.shown = visible;
+                    if (visible) UiMotion.Enter(bubble.root, "bubble--enter");
+                    else bubble.root.AddToClassList("hidden");
+                }
                 if (!visible) continue;
 
                 Vector2 panelPos = RuntimePanelUtils.CameraTransformWorldToPanel(root.panel, world, cam);
@@ -785,9 +821,10 @@ namespace SurfPool
                 bubble.text.EnableInClassList("hidden", !hasText);
                 if (hasText) SetText(bubble.text, status);
 
-                bubble.patience.EnableInClassList("hidden", !surfer.ShowPatience);
+                bool showPatience = surfer.ShowPatience && (surfer.NeedsYou || surfer.Patience < 0.5f);
+                bubble.patience.EnableInClassList("hidden", !showPatience);
                 float patience = Mathf.Clamp01(surfer.Patience);
-                bubble.face.EnableInClassList("hidden", !surfer.ShowPatience);
+                bubble.face.EnableInClassList("hidden", !showPatience);
                 bubble.face.EnableInClassList("icon--smile", patience >= 0.6f);
                 bubble.face.EnableInClassList("icon--meh", patience < 0.6f && patience >= 0.3f);
                 bubble.face.EnableInClassList("icon--frown", patience < 0.3f);
@@ -836,7 +873,7 @@ namespace SurfPool
             // One line (what to do right now) unless the mission just started (8 s), or you peek (Alt) / open the journal (J).
             bool details = Expanded || Time.unscaledTime - missionShownAt < 8f;
             missionCard.EnableInClassList("mission-card--compact", !details);
-            SetText(missionLineText, MissionLine(mission));
+            UpdateMissionLine(mission, details);
             SetText(missionChapter, mission.chapter.ToUpperInvariant());
             SetText(missionTitle, mission.title);
             SetText(missionStory, mission.story);
@@ -856,6 +893,42 @@ namespace SurfPool
                 row.Add(text);
                 missionObjectives.Add(row);
             }
+        }
+
+        Mission lineMission;
+        int lineDone;
+        float lineHoldUntil;
+        string lineStep;
+
+        /// <summary>
+        /// The one-line mission. When you finish a step it turns teal ("Done! Go to the ticket desk") for a second,
+        /// then the next step slides in.
+        /// </summary>
+        void UpdateMissionLine(Mission mission, bool details)
+        {
+            int done = 0;
+            foreach (var objective in mission.objectives) if (objective.Done) done++;
+            bool stepDone = mission == lineMission && done > lineDone && lineStep != null;
+            lineMission = mission;
+            lineDone = done;
+            if (stepDone && !details)
+            {
+                missionCard.AddToClassList("mission-card--step-done");
+                SetText(missionLineText, "Done!  " + lineStep);
+                lineHoldUntil = Time.unscaledTime + 1.1f;
+                Sfx.Play(Sound.UiTick, null, 1f, 1.5f);
+                return;
+            }
+            if (Time.unscaledTime < lineHoldUntil) return;
+            if (missionCard.ClassListContains("mission-card--step-done"))
+            {
+                missionCard.RemoveFromClassList("mission-card--step-done");
+                UiMotion.Enter(missionLineText, "mission-line-text--enter");
+            }
+            SetText(missionLineText, MissionLine(mission));
+            lineStep = null;
+            foreach (var objective in mission.objectives)
+                if (!objective.Done) { lineStep = objective.text; break; }
         }
 
         /// <summary>"Buy the Turbo Pump  ·  $40 / $75   1/3": the next step, its money if it's an upgrade, and how far along.</summary>
@@ -915,6 +988,7 @@ namespace SurfPool
         {
             var bubble = new Bubble { root = new VisualElement { pickingMode = PickingMode.Ignore } };
             bubble.root.AddToClassList("bubble");
+            bubble.root.AddToClassList("hidden");
 
             var box = new VisualElement { pickingMode = PickingMode.Ignore };
             box.AddToClassList("bubble-box");
@@ -946,24 +1020,59 @@ namespace SurfPool
             return bubble;
         }
 
+        Label lastPopup;
+        int lastPopupAmount;
+        string lastPopupReason;
+        float lastPopupAt = -10f;
+
+        static string PopupText(int amount, string reason) =>
+            (amount >= 0 ? "+" : "") + MoneyText.Short(amount) + (string.IsNullOrEmpty(reason) ? "" : "  " + reason);
+
         void ShowPopup(int amount, string reason)
         {
             if (amount > 0)
             {
                 UiMotion.Bump(money, "money-label--bump");
                 tideSlosh = Mathf.Max(tideSlosh, 0.6f);
+                SpinCoin();
             }
-            var label = new Label((amount >= 0 ? "+" : "") + MoneyText.Short(amount) + (string.IsNullOrEmpty(reason) ? "" : "  " + reason))
+            // Payments that land together (ticket + tip + snack) become one number that keeps counting, instead of a
+            // stack of pills. One payment keeps its reason ("+$20 tickets"); a merged one shows just the total.
+            if (lastPopup != null && lastPopup.panel != null && Time.unscaledTime - lastPopupAt < 0.45f && (amount >= 0) == (lastPopupAmount >= 0))
             {
-                pickingMode = PickingMode.Ignore,
-            };
+                lastPopupAmount += amount;
+                if (reason != lastPopupReason) lastPopupReason = null;
+                lastPopup.text = PopupText(lastPopupAmount, lastPopupReason);
+                lastPopupAt = Time.unscaledTime;
+                return;
+            }
+            var label = new Label(PopupText(amount, reason)) { pickingMode = PickingMode.Ignore };
             label.AddToClassList("popup");
-            label.style.top = popupStack.childCount * 30; // stack popups that arrive together
+            label.style.top = Mathf.Min(popupStack.childCount, 2) * 30; // at most a short stack
             label.EnableInClassList("popup--negative", amount < 0);
             popupStack.Add(label);
             label.schedule.Execute(() => label.AddToClassList("popup--leaving")).StartingIn(40);
             label.schedule.Execute(label.RemoveFromHierarchy).StartingIn(1500);
+            lastPopup = label;
+            lastPopupAmount = amount;
+            lastPopupReason = reason;
+            lastPopupAt = Time.unscaledTime;
         }
+
+        /// <summary>The coin on the money sign flips when money comes in.</summary>
+        void SpinCoin()
+        {
+            coinBadge ??= root.Q("coinBadge");
+            if (coinBadge == null || GameSettings.ReduceMotion || coinSpinning) return;
+            coinSpinning = true;
+            UiMotion.Bump(coinBadge, "coin-badge--flip", 120);
+            coinBadge.schedule.Execute(() => coinSpinning = false).StartingIn(260);
+        }
+
+        VisualElement coinBadge;
+        bool coinSpinning;
+        HoldRing xpRing;
+        float shownXp = -1f;
 
         void ShowToast(string message, Notice kind) => toastStack?.Post(message, kind);
 

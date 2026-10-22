@@ -340,13 +340,13 @@
     position: absolute;
     left: 6px;
     top: 0;
-    font-size: 26px;
+    font-size: 21px;
     color: white;
     background-color: var(--money);
     border-radius: 12px;
     border-width: 2px;
     border-color: var(--ink);
-    padding: 1px 12px 3px 12px;
+    padding: 1px 10px 3px 10px;
     text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
     transition-duration: 1.3s;
     transition-timing-function: ease-out;
@@ -664,6 +664,15 @@
     position: absolute;
     align-items: center;
     translate: -50% -100%;
+    transition-property: opacity, scale;
+    transition-duration: 0.16s, 0.16s;
+    transition-timing-function: ease-out, ease-out-back;
+}
+
+/* Bubbles pop in instead of blinking on. */
+.bubble--enter {
+    opacity: 0;
+    scale: 0.7 0.7;
 }
 
 .bubble-box {
@@ -3823,6 +3832,8 @@
     align-self: flex-start;
     padding-top: 10px;
     padding-bottom: 11px;
+    transition-property: background-color;
+    transition-duration: 0.25s;
 }
 
 .mission-card--compact .mission-line {
@@ -3863,6 +3874,14 @@
     height: 38px;
     border-radius: 19px;
     margin-right: 10px;
+    transition-property: scale;
+    transition-duration: 0.12s;
+    transition-timing-function: ease-in-out;
+}
+
+/* The coin flips (squashes to its edge and back) when money comes in. */
+.coin-badge--flip {
+    scale: 0.08 1.05;
 }
 
 .wallet-sign > .coin-badge > .coin-icon {
@@ -3880,6 +3899,9 @@
     margin-left: 12px;
     align-items: center;
     justify-content: center;
+    transition-property: scale;
+    transition-duration: 0.25s;
+    transition-timing-function: ease-out-back;
 }
 
 .level-badge--wallet {
@@ -3982,6 +4004,22 @@
     -unity-background-image-tint-color: var(--sun);
 }
 
+/* A finished step: the line flashes teal for a second, then the next step slides in. */
+.mission-card--compact.mission-card--step-done {
+    background-color: rgba(20, 184, 166, 0.95);
+}
+
+.mission-line-text {
+    transition-property: opacity, translate;
+    transition-duration: 0.25s, 0.25s;
+    transition-timing-function: ease-out, ease-out;
+}
+
+.mission-line-text--enter {
+    opacity: 0;
+    translate: 14px 0;
+}
+
 .hud-compact > .card-strip,
 .hud-compact > .title-row {
     display: none;
@@ -4071,4 +4109,17 @@
 .goal-strip.hud-compact .goal-tile {
     width: 28px;
     height: 28px;
+}
+
+/* XP ring around the park level badge (HoldRing drawn with Painter2D); it pops on a level-up. */
+.xp-ring {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.level-slot--up {
+    scale: 1.35 1.35;
 }
