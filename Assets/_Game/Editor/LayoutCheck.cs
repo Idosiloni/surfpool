@@ -7,7 +7,8 @@ namespace SurfPool.EditorTools
 {
     /// <summary>
     /// After a rebuild of the lagoon layout: lists every prop standing in a zone's water, every surfer route that
-    /// walks across water, and every luxury-tier prop standing on a route (menu Surf Pool > Check Layout, or
+    /// walks across water, every luxury-tier prop standing on a route, treasures by the sea and boats that would run
+    /// aground on the island (menu Surf Pool > Check Layout, or
     /// <see cref="Report"/> via eval). Things that belong in the water (the pools themselves, buoys) are skipped.
     /// </summary>
     public static class LayoutCheck
@@ -38,7 +39,8 @@ namespace SurfPool.EditorTools
                 var t = renderer.transform;
                 if (renderer is ParticleSystemRenderer || t.GetComponentInParent<PoolArea>(true) != null || t.GetComponentInParent<Buoy>(true) != null) continue;
                 string root = t.root.name;
-                if (root == "World" && (t.parent != null && (t.parent.name == "Sand Island" || t.name == "Ocean"))) continue;
+                if (root == "World" && (t.parent != null && (t.parent.name == "Sand Island" || t.parent.name == "Island Ground"
+                    || t.parent.name == "Far Islands" || t.name == "Ocean"))) continue;
                 var c = renderer.bounds.center;
                 if (c.y > 6f) continue; // birds, the blimp and the helicopter fly over the water
                 if (!InWater(new Vector2(c.x, c.z), 0.5f, out int zone)) continue;
@@ -103,7 +105,34 @@ namespace SurfPool.EditorTools
                     break;
                 }
             }
-            sb.Insert(0, $"Layout check: {props} props in water, {routes} route segments across water, {blocking} luxury props on routes\n");
+            // The island (Shore): every treasure up on dry sand, every boat route out in open water.
+            int shore = 0;
+            foreach (var treasure in Object.FindObjectsByType<Treasure>(FindObjectsInactive.Include))
+            {
+                var p = treasure.transform.position;
+                if (Shore.Inland(p.x, p.z) > 4f && p.y > Shore.SeaLevel + 0.2f) continue;
+                if (++shore <= 60) sb.AppendLine($"TREASURE by the water: {treasure.name} at ({p.x:0.0}, {p.z:0.0})");
+            }
+            foreach (var cruiser in Object.FindObjectsByType<Cruiser>(FindObjectsInactive.Include))
+            {
+                var points = new SerializedObject(cruiser).FindProperty("points");
+                for (int i = 0; i < points.arraySize; i++)
+                {
+                    var a = points.GetArrayElementAtIndex(i).vector3Value;
+                    var b = points.GetArrayElementAtIndex((i + 1) % points.arraySize).vector3Value;
+                    if (a.y > 6f) break; // the blimp and the helicopter fly
+                    bool aground = false;
+                    for (int k = 0; k < 10 && !aground; k++)
+                    {
+                        var p = Vector3.Lerp(a, b, k / 10f);
+                        aground = Shore.Inland(p.x, p.z) > -10f;
+                    }
+                    if (!aground) continue;
+                    if (++shore <= 60) sb.AppendLine($"BOAT {cruiser.name} runs aground near ({a.x:0.0}, {a.z:0.0})");
+                    break;
+                }
+            }
+            sb.Insert(0, $"Layout check: {props} props in water, {routes} route segments across water, {blocking} luxury props on routes, {shore} shore problems\n");
             return sb.ToString();
         }
 

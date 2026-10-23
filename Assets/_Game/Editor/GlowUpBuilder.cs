@@ -267,17 +267,25 @@ namespace SurfPool.EditorTools
             }
         }
 
+        // Boat routes on the ocean around the island (Shore keeps open water along each of them).
+        static Vector3[] FishingRoute => Loop(30, 250, 150, 22, 10);
+        static Vector3[] WestSailRoute => new[] { P(-150, -60), P(-172, 80), P(-150, 200), P(-210, 214), P(-236, 60), P(-212, -72) };
+        static Vector3[] EastSailRoute => new[] { P(300, -60), P(310, 60), P(300, 190), P(346, 196), P(356, 40), P(340, -72) };
+        static Vector3[] WestSkiRoute => new[] { P(-92, 40), P(-96, 100), P(-104, 142), P(-124, 150), P(-130, 96), P(-118, 38) };
+        static Vector3[] EastSkiRoute => new[] { P(290, -24), P(288, 60), P(292, 112), P(310, 118), P(314, 40), P(306, -30) };
+        internal static Vector3[][] BoatRoutes => new[] { FishingRoute, WestSailRoute, EastSailRoute, WestSkiRoute, EastSkiRoute };
+
         static void Vessels()
         {
             var sea = Group("Ocean Traffic");
             var bank = AssetDatabase.LoadAssetAtPath<SoundBank>("Assets/_Game/Audio/SoundBank.asset");
 
-            Vessel(sea, "Fishing Boat", "FishingBoat", 1, 4f, 0.0f, Loop(30, 250, 150, 22, 10), 0.2f, 1.5f, 0f);
-            Vessel(sea, "Sailboat", "Sailboat", 4, 5f, 0.3f, new[] { P(-150, -60), P(-172, 80), P(-150, 200), P(-210, 214), P(-236, 60), P(-212, -72) }, 0.25f, 3f, -6f);
-            Vessel(sea, "Sailboat 2", "Sailboat", Lit + 1, 5.5f, 0.6f, new[] { P(172, -60), P(192, 60), P(174, 182), P(232, 172), P(244, 40), P(226, -72) }, 0.25f, 3f, -6f);
-            var ski = Vessel(sea, "Jet Ski", "JetSki", 7, 15f, 0f, new[] { P(-92, 40), P(-96, 100), P(-104, 142), P(-124, 150), P(-130, 96), P(-118, 38) }, 0.12f, 2f, 14f);
-            var ski2 = Vessel(sea, "Jet Ski 2", "JetSki", 7, 14f, 0.5f, new[] { P(-92, 40), P(-96, 100), P(-104, 142), P(-124, 150), P(-130, 96), P(-118, 38) }, 0.12f, 2f, 14f);
-            var ski3 = Vessel(sea, "Jet Ski 3", "JetSki", 12, 16f, 0.2f, new[] { P(152, -24), P(150, 60), P(154, 112), P(172, 118), P(176, 40), P(170, -30) }, 0.12f, 2f, 14f);
+            Vessel(sea, "Fishing Boat", "FishingBoat", 1, 4f, 0.0f, FishingRoute, 0.2f, 1.5f, 0f);
+            Vessel(sea, "Sailboat", "Sailboat", 4, 5f, 0.3f, WestSailRoute, 0.25f, 3f, -6f);
+            Vessel(sea, "Sailboat 2", "Sailboat", Lit + 1, 5.5f, 0.6f, EastSailRoute, 0.25f, 3f, -6f);
+            var ski = Vessel(sea, "Jet Ski", "JetSki", 7, 15f, 0f, WestSkiRoute, 0.12f, 2f, 14f);
+            var ski2 = Vessel(sea, "Jet Ski 2", "JetSki", 7, 14f, 0.5f, WestSkiRoute, 0.12f, 2f, 14f);
+            var ski3 = Vessel(sea, "Jet Ski 3", "JetSki", 12, 16f, 0.2f, EastSkiRoute, 0.12f, 2f, 14f);
             foreach (var s in new[] { ski, ski2, ski3 }) Engine(s, bank != null ? bank.jetSkiLoop : null, 0.35f, 10f, 90f);
 
             // The blimp circles high over the park once it's famous; later a news helicopter buzzes around.

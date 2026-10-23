@@ -58,8 +58,6 @@ namespace SurfPool.EditorTools
             RanchBasin,
         };
 
-        /// <summary>The sand island under the whole park (x, z).</summary>
-        internal static Rect Island => Rect.MinMaxRect(-80f, -100f, RanchX + RanchLength + 40f, ZonesNorth + 70f);
         const float DeckThickness = PoolDepth + 1f;
 
         [MenuItem("Surf Pool/Delete Save Game")]

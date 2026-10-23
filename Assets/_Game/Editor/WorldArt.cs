@@ -39,23 +39,25 @@ namespace SurfPool.EditorTools
             return asset != null ? asset.GetComponentInChildren<MeshFilter>().sharedMesh : null;
         }
 
-        /// <summary>East end of the sand island (past the Surf Ranch).</summary>
-        static float IslandEast => GreyboxBuilder.Island.xMax;
-
         /// <summary>Sand island under the park, ocean to the horizon, palms, umbrellas, loungers and rocks.</summary>
         public static void BuildEnvironment(Material sandMat, Material waterMat)
         {
             var root = new GameObject("World").transform;
 
-            // Sand over the whole island except the zones' water (their decks sit on top of the sand). Cut into rectangles
-            // along every edge of the holes, merged along rows so there are only a few slabs.
+            // Flat sand under the park except the zones' water (their decks sit on top of the sand). Cut into rectangles
+            // along every edge of the holes, merged along rows so there are only a few slabs. Outside it: Shore's dunes.
             float DecksNorth = GreyboxBuilder.ZonesNorth + 16f;
             var sand = new GameObject("Sand Island").transform;
             sand.SetParent(root, false);
-            var island = GreyboxBuilder.Island;
+            var flats = Shore.FlatRects;
             var holes = GreyboxBuilder.WaterRects;
-            var xs = new System.Collections.Generic.SortedSet<float> { island.xMin, island.xMax };
-            var zs = new System.Collections.Generic.SortedSet<float> { island.yMin, island.yMax };
+            var xs = new System.Collections.Generic.SortedSet<float>();
+            var zs = new System.Collections.Generic.SortedSet<float>();
+            foreach (var r in flats)
+            {
+                xs.Add(r.xMin); xs.Add(r.xMax);
+                zs.Add(r.yMin); zs.Add(r.yMax);
+            }
             foreach (var h in holes)
             {
                 xs.Add(h.xMin); xs.Add(h.xMax);
@@ -63,9 +65,10 @@ namespace SurfPool.EditorTools
             }
             var xa = new System.Collections.Generic.List<float>(xs);
             var za = new System.Collections.Generic.List<float>(zs);
-            bool InHole(float x, float z)
+            bool Solid(float x, float z)
             {
-                foreach (var h in holes) if (h.Contains(new Vector2(x, z))) return true;
+                foreach (var h in holes) if (h.Contains(new Vector2(x, z))) return false;
+                foreach (var r in flats) if (r.Contains(new Vector2(x, z))) return true;
                 return false;
             }
             int slabs = 0;
@@ -74,19 +77,22 @@ namespace SurfPool.EditorTools
                 float z0 = za[j], z1 = za[j + 1], zm = (z0 + z1) / 2f;
                 for (int i = 0; i < xa.Count - 1;)
                 {
-                    if (InHole((xa[i] + xa[i + 1]) / 2f, zm)) { i++; continue; }
+                    if (!Solid((xa[i] + xa[i + 1]) / 2f, zm)) { i++; continue; }
                     int k = i;
-                    while (k + 1 < xa.Count - 1 && !InHole((xa[k + 1] + xa[k + 2]) / 2f, zm)) k++;
+                    while (k + 1 < xa.Count - 1 && Solid((xa[k + 1] + xa[k + 2]) / 2f, zm)) k++;
                     float x0 = xa[i], x1 = xa[k + 1];
-                    SandSlab(sand, $"{slabs++}", new Vector3((x0 + x1) / 2f, -0.6f, (z0 + z1) / 2f), new Vector3(x1 - x0, 1, z1 - z0), sandMat);
+                    SandSlab(sand, $"{slabs++}", new Vector3((x0 + x1) / 2f, Shore.SandTop - 0.5f, (z0 + z1) / 2f), new Vector3(x1 - x0, 1, z1 - z0), sandMat);
                     i = k + 1;
                 }
             }
+            Shore.BuildGround(root, sandMat);
+            Shore.Dress(root);
+            Shore.FarIslands(root);
 
             var ocean = new GameObject("Ocean", typeof(MeshFilter), typeof(MeshRenderer));
             ocean.transform.SetParent(root, false);
-            ocean.transform.position = new Vector3(30, -0.75f, 0);
-            ocean.GetComponent<MeshFilter>().sharedMesh = OceanMesh();
+            ocean.transform.position = new Vector3(0f, Shore.SeaLevel, 0f);
+            ocean.GetComponent<MeshFilter>().sharedMesh = Shore.OceanMesh();
             ocean.GetComponent<MeshRenderer>().sharedMaterial = waterMat;
             ocean.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
 
@@ -114,7 +120,7 @@ namespace SurfPool.EditorTools
             {
                 var spot = palmSpots[i];
                 if (Blocked(spot)) continue;
-                float y = Mathf.Abs(spot.x - 30) > 50 || spot.z < -40f || spot.z > N + GreyboxBuilder.MainNorthDeck ? -0.1f : 0f;
+                float y = Shore.InFlat(spot.x, spot.z) && !(Mathf.Abs(spot.x - 30) > 50 || spot.z < -40f || spot.z > N + GreyboxBuilder.MainNorthDeck) ? 0f : Shore.Height(spot.x, spot.z);
                 Model(i % 3 == 0 ? "PalmTreeTall" : "PalmTree", palms, new Vector3(spot.x, y, spot.z), Range(0, 360), Range(0.85f, 1.15f));
             }
 
@@ -136,9 +142,10 @@ namespace SurfPool.EditorTools
             {
                 float angle = Range(0, Mathf.PI * 2);
                 float radius = Range(100, 120);
-                var spot = new Vector3(30 + Mathf.Cos(angle) * radius, -0.3f, 52 + Mathf.Sin(angle) * radius * 1.3f);
-                bool inPark = spot.x > -25 && spot.x < IslandEast - 10f && spot.z > -45 && spot.z < DecksNorth + 12f;
+                var spot = new Vector3(30 + Mathf.Cos(angle) * radius, 0f, 52 + Mathf.Sin(angle) * radius * 1.3f);
+                bool inPark = Shore.FlatDistance(spot.x, spot.z) < 4f;
                 if (inPark || spot.z < -95 || spot.z > 238) continue;
+                spot.y = Mathf.Max(Shore.Height(spot.x, spot.z), Shore.SeaLevel - 0.6f) - 0.2f; // in the sea they stick out of the water
                 Model("Rock", rocks, spot, Range(0, 360), Range(0.8f, 2.4f));
             }
         }
@@ -153,7 +160,7 @@ namespace SurfPool.EditorTools
             slab.GetComponent<MeshRenderer>().sharedMaterial = mat;
         }
 
-        /// <summary>Warm afternoon sun, blue procedural sky, soft fog, and color grading.</summary>
+        /// <summary>Warm afternoon sun, cartoon sky with clouds, soft fog, and color grading.</summary>
         public static void Lighting(Light sun, Camera camera)
         {
             sun.color = new Color(1f, 0.94f, 0.82f);
@@ -165,11 +172,11 @@ namespace SurfPool.EditorTools
             RenderSettings.skybox = sky;
             RenderSettings.sun = sun;
             RenderSettings.ambientMode = AmbientMode.Skybox;
-            RenderSettings.ambientIntensity = 1.1f;
+            RenderSettings.ambientIntensity = 0.8f; // the cartoon sky is bright; more washes the park out
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogDensity = 0.0028f;
-            RenderSettings.fogColor = new Color(0.72f, 0.86f, 0.96f);
+            RenderSettings.fogDensity = 0.0016f; // light haze: the far islands fade into the horizon
+            RenderSettings.fogColor = new Color(0.74f, 0.87f, 0.96f); // = the sky's horizon color
             DynamicGI.UpdateEnvironment();
 
             var volumeGo = new GameObject("Post Processing", typeof(Volume));
@@ -186,14 +193,13 @@ namespace SurfPool.EditorTools
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (mat == null)
             {
-                mat = new Material(Shader.Find("Skybox/Procedural"));
+                mat = new Material(Shader.Find("SurfPool/StylizedSky"));
                 AssetDatabase.CreateAsset(mat, path);
             }
-            mat.SetFloat("_SunSize", 0.05f);
-            mat.SetFloat("_AtmosphereThickness", 0.75f);
-            mat.SetColor("_SkyTint", new Color(0.42f, 0.66f, 1f));
-            mat.SetColor("_GroundColor", new Color(0.55f, 0.75f, 0.85f));
-            mat.SetFloat("_Exposure", 1.25f);
+            mat.shader = Shader.Find("SurfPool/StylizedSky");
+            mat.SetColor("_SkyTint", new Color(0.24f, 0.5f, 0.93f));
+            mat.SetColor("_HorizonColor", new Color(0.74f, 0.87f, 0.96f));
+            mat.SetFloat("_Exposure", 1f);
             EditorUtility.SetDirty(mat);
             return mat;
         }
@@ -232,51 +238,6 @@ namespace SurfPool.EditorTools
             EditorUtility.SetDirty(profile);
             AssetDatabase.SaveAssets();
             return profile;
-        }
-
-        /// <summary>
-        /// A big flat grid with black vertex colors (no foam) for the stylized water shader, with a hole where the
-        /// sand island is so it never covers the pools (the ocean sits above the pool water level).
-        /// </summary>
-        static Mesh OceanMesh()
-        {
-            const string path = "Assets/_Game/Models/OceanPlane.asset";
-            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
-            if (existing != null) AssetDatabase.DeleteAsset(path);
-            Mesh mesh;
-
-            const int n = 80;
-            const float size = 1600f;
-            // Island footprint in the ocean's local space (ocean is centered at x = 30, z = 0).
-            var island = GreyboxBuilder.Island;
-            var hole = Rect.MinMaxRect(island.xMin - 30 + 2, island.yMin + 2, island.xMax - 30 - 2, island.yMax - 2);
-            var vertices = new Vector3[(n + 1) * (n + 1)];
-            var colors = new Color[vertices.Length];
-            for (int z = 0; z <= n; z++)
-            for (int x = 0; x <= n; x++)
-            {
-                vertices[z * (n + 1) + x] = new Vector3((x / (float)n - 0.5f) * size, 0, (z / (float)n - 0.5f) * size);
-                colors[z * (n + 1) + x] = new Color(0, 0, 0, 1);
-            }
-            var triangles = new int[n * n * 6];
-            int k = 0;
-            for (int z = 0; z < n; z++)
-            for (int x = 0; x < n; x++)
-            {
-                int i = z * (n + 1) + x;
-                var a = vertices[i];
-                var b = vertices[i + n + 2];
-                var cell = Rect.MinMaxRect(a.x, a.z, b.x, b.z);
-                if (hole.Contains(cell.min) && hole.Contains(cell.max)) continue; // under the island
-                triangles[k++] = i; triangles[k++] = i + n + 1; triangles[k++] = i + 1;
-                triangles[k++] = i + 1; triangles[k++] = i + n + 1; triangles[k++] = i + n + 2;
-            }
-            System.Array.Resize(ref triangles, k);
-            mesh = new Mesh { name = "OceanPlane", vertices = vertices, colors = colors, triangles = triangles };
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-            AssetDatabase.CreateAsset(mesh, path);
-            return mesh;
         }
     }
 }

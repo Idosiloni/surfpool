@@ -76,7 +76,7 @@ namespace SurfPool
         float lastCallAt, nextNudge;
         bool emptyAnnounced;
         float ambientIntensity = -1f;
-        Color ambientColor;
+        Color ambientColor, fogColor;
 
         /// <summary>Money earned so far today.</summary>
         public int IncomeToday => today != null ? today.TotalIncome : 0;
@@ -179,9 +179,12 @@ namespace SurfPool
             {
                 ambientIntensity = RenderSettings.ambientIntensity;
                 ambientColor = RenderSettings.ambientLight;
+                fogColor = RenderSettings.fogColor;
             }
             RenderSettings.ambientIntensity = Mathf.Lerp(ambientIntensity, ambientIntensity * 0.5f, s);
             RenderSettings.ambientLight = Color.Lerp(ambientColor, ambientColor * new Color(0.55f, 0.55f, 0.8f), s);
+            // The haze dims with the sky, so the far islands and the horizon stay one color.
+            RenderSettings.fogColor = Color.Lerp(fogColor, new Color(0.3f, 0.27f, 0.42f), s);
 
             // A dusky sky: a copy of the skybox (never the asset) gets darker and purpler.
             if (daySky == null && RenderSettings.skybox != null)
@@ -242,6 +245,7 @@ namespace SurfPool
             {
                 RenderSettings.ambientIntensity = ambientIntensity;
                 RenderSettings.ambientLight = ambientColor;
+                RenderSettings.fogColor = fogColor;
             }
             if (daySky != null)
             {
