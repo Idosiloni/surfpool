@@ -31,6 +31,14 @@ namespace SurfPool
         /// <summary>The board's tilt in the rider's heading frame (face slope + lean into the turn).</summary>
         public Quaternion Tilt => Quaternion.Euler(pitchDeg, 0f, rollDeg + leanDeg);
 
+        /// <summary>
+        /// What the rider's body follows: all of the lean into a turn but under half the face's slope (real surfers stay
+        /// upright over a board that's tilted on a steep face; ankles and knees take the rest).
+        /// </summary>
+        public Quaternion BodyTilt => Quaternion.Euler(pitchDeg * BodySlope, 0f, rollDeg * BodySlope + leanDeg);
+
+        const float BodySlope = 0.25f;
+
         /// <summary>-1..1 how hard the rider is turning: positive = turning right.</summary>
         public float Turn { get; private set; }
 

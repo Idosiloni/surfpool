@@ -208,7 +208,7 @@ namespace SurfPool
             avatar.ArmsUp = surfing.ArmsUp;
             avatar.NoseWalk = surfing.NoseWalk;
             avatar.Style = 0.6f + surfing.Flow * 0.4f;
-            avatar.BoardTilt = surfing.BoardTilt;
+            avatar.BoardTilt = surfing.BodyTilt;
             if (avatarBoard != null)
             {
                 avatarBoard.localPosition = CharacterRig.BoardPivot;

@@ -114,7 +114,10 @@ namespace SurfPool
         /// <summary>Paddling hard for a wave: faster strokes, head glancing back over the shoulder.</summary>
         public bool Sprint { get; set; }
 
-        /// <summary>Tilt of the board (face slope, carve, spins). The body tilts with it around the board.</summary>
+        /// <summary>
+        /// The tilt the body follows around the board (lean into turns, part of the face slope, spins): use
+        /// RideFeel.BodyTilt, not the board's own full tilt, so riders stay upright on steep faces.
+        /// </summary>
         public Quaternion BoardTilt { get; set; } = Quaternion.identity;
 
         /// <summary>
