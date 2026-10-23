@@ -23,7 +23,7 @@ namespace SurfPool
             "J  journal: mission story and today's challenges\n" +
             "Esc  free the mouse  ·  Tab  this menu\n\n" +
             "Surfing: E on your board by a wave console. W paddle, Space stand up when a wave reaches you, " +
-            "A/D turn the board (down the face = speed, back up = height; let go to trim), W/S tapped = pump, hold S = stall, " +
+            "WASD = the board goes where you point on screen (down the wave = speed, back up = height; let go to ride along), " +
             "Space air, F send a wave, Q get out.";
 
         VisualElement root, stats;
