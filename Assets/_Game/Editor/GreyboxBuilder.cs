@@ -856,6 +856,7 @@ namespace SurfPool.EditorTools
                 Box("Coming Soon Sign", lot.transform, new Vector3(30, 2.6f, zc - halfW - 2.4f), new Vector3(6f, 1.6f, 0.12f), mats.sign);
                 Signs.Text(spec.display.ToUpperInvariant(), lot.transform, new Vector3(30, 2.9f, zc - halfW - 2.47f), 0f, 0.42f, Color.white, 5.6f);
                 Signs.Text("COMING SOON", lot.transform, new Vector3(30, 2.3f, zc - halfW - 2.47f), 0f, 0.32f, new Color(1f, 0.92f, 0.7f), 5.6f);
+                Shore.DressLot(lot.transform, poolLength, zc, halfW, Mathf.RoundToInt(zc * 10f + poolLength));
             }
 
             var route = new GameObject("Route").transform;

@@ -1,6 +1,7 @@
 """
 Builds the dune and beach plants and props for the island around the park (Assets/_Game/Editor/Shore.cs places them):
-two clumps of dune grass, two coastal bushes, a weathered sand fence, a piece of driftwood and a short palm, then
+two clumps of dune grass, two coastal bushes, a weathered sand fence, a piece of driftwood, a short palm, and for
+the empty pool plots (GreyboxBuilder's construction lots) a sand pile and a survey stake with orange tape, then
 exports each as FBX into Assets/_Game/Models/. Only these models are exported (the others keep their files).
 
 Run in Blender (Blender MCP): exec(open(path).read(), ns). Borrows helpers/palette/export from build_models.py
@@ -28,6 +29,7 @@ PALETTE.update({
     "Driftwood": (0.80, 0.75, 0.66),
     "DriftwoodDark": (0.62, 0.56, 0.47),
     "FenceWood": (0.72, 0.62, 0.48),
+    "Tape": (1.0, 0.45, 0.12),
 })
 
 
@@ -119,6 +121,30 @@ def driftwood(name="Driftwood", seed=31):
     return join(name, parts)
 
 
+def sand_pile(name="SandPile", seed=41):
+    """A dumped pile of sand on a building plot: a lumpy cone with a smaller heap slumped against it."""
+    rng = random.Random(seed)
+    parts = []
+    for i, (radius, x, y) in enumerate(((1.7, 0, 0), (1.0, 1.4, 0.6))):
+        heap = cylinder("Heap", radius, radius * 0.75, (x, y, radius * 0.375), "Sand", vertices=11, radius_top=radius * 0.22)
+        for v in heap.data.vertices:
+            if v.co.z > -radius * 0.3:  # leave the bottom ring flat on the ground
+                v.co.x += rng.uniform(-0.12, 0.12) * radius
+                v.co.y += rng.uniform(-0.12, 0.12) * radius
+                v.co.z += rng.uniform(-0.06, 0.06) * radius
+        parts.append(heap)
+    pile = join(name, parts)
+    return smooth_and_sharpen(pile, 55)
+
+
+def survey_stake(name="SurveyStake"):
+    """A wooden stake hammered into the plot with a tail of orange flagging tape (marks where the pool will go)."""
+    parts = [box("Stake", (0.06, 0.06, 0.9), (0, 0, 0.42), "FenceWood"), box("Top", (0.08, 0.08, 0.06), (0, 0, 0.88), "Tape")]
+    tape = mesh_object("Tape", [(0, 0, 0.84), (0, 0, 0.76), (0.28, 0.03, 0.66), (0.26, 0.04, 0.58)], [(0, 1, 3, 2)], "Tape", double_sided=True)
+    parts.append(tape)
+    return join(name, parts)
+
+
 MODELS = (
     lambda: dune_grass("DuneGrass", 3),
     lambda: dune_grass("DuneGrassTall", 8, blades=34, height=1.0),
@@ -127,6 +153,8 @@ MODELS = (
     sand_fence,
     driftwood,
     lambda: palm_tree("PalmTreeShort", 4.6, seed=4),
+    sand_pile,
+    survey_stake,
 )
 
 

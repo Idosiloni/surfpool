@@ -10,7 +10,7 @@ namespace SurfPool.EditorTools
     /// the pools, built by <see cref="WorldArt"/>); outside it a ring of rolling dunes with grassy backs runs down to a
     /// beach with wet sand at the waterline and a wavy coastline, and the sea floor slopes away under the ocean, which
     /// turns pale aqua over the shallows with a line of foam along the shore. An invisible wall stands knee-deep in the
-    /// water. Far islands sit on the horizon. Everything that stands on the ground outside the park (palms, rocks,
+    /// water (low under the pier and bridge decks). Far islands sit on the horizon. Everything that stands on the ground outside the park (palms, rocks,
     /// treasures, dune dressing) asks <see cref="Height"/>.
     /// </summary>
     public static class Shore
@@ -90,6 +90,12 @@ namespace SurfPool.EditorTools
             float h = c <= 0f ? Mathf.Max(SeaLevel + c * 0.12f, -4f) : Mathf.Lerp(SeaLevel, SandTop, Smooth01(c / Beach));
             dune = DuneHeight(x, z, c);
             h += dune;
+            // A sandy ramp up to the fishing pier's deck (top at y = 0), so you can step onto it from the beach.
+            if (x > -80.5f && x < -58f)
+            {
+                float pad = 1f - Smooth01((Mathf.Abs(z - PierZ) - 2.2f) / 3f);
+                h = Mathf.Lerp(h, Mathf.Max(h, -0.04f), pad);
+            }
             // A dip under the bridge so the beach never pokes through its deck.
             if (Mathf.Abs(x - BridgeX) < 6f && z < -100f) h = Mathf.Min(h, Mathf.Lerp(SandTop, -0.9f, Mathf.InverseLerp(-100f, -103f, z)));
             return h;
@@ -262,7 +268,7 @@ namespace SurfPool.EditorTools
 
         /// <summary>
         /// Vertical quads along the line <see cref="WallDepth"/> m out from the waterline (marching squares on the inland
-        /// distance), with gaps where the fishing pier and the bridge go out over the water.
+        /// distance), kept below the decks where the fishing pier and the bridge go out over the water.
         /// </summary>
         static Mesh SeaWallMesh()
         {
@@ -277,14 +283,17 @@ namespace SurfPool.EditorTools
             }
             void Segment(Vector2 p, Vector2 q)
             {
+                // Under the fishing pier and the bridge the wall stops just below their decks: still too tall to wade
+                // past, but you can walk out over it on the deck.
                 var mid = (p + q) / 2f;
-                if (mid.x < -74f && Mathf.Abs(mid.y - PierZ) < 4f) return;
-                if (Mathf.Abs(mid.x - BridgeX) < 6f && mid.y < -96f) return;
+                float top = 3f;
+                if (mid.x < -74f && Mathf.Abs(mid.y - PierZ) < 4f) top = -0.2f;
+                if (Mathf.Abs(mid.x - BridgeX) < 6f && mid.y < -96f) top = -0.5f;
                 int k = vertices.Count;
                 vertices.Add(new Vector3(p.x, -4.5f, p.y));
                 vertices.Add(new Vector3(q.x, -4.5f, q.y));
-                vertices.Add(new Vector3(p.x, 3f, p.y));
-                vertices.Add(new Vector3(q.x, 3f, q.y));
+                vertices.Add(new Vector3(p.x, top, p.y));
+                vertices.Add(new Vector3(q.x, top, q.y));
                 triangles.AddRange(new[] { k, k + 2, k + 1, k + 1, k + 2, k + 3, k, k + 1, k + 2, k + 1, k + 3, k + 2 });
             }
             for (int j = 0; j < nz; j++)
@@ -439,6 +448,89 @@ namespace SurfPool.EditorTools
                 rocks++;
                 Put("Rock", x, z, 2f, Range(0.7f, 1.6f), sink: 0.25f);
                 if (rng.NextDouble() < 0.6) Put("Rock", x + Range(-2.5f, 2.5f), z + Range(-2.5f, 2.5f), 1f, Range(0.4f, 0.8f), sink: 0.2f);
+            }
+        }
+
+        /// <summary>
+        /// A pool plot that isn't built yet (GreyboxBuilder's construction lot, in the pool's own frame: x from the
+        /// machine to the beach, z across): survey stakes with orange tape mark out where the pool will go, sand piles
+        /// wait for the diggers, and weeds, bushes and a few palms have grown in meanwhile. It all hides with the lot.
+        /// </summary>
+        internal static void DressLot(Transform lot, float poolLength, float zc, float halfWidth, int seed)
+        {
+            var rng = new System.Random(seed);
+            float Range(float a, float b) => a + (float)rng.NextDouble() * (b - a);
+            var taken = new List<Vector3>();
+            bool Free(float x, float z, float radius)
+            {
+                foreach (var t in taken)
+                    if ((t.x - x) * (t.x - x) + (t.y - z) * (t.y - z) < (t.z + radius) * (t.z + radius)) return false;
+                return true;
+            }
+            var sand = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Game/Materials/Sand.mat");
+            void Put(string model, float x, float z, float radius, float scale, float yaw, bool shadows = true)
+            {
+                taken.Add(new Vector3(x, z, radius));
+                var go = WorldArt.Model(model, lot, Vector3.zero, 0f, scale);
+                if (go == null) return;
+                if (model == "SandPile" && sand != null) // the same sand as the ground, color noise and all
+                    foreach (var r in go.GetComponentsInChildren<MeshRenderer>()) r.sharedMaterial = sand;
+                go.transform.SetParent(lot, false);
+                go.transform.localPosition = new Vector3(x, SandTop - 0.03f, z);
+                go.transform.localRotation = Quaternion.Euler(0f, yaw + 180f, 0f);
+                foreach (var r in go.GetComponentsInChildren<MeshRenderer>())
+                    r.shadowCastingMode = shadows ? ShadowCastingMode.On : ShadowCastingMode.Off;
+                GameObjectUtility.SetStaticEditorFlags(go, StaticEditorFlags.BatchingStatic);
+            }
+
+            // Stakes along the outline of the pool-to-be, every 8 m or so, tape blowing the same way.
+            float south = zc - halfWidth, north = zc + halfWidth;
+            int along = Mathf.Max(2, Mathf.RoundToInt(poolLength / 8f));
+            for (int i = 0; i <= along; i++)
+            {
+                float x = poolLength * i / along;
+                Put("SurveyStake", x, south, 0.3f, 1f, Range(-10f, 10f));
+                Put("SurveyStake", x, north, 0.3f, 1f, Range(-10f, 10f));
+            }
+            int across = Mathf.Max(2, Mathf.RoundToInt(halfWidth * 2f / 8f));
+            for (int i = 1; i < across; i++)
+            {
+                float z = south + 2f * halfWidth * i / across;
+                Put("SurveyStake", 0f, z, 0.3f, 1f, Range(-10f, 10f));
+                Put("SurveyStake", poolLength, z, 0.3f, 1f, Range(-10f, 10f));
+            }
+
+            // Sand piles where the digging will start, near the machine end.
+            for (int i = 0, tries = 0; i < 3 && tries < 50; tries++)
+            {
+                float x = Range(6f, poolLength * 0.45f), z = Range(south + 6f, north - 6f);
+                if (!Free(x, z, 3.2f)) continue;
+                Put("SandPile", x, z, 3.2f, Range(0.8f, 1.25f), Range(0f, 360f));
+                i++;
+            }
+
+            // Weeds have taken over: grass clumps, bushes, a few palms along the fences.
+            for (int i = 0, tries = 0; i < 30 && tries < 300; tries++)
+            {
+                float x = Range(2f, poolLength - 2f), z = Range(south + 1f, north - 1f);
+                if (!Free(x, z, 0.5f)) continue;
+                Put(rng.NextDouble() < 0.3 ? "DuneGrassTall" : rng.NextDouble() < 0.5 ? "DuneGrass" : "Weeds", x, z, 0.5f, Range(0.8f, 1.3f), Range(0f, 360f), false);
+                i++;
+            }
+            for (int i = 0, tries = 0; i < 7 && tries < 100; tries++)
+            {
+                float x = Range(3f, poolLength - 3f), z = Range(south + 2f, north - 2f);
+                if (!Free(x, z, 1.1f)) continue;
+                Put(rng.NextDouble() < 0.5 ? "Bush" : "BushSmall", x, z, 1.1f, Range(0.75f, 1.2f), Range(0f, 360f));
+                i++;
+            }
+            string[] palms = { "PalmTree", "PalmTreeShort", "PalmTreeTall" };
+            for (int i = 0, tries = 0; i < 4 && tries < 100; tries++)
+            {
+                float x = Range(4f, poolLength - 4f), z = rng.NextDouble() < 0.5 ? Range(south + 1.5f, south + 4f) : Range(north - 4f, north - 1.5f);
+                if (!Free(x, z, 2f)) continue;
+                Put(palms[rng.Next(palms.Length)], x, z, 2f, Range(0.85f, 1.1f), Range(0f, 360f));
+                i++;
             }
         }
 
