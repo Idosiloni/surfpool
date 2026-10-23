@@ -740,10 +740,20 @@ namespace SurfPool
             float turn = airborneNow ? 0f : steer != 0f ? steer * turnRate : TrimAssist();
             // Speed you add yourself: flow, the board, leaning forward (W). Holding S drags the tail (a stall).
             bool stall = keyboard.sKey.isPressed && Time.time - lastPumpKey > 0.35f && waveLevel != WaveLevel.Beginner;
+            // Hands off and racing way out ahead of the break: ease off so the wave's power catches up with you.
+            if (steer == 0f && waveLevel != WaveLevel.Beginner && motion.Breaking && motion.Ahead > 9f) stall = true;
             float push = 2.5f * flow * flowSpeedBonus / 0.35f + (SurfQuiver.SpeedOn(waveLevel) - 1f) * 6f
                          + (keyboard.wKey.isPressed && !stall ? 0.8f : 0f);
             motion.Step(water, rideWave, turn, push, stall, dt);
             motion.KeepInside(limit, dt);
+            // The end of the line: the break has run out to the wall, or you've ridden into it. Kick out over the back.
+            bool atWall = Mathf.Abs(motion.Z) > limit - 0.6f && Mathf.Sign(motion.AlongSpeed) == Mathf.Sign(motion.Z);
+            if (waveLevel != WaveLevel.Beginner && Time.time - rideStart > 1.5f && (motion.Finished || atWall))
+            {
+                Called?.Invoke("KICK OUT! End of the line", Notice.Good);
+                EndRide();
+                return;
+            }
             rideZ = motion.Z;
             rideOffset = motion.U;
             rideVelocity = motion.AlongSpeed;
@@ -883,11 +893,11 @@ namespace SurfPool
 
         /// <summary>
         /// Hands off the keys: the board eases into a trim line along the way you're going, a little above the middle
-        /// of the face (where the wave's push is). On whitewater it just keeps your angle.
+        /// of the face (where the wave's push is). On whitewater it slowly straightens you toward the beach.
         /// </summary>
         float TrimAssist()
         {
-            if (waveLevel == WaveLevel.Beginner) return 0f;
+            if (waveLevel == WaveLevel.Beginner) return Mathf.Clamp(Mathf.DeltaAngle(motion.Heading, 270f) * 0.6f, -20f, 20f); // slowly straighten for the beach
             float up = Mathf.Clamp((0.65f - motion.Face) * 70f, -25f, motion.Face < 0.1f ? 50f : 25f); // out of the flats faster
             float target = motion.Travel > 0 ? up : 180f - up;
             return Mathf.Clamp(Mathf.DeltaAngle(motion.Heading, target) * 3f, -90f, 90f);
