@@ -83,7 +83,7 @@ Useful editor menus live under **Surf Pool**: *Build Mac Release* builds `Builds
 
 This is a solo-designed project: **Ido Siloni** designed and playtested the game; the code was written together with [Claude Code](https://claude.com/claude-code), which drove the Unity Editor directly (see [`CLAUDE.md`](CLAUDE.md) for the working rules and the full systems map).
 
-Some of the parts I find most interesting:
+Highlights:
 
 - **Faked waves, no fluid sim.** Each pool is a mesh whose vertices are moved every frame by a wave model: a swell that steepens, peels from a side wall, curls into a lip, breaks *by age* (foam ball → bore → soup), and reforms near the beach. The surface math runs on every CPU core and far pools refresh less often ([`WaveWater.cs`](Assets/_Game/Scripts/Wave/WaveWater.cs)). A custom shader adds the face gradient, the see-through lip, foam and glints ([`StylizedWater.shader`](Assets/_Game/Shaders/StylizedWater.shader)).
 - **One surfing model for everyone.** [`SurfMotion`](Assets/_Game/Scripts/Surfers/SurfMotion.cs) moves a board by heading and speed on the wave face, measured from the water every step. NPCs steer it with a per-skill "pilot"; the player points it with the keyboard.
@@ -91,7 +91,7 @@ Some of the parts I find most interesting:
 - **Art from scripts.** Every 3D model is built by Python scripts in Blender ([`tools/blender`](tools/blender)); the sound effects and music are synthesized in Python ([`tools/audio`](tools/audio)); UI art and icons are drawn by code ([`tools/ui`](tools/ui)). The UI uses Unity's UI Toolkit with one stylesheet.
 - **Research first.** Before each feature, notes on real wave pools, surfing, and other sim games went into [`docs/research`](docs/research). The design and roadmap are in [`docs/DESIGN.md`](docs/DESIGN.md), and the economy curve is in [`docs/BALANCE.md`](docs/BALANCE.md).
 
-About 29,000 lines of C#, plus shaders and Python tooling: 148 commits over four days in October 2026.
+About 29,000 lines of C#, plus shaders and Python tooling, most of it built in four days (October 20–23, 2026).
 
 ## Status
 
