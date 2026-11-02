@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Idosiloni/surfpool/releases/latest"><b>⬇ Download for Mac (Apple Silicon)</b></a>
+  <a href="https://github.com/Idosiloni/surfpool/releases/latest"><b>⬇ Download for Mac or Windows</b></a>
   &nbsp;·&nbsp; <a href="#play-from-source">Run from source</a>
   &nbsp;·&nbsp; <a href="#how-its-made">How it's made</a>
 </p>
@@ -64,20 +64,23 @@ You walk your park in first person and do every job yourself at first: ring up s
 
 ## Play the build
 
-1. Download `SurfPool-…-mac.zip` from the [latest release](https://github.com/Idosiloni/surfpool/releases/latest) and unzip it.
-2. The app isn't notarized by Apple, so the first launch needs one extra step: right-click **Surf Pool.app** → **Open** → **Open**.
-   On newer macOS, if it says it can't be opened, go to **System Settings → Privacy & Security** and click **Open Anyway**.
-   If macOS says the app "is damaged", run `xattr -cr "/path/to/Surf Pool.app"` once in Terminal.
+Download the zip for your computer from the [latest release](https://github.com/Idosiloni/surfpool/releases/latest) and unzip it.
 
-Requires a Mac with Apple Silicon (M1 or newer). A Windows build is planned.
+**Mac** (`SurfPool-…-mac.zip`, Apple Silicon M1 or newer):
+the app isn't notarized by Apple, so the first launch needs one extra step: right-click **Surf Pool.app** → **Open** → **Open**.
+On newer macOS, if it says it can't be opened, go to **System Settings → Privacy & Security** and click **Open Anyway**.
+If macOS says the app "is damaged", run `xattr -cr "/path/to/Surf Pool.app"` once in Terminal.
+
+**Windows** (`SurfPool-…-windows.zip`, Windows 10/11, 64-bit):
+unzip the whole folder first, then run **Surf Pool.exe**. The game isn't signed, so Windows may show "Windows protected your PC": click **More info** → **Run anyway**.
 
 ## Play from source
 
-1. Install **Unity 6000.6.6f1** with Unity Hub (add *Mac Build Support* to build).
+1. Install **Unity 6000.6.6f1** with Unity Hub (add *Mac Build Support* / *Windows Build Support (Mono)* to build).
 2. Clone this repo and open the folder in Unity Hub.
 3. Open `Assets/_Game/Scenes/Pool.unity` and press Play.
 
-Useful editor menus live under **Surf Pool**: *Build Mac Release* builds `Builds/Mac/Surf Pool.app`, *Build Greybox Scene* regenerates the whole park scene from code, *Check Layout* validates the park layout.
+Useful editor menus live under **Surf Pool**: *Build Mac Release* / *Build Windows Release* build `Builds/Mac/Surf Pool.app` / `Builds/Windows/Surf Pool.exe`, *Build Greybox Scene* regenerates the whole park scene from code, *Check Layout* validates the park layout.
 
 ## How it's made
 
@@ -95,7 +98,7 @@ About 29,000 lines of C#, plus shaders and Python tooling, most of it built in f
 
 ## Status
 
-Playable from the first day to the story's ending, but still a prototype: expect rough edges and balance gaps. Next on the list: a Windows/Steam build, surf contests and a lessons area.
+Playable from the first day to the story's ending, but still a prototype: expect rough edges and balance gaps. Next on the list: a Steam release, surf contests and a lessons area.
 
 ## Credits & license
 
