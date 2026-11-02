@@ -84234,7 +84234,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -323280,9 +323280,7 @@ MonoBehaviour:
   - {fileID: 919132149155446097, guid: f526792a3f37246b1b54672faa354605, type: 3}
   - {fileID: 919132149155446097, guid: 268ca577130834f04a0ef7e6f2fbeba1, type: 3}
   paddleSpeed: 3
-  carveSpeed: 7
   mouseSensitivity: 0.12
-  carveAcceleration: 14
   maxCameraRoll: 10
   speedFovKick: 9
   standingBoardAhead: 0.9
@@ -354442,7 +354440,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 0
@@ -441709,7 +441707,7 @@ PrefabInstance:
       addedObject: {fileID: 1530285981}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: cb39907e8b0f24c52a9b530662ce197b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1530285980}
+      addedObject: {fileID: 1530285984}
   m_SourcePrefab: {fileID: 100100000, guid: cb39907e8b0f24c52a9b530662ce197b, type: 3}
 --- !u!4 &1530285978 stripped
 Transform:
@@ -441721,19 +441719,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: cb39907e8b0f24c52a9b530662ce197b, type: 3}
   m_PrefabInstance: {fileID: 1530285977}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1530285980
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1530285979}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 2144112531}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SurfPool.SkimmerRack
-  netOnRack: {fileID: 893810098}
 --- !u!65 &1530285981
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -441755,6 +441740,19 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.2, y: 1.4, z: 0.6}
   m_Center: {x: 0, y: 0.7, z: 0}
+--- !u!114 &1530285984
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1530285979}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ccd8d25d8784479db190fba70f145a6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SurfPool.SkimmerRack
+  netOnRack: {fileID: 893810098}
 --- !u!1 &1530584670
 GameObject:
   m_ObjectHideFlags: 0
@@ -619695,21 +619693,6 @@ Transform:
   - {fileID: 1170833429}
   m_Father: {fileID: 1188550759}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!115 &2144112531
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: SkimmerRack
-  m_Namespace: SurfPool
-  m_AssemblyName: Assembly-CSharp
 --- !u!1 &2144509540
 GameObject:
   m_ObjectHideFlags: 0
